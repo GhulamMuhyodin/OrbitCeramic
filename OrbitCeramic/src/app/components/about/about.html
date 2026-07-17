@@ -1,0 +1,21 @@
+<section class="about" id="about" aria-labelledby="about-heading">
+  <div class="about__grid">
+    <div class="about__copy" appReveal>
+      <p class="about__eyebrow">{{ content().eyebrow }}</p>
+      <h2 class="about__heading font-display" id="about-heading">{{ content().heading }}</h2>
+      @for (paragraph of content().paragraphs; track paragraph) {
+        <p class="about__text">{{ paragraph }}</p>
+      }
+    </div>
+
+    <figure class="about__figure" appReveal>
+      <img
+        [src]="content().image"
+        [alt]="content().imageAlt"
+        width="1200"
+        height="1500"
+        loading="lazy"
+      />
+    </figure>
+  </div>
+</section>

@@ -1,0 +1,12 @@
+:host {
+  display: block;
+}
+
+.home-loading {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  font-family: var(--font-body);
+  color: var(--stone-700);
+  background: var(--surface);
+}

@@ -1,0 +1,24 @@
+<section class="collections" id="collections" aria-labelledby="collections-heading">
+  <div class="collections__intro" appReveal>
+    <p class="collections__eyebrow">{{ content().eyebrow }}</p>
+    <h2 class="collections__heading font-display" id="collections-heading">
+      {{ content().heading }}
+    </h2>
+    <p class="collections__lede">{{ content().lede }}</p>
+  </div>
+
+  <div class="collections__mosaic" appReveal>
+    @for (tile of content().items; track tile.id) {
+      <a
+        class="collections__tile"
+        [class.collections__tile--wide]="tile.span === 'wide'"
+        [class.collections__tile--tall]="tile.span === 'tall'"
+        [class.collections__tile--normal]="tile.span !== 'wide' && tile.span !== 'tall'"
+        href="#bestsellers"
+      >
+        <img [src]="tile.image" [alt]="tile.alt" width="900" height="1100" loading="lazy" />
+        <span class="collections__label font-display">{{ tile.title }}</span>
+      </a>
+    }
+  </div>
+</section>

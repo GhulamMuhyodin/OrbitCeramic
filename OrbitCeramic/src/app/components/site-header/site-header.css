@@ -1,0 +1,125 @@
+:host {
+  display: block;
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  z-index: 40;
+}
+
+.site-header__inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  max-width: 1200px;
+  margin-inline: auto;
+  padding: 1.35rem 1.5rem;
+}
+
+.site-header__logo {
+  position: relative;
+  z-index: 50;
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #f3f1ee;
+  mix-blend-mode: difference;
+}
+
+.site-header__nav {
+  display: none;
+  align-items: center;
+  gap: 2rem;
+}
+
+.site-header__nav a {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #f3f1ee;
+  mix-blend-mode: difference;
+  transition: opacity 0.25s ease;
+}
+
+.site-header__nav a:hover {
+  opacity: 0.7;
+}
+
+.site-header__actions {
+  position: relative;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.site-header__cart {
+  display: grid;
+  place-items: center;
+  color: #f3f1ee;
+  mix-blend-mode: difference;
+}
+
+.site-header__menu-btn {
+  display: grid;
+  gap: 6px;
+  padding: 0.35rem;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.site-header__menu-btn span {
+  display: block;
+  width: 22px;
+  height: 1.5px;
+  background: #f3f1ee;
+  mix-blend-mode: difference;
+}
+
+@media (min-width: 768px) {
+  .site-header__nav {
+    display: flex;
+  }
+
+  .site-header__menu-btn {
+    display: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .site-header__nav {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    gap: 1.75rem;
+    background: rgba(44, 44, 44, 0.97);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transition:
+      opacity 0.3s ease,
+      visibility 0.3s ease;
+  }
+
+  .site-header__nav.is-open {
+    opacity: 1;
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  .site-header__nav a {
+    font-size: 1.25rem;
+    mix-blend-mode: normal;
+    color: #f3f1ee;
+  }
+
+  .site-header__menu-btn {
+    position: relative;
+    z-index: 50;
+  }
+}

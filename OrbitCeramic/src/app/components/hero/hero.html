@@ -1,0 +1,20 @@
+<section class="hero" id="top" aria-labelledby="hero-brand">
+  <div class="hero__media" aria-hidden="true">
+    <img
+      [src]="content().image"
+      alt=""
+      width="1800"
+      height="1200"
+      class="hero__img"
+      fetchpriority="high"
+    />
+    <div class="hero__veil"></div>
+  </div>
+
+  <div class="hero__content">
+    <p class="hero__brand font-display" id="hero-brand">{{ content().brand }}</p>
+    <h1 class="hero__title font-display">{{ content().title }}</h1>
+    <p class="hero__lede">{{ content().lede }}</p>
+    <a class="hero__cta" [href]="content().ctaHref">{{ content().ctaLabel }}</a>
+  </div>
+</section>

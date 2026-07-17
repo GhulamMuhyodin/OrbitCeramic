@@ -1,0 +1,39 @@
+<header class="site-header">
+  <div class="site-header__inner">
+    <a class="site-header__logo font-display" href="#top" (click)="closeMenu()">{{ brand() }}</a>
+
+    <nav class="site-header__nav" [class.is-open]="menuOpen()" aria-label="Primary">
+      @for (link of nav(); track link.href) {
+        <a [href]="link.href" (click)="closeMenu()">{{ link.label }}</a>
+      }
+    </nav>
+
+    <div class="site-header__actions">
+      <a class="site-header__cart" href="#bestsellers" aria-label="Cart">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+          <path
+            d="M6 6h15l-1.5 9h-12L6 6Zm0 0L5 3H2"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+          <circle cx="9" cy="20" r="1.25" fill="currentColor" />
+          <circle cx="17" cy="20" r="1.25" fill="currentColor" />
+        </svg>
+      </a>
+
+      <button
+        type="button"
+        class="site-header__menu-btn"
+        [attr.aria-expanded]="menuOpen()"
+        aria-controls="mobile-nav"
+        aria-label="Toggle menu"
+        (click)="toggleMenu()"
+      >
+        <span></span>
+        <span></span>
+      </button>
+    </div>
+  </div>
+</header>

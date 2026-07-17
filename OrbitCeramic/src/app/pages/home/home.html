@@ -1,0 +1,21 @@
+@if (content$ | async; as content) {
+  <app-site-header [brand]="content.brand" [nav]="content.nav" />
+  <main>
+    <app-hero [content]="content.hero" />
+    <app-about [content]="content.about" />
+    <app-collections [content]="content.collections" />
+    <app-video-block [content]="content.video" />
+    <app-bestsellers
+      [content]="content.bestsellers"
+      [brand]="content.brand"
+      [whatsapp]="content.contact.whatsapp"
+    />
+  </main>
+  <app-site-footer
+    [brand]="content.brand"
+    [contact]="content.contact"
+    [content]="content.footer"
+  />
+} @else {
+  <div class="home-loading" role="status">Loading Orbit Ceramic…</div>
+}

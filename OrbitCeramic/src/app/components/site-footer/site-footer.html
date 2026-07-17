@@ -1,0 +1,39 @@
+<footer class="site-footer">
+  <div class="site-footer__inner">
+    <div class="site-footer__brand">
+      <p class="site-footer__logo font-display">{{ brand() }}</p>
+      <p class="site-footer__tagline">{{ content().tagline }}</p>
+      <p class="site-footer__handle">{{ contact().instagramHandle }}</p>
+    </div>
+
+    <div class="site-footer__cols">
+      <div>
+        <p class="site-footer__label">{{ content().visitLabel }}</p>
+        <p>
+          @for (line of contact().visitLines; track line) {
+            {{ line }}<br />
+          }
+          <a [href]="'mailto:' + contact().email">{{ contact().email }}</a>
+        </p>
+      </div>
+      <div>
+        <p class="site-footer__label">{{ content().exploreLabel }}</p>
+        <nav aria-label="Footer">
+          @for (link of content().exploreLinks; track link.href) {
+            <a [href]="link.href">{{ link.label }}</a>
+          }
+        </nav>
+      </div>
+      <div>
+        <p class="site-footer__label">{{ content().followLabel }}</p>
+        <nav aria-label="Social">
+          @for (link of content().socialLinks; track link.label) {
+            <a [href]="linkFor(link.hrefKey)" target="_blank" rel="noopener">{{ link.label }}</a>
+          }
+        </nav>
+      </div>
+    </div>
+  </div>
+
+  <p class="site-footer__copy">© {{ year }} {{ brand() }}. {{ content().copyright }}</p>
+</footer>
