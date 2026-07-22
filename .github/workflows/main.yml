@@ -26,5 +26,5 @@ jobs:
           server: ftp://185.224.137.128
           username: u948222984
           password: 7hidSH$BE&=Fn@R
-          local-dir: dist/OrbitCeramic/browser
+          local-dir: dist/OrbitCeramic/browser/
           server-dir: public_html/
