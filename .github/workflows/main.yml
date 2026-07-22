@@ -23,7 +23,7 @@ jobs:
 
       - uses: SamKirkland/FTP-Deploy-Action@v4.3.5
         with:
-          server: ftp://185.224.137.128
+          server: 185.224.137.128
           username: u948222984
           password: 7hidSH$BE&=Fn@R
           local-dir: dist/OrbitCeramic/browser/
