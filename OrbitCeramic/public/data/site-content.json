@@ -1,18 +1,17 @@
 {
   "brand": "Orbit Ceramic",
   "contact": {
-    "whatsapp": "923001234567",
+    "whatsapp": "92303227987366",
     "email": "hello@orbitceramic.studio",
     "instagram": "https://instagram.com/orbitceramic",
     "instagramHandle": "@orbitceramic",
-    "visitLines": ["12 Kiln Lane", "Studio Loft B"],
-    "website": "https://orbitceramic.studio"
+    "visitLines": ["Anarkali", "Lahore"]
   },
   "nav": [
-    { "label": "About", "href": "#about" },
     { "label": "Collections", "href": "#collections" },
     { "label": "Studio", "href": "#video" },
-    { "label": "Shop", "href": "#bestsellers" }
+    { "label": "Shop", "href": "#bestsellers" },
+    { "label": "About", "href": "#about" }
   ],
   "hero": {
     "image": "/images/hero/hero-01.jpg",
