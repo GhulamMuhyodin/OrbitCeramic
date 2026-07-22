@@ -1,0 +1,30 @@
+name: Deploy Angular to Hostinger
+
+on:
+  push:
+    branches:
+      - prod
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm i
+
+      - run: npm run build
+
+      - uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ftp://185.224.137.128
+          username: u948222984
+          password: 7hidSH$BE&=Fn@R
+          local-dir: dist/OrbitCeramic/browser
+          server-dir: public_html/
