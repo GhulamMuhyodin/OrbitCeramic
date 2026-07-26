@@ -1,13 +1,7 @@
 name: Deploy Angular to Hostinger
 
-# Branch → website mapping
-#   prod → LIVE → https://mediumvioletred-trout-528447.hostingersite.com
-#                → domains/mediumvioletred-trout-528447.hostingersite.com/public_html/
-#   uat  → UAT  → https://uat.orbitceramic.studio
-#                → domains/uat.orbitceramic.studio/public_html/
-#
-# Build  → dist/OrbitCeramic/browser/  (ready website)
-# Upload → that branch's public_html   (1:1 copy)
+# prod → domains/mediumvioletred-trout-528447.hostingersite.com/public_html/
+# uat  → domains/uat.orbitceramic.studio/public_html/
 on:
   push:
     branches:
@@ -27,75 +21,39 @@ jobs:
           node-version: 24
           cache: npm
 
-      - name: Choose website target from branch
+      - name: Set deploy target
         id: target
         run: |
-          BRANCH="${{ github.ref_name }}"
-          case "$BRANCH" in
+          case "${{ github.ref_name }}" in
             prod)
-              echo "site=LIVE" >> "$GITHUB_OUTPUT"
-              echo "label=Production (live website)" >> "$GITHUB_OUTPUT"
-              echo "domain=https://mediumvioletred-trout-528447.hostingersite.com" >> "$GITHUB_OUTPUT"
-              # CORRECT:   domains/mediumvioletred-trout-528447.hostingersite.com/public_html/
-              # WRONG:     public_html/domains/.../public_html/  (do not nest under public_html)
-              # FTP login root must be the hosting account home (where "domains" folder lives).
-              echo "dir=domains/mediumvioletred-trout-528447.hostingersite.com/public_html/" >> "$GITHUB_OUTPUT"
+              SITE=LIVE
+              DOMAIN=https://mediumvioletred-trout-528447.hostingersite.com
+              DIR=domains/mediumvioletred-trout-528447.hostingersite.com/public_html/
               ;;
             uat)
-              echo "site=UAT" >> "$GITHUB_OUTPUT"
-              echo "label=UAT (staging website)" >> "$GITHUB_OUTPUT"
-              echo "domain=https://uat.orbitceramic.studio" >> "$GITHUB_OUTPUT"
-              echo "dir=domains/uat.orbitceramic.studio/public_html/" >> "$GITHUB_OUTPUT"
+              SITE=UAT
+              DOMAIN=https://uat.orbitceramic.studio
+              DIR=domains/uat.orbitceramic.studio/public_html/
               ;;
             *)
-              echo "Unsupported branch: $BRANCH"
+              echo "Unsupported branch: ${{ github.ref_name }}"
               exit 1
               ;;
           esac
+          echo "site=$SITE" >> "$GITHUB_OUTPUT"
+          echo "domain=$DOMAIN" >> "$GITHUB_OUTPUT"
+          echo "dir=$DIR" >> "$GITHUB_OUTPUT"
+          echo "Deploy ${{ github.ref_name }} ($SITE) → $DIR"
 
-      - name: Show deploy identity
+      - name: Install & build
         run: |
-          echo "============================================================"
-          echo "Branch  : ${{ github.ref_name }}"
-          echo "Site    : ${{ steps.target.outputs.site }}"
-          echo "Label   : ${{ steps.target.outputs.label }}"
-          echo "Domain  : ${{ steps.target.outputs.domain }}"
-          echo "FTP dir : ${{ steps.target.outputs.dir }}"
-          echo "============================================================"
+          npm ci
+          npm run build
+          test -f dist/OrbitCeramic/browser/index.html
+          test -f dist/OrbitCeramic/browser/.htaccess
+          echo "Build OK — $(find dist/OrbitCeramic/browser -type f | wc -l) files → ${{ steps.target.outputs.site }} (${{ steps.target.outputs.domain }})"
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Build production website
-        run: npm run build
-
-      - name: Verify website root is ready
-        run: |
-          ROOT="dist/OrbitCeramic/browser"
-          test -f "$ROOT/index.html"
-          test -f "$ROOT/.htaccess"
-          echo "Website root ($ROOT):"
-          ls -la "$ROOT"
-
-      - name: List files copying into website folder
-        run: |
-          TARGET="${{ steps.target.outputs.dir }}"
-          echo "============================================================"
-          echo "SOURCE : dist/OrbitCeramic/browser/"
-          echo "TARGET : $TARGET"
-          echo "Site   : ${{ steps.target.outputs.site }} (${{ github.ref_name }})"
-          echo "Domain : ${{ steps.target.outputs.domain }}"
-          echo "============================================================"
-          cd dist/OrbitCeramic/browser
-          find . -type f | sed 's|^\./||' | sort | while read -r file; do
-            echo "  $file  ->  ${TARGET}${file}"
-          done
-          echo "------------------------------------------------------------"
-          echo "Total files: $(find . -type f | wc -l)"
-          echo "Open site  : ${{ steps.target.outputs.domain }}"
-          echo "============================================================"
-
-      - name: Copy website to Hostinger (${{ steps.target.outputs.site }})
+      - name: Upload to Hostinger
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: 185.224.137.128
@@ -109,4 +67,4 @@ jobs:
             **/.git*/**
             **/node_modules/**
             **/cgi-bin/**
-          log-level: verbose
+          log-level: minimal
