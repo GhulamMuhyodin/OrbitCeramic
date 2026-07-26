@@ -1,0 +1,92 @@
+/* Batch motion — celebration burst + lightbox/celebrate fades */
+
+.batch-reveal {
+  animation: batch-reveal 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.batch-celebrate {
+  animation: lightbox-fade 0.35s ease;
+}
+
+.batch-celebrate-panel {
+  animation: celebrate-rise 0.7s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.batch-celebrate-burst span {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.55rem;
+  height: 0.55rem;
+  background: var(--color-clay-deep, #9a8f82);
+  opacity: 0;
+  animation: burst-fly 1.4s ease-out forwards;
+  animation-delay: calc(var(--i) * 0.05s);
+  transform: translate(-50%, -50%) rotate(calc(var(--i) * 30deg)) translateY(0);
+}
+
+.batch-celebrate-burst span:nth-child(odd) {
+  background: #f3f1ee;
+  width: 0.4rem;
+  height: 0.4rem;
+}
+
+.batch-lightbox {
+  animation: lightbox-fade 0.25s ease;
+}
+
+@keyframes lightbox-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes batch-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes celebrate-rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes burst-fly {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) rotate(calc(var(--i) * 30deg)) translateY(0) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(calc(var(--i) * 30deg)) translateY(-42vh) scale(0.4);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .batch-reveal,
+  .batch-celebrate,
+  .batch-celebrate-panel,
+  .batch-celebrate-burst span,
+  .batch-lightbox {
+    animation: none;
+  }
+
+  .batch-celebrate-burst span {
+    opacity: 0;
+  }
+}

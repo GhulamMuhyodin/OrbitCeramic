@@ -1,4 +1,5 @@
 import { Component, input } from '@angular/core';
+import { RouterLink } from '@angular/router';
 import {
   ContactInfo,
   FooterContent,
@@ -7,8 +8,9 @@ import {
 
 @Component({
   selector: 'app-site-footer',
+  imports: [RouterLink],
+  host: { class: 'block' },
   templateUrl: './site-footer.html',
-  styleUrl: './site-footer.css',
 })
 export class SiteFooter {
   readonly brand = input.required<string>();

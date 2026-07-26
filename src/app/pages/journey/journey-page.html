@@ -1,0 +1,18 @@
+@if (content$ | async; as content) {
+  <app-site-header [brand]="content.brand" [nav]="content.nav" [overlay]="false" />
+  <main>
+    <app-journey [content]="content.journey" [cards]="content.journeyCards" />
+  </main>
+  <app-site-footer
+    [brand]="content.brand"
+    [contact]="content.contact"
+    [content]="content.footer"
+  />
+} @else {
+  <div
+    class="grid min-h-[50dvh] place-items-center p-8 text-[0.95rem] tracking-wide text-muted"
+    role="status"
+  >
+    Loading journey…
+  </div>
+}

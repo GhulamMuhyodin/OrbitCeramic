@@ -1,20 +1,43 @@
-<section class="hero" id="top" aria-labelledby="hero-brand">
-  <div class="hero__media" aria-hidden="true">
+<section
+  class="relative grid min-h-dvh items-end overflow-hidden bg-stone-900"
+  aria-labelledby="hero-brand"
+>
+  <div class="absolute inset-0" aria-hidden="true">
     <img
       [src]="content().image"
       alt=""
       width="1800"
       height="1200"
-      class="hero__img"
+      class="hero-img h-full w-full object-cover object-center"
       fetchpriority="high"
     />
-    <div class="hero__veil"></div>
+    <div
+      class="absolute inset-0 bg-[linear-gradient(180deg,rgba(26,26,26,0.35)_0%,rgba(26,26,26,0.15)_40%,rgba(26,26,26,0.72)_100%),linear-gradient(90deg,rgba(26,26,26,0.45)_0%,transparent_55%)]"
+    ></div>
   </div>
 
-  <div class="hero__content">
-    <p class="hero__brand font-display" id="hero-brand">{{ content().brand }}</p>
-    <h1 class="hero__title font-display">{{ content().title }}</h1>
-    <p class="hero__lede">{{ content().lede }}</p>
-    <a class="hero__cta" [href]="content().ctaHref">{{ content().ctaLabel }}</a>
+  <div
+    class="relative z-[1] mx-auto w-full max-w-[1200px] px-6 pt-[6.5rem] pb-[4.5rem] text-surface"
+  >
+    <p class="hero-rise brand-mark brand-mark--hero mb-4 text-surface" id="hero-brand">
+      <span class="brand-mark__orbit">{{ content().brandPrimary }}</span>
+      <span class="brand-mark__ceramic">{{ content().brandSecondary }}</span>
+    </p>
+    <h1
+      class="hero-rise hero-rise-delay-1 mb-4 max-w-[16ch] font-display text-[clamp(1.35rem,2.4vw,1.85rem)] font-medium leading-[1.25] tracking-[0.01em]"
+    >
+      {{ content().title }}
+    </h1>
+    <p
+      class="hero-rise hero-rise-delay-2 mb-8 max-w-[34ch] text-base leading-[1.6] text-surface/82"
+    >
+      {{ content().lede }}
+    </p>
+    <a
+      class="hero-rise hero-rise-delay-3 inline-flex items-center border border-surface/55 px-6 py-3.5 text-[0.8125rem] font-medium tracking-[0.1em] uppercase transition-[background,color,border-color] duration-300 hover:border-surface hover:bg-surface hover:text-stone-900"
+      [routerLink]="content().ctaHref"
+    >
+      {{ content().ctaLabel }}
+    </a>
   </div>
 </section>
