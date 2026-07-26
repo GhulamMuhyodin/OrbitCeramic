@@ -31,6 +31,23 @@ jobs:
           echo "Build output ready:"
           ls -la dist/OrbitCeramic/browser
 
+      - name: List files that will copy into public_html
+        run: |
+          echo "============================================================"
+          echo "SOURCE : dist/OrbitCeramic/browser/"
+          echo "TARGET : public_html/"
+          echo "============================================================"
+          echo ""
+          echo "Each line = file copied to Hostinger public_html:"
+          echo ""
+          cd dist/OrbitCeramic/browser
+          find . -type f | sed 's|^\./||' | sort | while read -r file; do
+            echo "  $file  ->  public_html/$file"
+          done
+          echo ""
+          echo "Total files: $(find . -type f | wc -l)"
+          echo "============================================================"
+
       - name: Upload build to public_html
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
@@ -50,4 +67,5 @@ jobs:
             **/node_modules/**
             **/.htaccess
             **/cgi-bin/**
-          log-level: standard
+          # Shows creating/replacing/deleting for every file in the Action log
+          log-level: verbose
