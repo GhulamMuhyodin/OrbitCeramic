@@ -1,8 +1,10 @@
 name: Deploy Angular to Hostinger
 
 # Branch → website mapping
-#   prod → LIVE → https://orbitceramic.studio          → public_html/
-#   uat  → UAT  → https://uat.orbitceramic.studio      → domains/uat.orbitceramic.studio/public_html/
+#   prod → LIVE → https://mediumvioletred-trout-528447.hostingersite.com
+#                → domains/mediumvioletred-trout-528447.hostingersite.com/public_html/
+#   uat  → UAT  → https://uat.orbitceramic.studio
+#                → domains/uat.orbitceramic.studio/public_html/
 #
 # Build  → dist/OrbitCeramic/browser/  (ready website)
 # Upload → that branch's public_html   (1:1 copy)
@@ -33,9 +35,8 @@ jobs:
             prod)
               echo "site=LIVE" >> "$GITHUB_OUTPUT"
               echo "label=Production (live website)" >> "$GITHUB_OUTPUT"
-              echo "domain=https://orbitceramic.studio" >> "$GITHUB_OUTPUT"
-              # Main domain website root on Hostinger
-              echo "dir=public_html/" >> "$GITHUB_OUTPUT"
+              echo "domain=https://mediumvioletred-trout-528447.hostingersite.com" >> "$GITHUB_OUTPUT"
+              echo "dir=domains/mediumvioletred-trout-528447.hostingersite.com/public_html/" >> "$GITHUB_OUTPUT"
               ;;
             uat)
               echo "site=UAT" >> "$GITHUB_OUTPUT"
