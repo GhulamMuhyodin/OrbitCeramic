@@ -32,7 +32,7 @@ jobs:
           ls -la dist/OrbitCeramic/browser
 
       - name: Upload build to public_html
-        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           # Host only — do not include ftp://
           server: 185.224.137.128
@@ -40,7 +40,14 @@ jobs:
           # Quote password: unquoted & breaks YAML
           password: "7hidSH$BE&=Fn@R"
           local-dir: dist/OrbitCeramic/browser/
-          # If File Manager shows files under public_html/public_html/,
-          # change this to ./  (FTP account already starts in public_html)
+          # If files land in public_html/public_html/, change this to ./
           server-dir: public_html/
+          # Wipe server-dir then upload fresh build (forces full replace)
+          dangerous-clean-slate: true
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/node_modules/**
+            **/.htaccess
+            **/cgi-bin/**
           log-level: standard
