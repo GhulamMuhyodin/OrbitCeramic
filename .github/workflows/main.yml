@@ -36,13 +36,15 @@ jobs:
               echo "site=LIVE" >> "$GITHUB_OUTPUT"
               echo "label=Production (live website)" >> "$GITHUB_OUTPUT"
               echo "domain=https://mediumvioletred-trout-528447.hostingersite.com" >> "$GITHUB_OUTPUT"
+              # CORRECT:   domains/mediumvioletred-trout-528447.hostingersite.com/public_html/
+              # WRONG:     public_html/domains/.../public_html/  (do not nest under public_html)
+              # FTP login root must be the hosting account home (where "domains" folder lives).
               echo "dir=domains/mediumvioletred-trout-528447.hostingersite.com/public_html/" >> "$GITHUB_OUTPUT"
               ;;
             uat)
               echo "site=UAT" >> "$GITHUB_OUTPUT"
               echo "label=UAT (staging website)" >> "$GITHUB_OUTPUT"
               echo "domain=https://uat.orbitceramic.studio" >> "$GITHUB_OUTPUT"
-              # Change this path if Hostinger File Manager shows a different UAT folder
               echo "dir=domains/uat.orbitceramic.studio/public_html/" >> "$GITHUB_OUTPUT"
               ;;
             *)
