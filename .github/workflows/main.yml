@@ -60,7 +60,7 @@ jobs:
           username: u948222984
           password: "7hidSH$BE&=Fn@R"
           local-dir: dist/OrbitCeramic/browser/
-          server-dir: ${{ steps.target.outputs.dir }}
+          server-dir: domains/mediumvioletred-trout-528447.hostingersite.com/public_html/
           dangerous-clean-slate: true
           exclude: |
             **/.git*
