@@ -1,17 +1,21 @@
 name: Deploy Angular to Hostinger
 
-# Website deploy:
-#   Build  → dist/OrbitCeramic/browser/   (full ready website)
-#   Upload → public_html/                 (same structure, site root)
-# Example: browser/index.html → public_html/index.html
+# Branch → website mapping
+#   prod → LIVE → https://orbitceramic.studio          → public_html/
+#   uat  → UAT  → https://uat.orbitceramic.studio      → domains/uat.orbitceramic.studio/public_html/
+#
+# Build  → dist/OrbitCeramic/browser/  (ready website)
+# Upload → that branch's public_html   (1:1 copy)
 on:
   push:
     branches:
       - prod
+      - uat
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
+    name: Deploy ${{ github.ref_name }}
 
     steps:
       - uses: actions/checkout@v4
@@ -20,6 +24,41 @@ jobs:
         with:
           node-version: 24
           cache: npm
+
+      - name: Choose website target from branch
+        id: target
+        run: |
+          BRANCH="${{ github.ref_name }}"
+          case "$BRANCH" in
+            prod)
+              echo "site=LIVE" >> "$GITHUB_OUTPUT"
+              echo "label=Production (live website)" >> "$GITHUB_OUTPUT"
+              echo "domain=https://orbitceramic.studio" >> "$GITHUB_OUTPUT"
+              # Main domain website root on Hostinger
+              echo "dir=public_html/" >> "$GITHUB_OUTPUT"
+              ;;
+            uat)
+              echo "site=UAT" >> "$GITHUB_OUTPUT"
+              echo "label=UAT (staging website)" >> "$GITHUB_OUTPUT"
+              echo "domain=https://uat.orbitceramic.studio" >> "$GITHUB_OUTPUT"
+              # Change this path if Hostinger File Manager shows a different UAT folder
+              echo "dir=domains/uat.orbitceramic.studio/public_html/" >> "$GITHUB_OUTPUT"
+              ;;
+            *)
+              echo "Unsupported branch: $BRANCH"
+              exit 1
+              ;;
+          esac
+
+      - name: Show deploy identity
+        run: |
+          echo "============================================================"
+          echo "Branch  : ${{ github.ref_name }}"
+          echo "Site    : ${{ steps.target.outputs.site }}"
+          echo "Label   : ${{ steps.target.outputs.label }}"
+          echo "Domain  : ${{ steps.target.outputs.domain }}"
+          echo "FTP dir : ${{ steps.target.outputs.dir }}"
+          echo "============================================================"
 
       - name: Install dependencies
         run: npm ci
@@ -35,32 +74,32 @@ jobs:
           echo "Website root ($ROOT):"
           ls -la "$ROOT"
 
-      - name: List files copying into public_html (website root)
+      - name: List files copying into website folder
         run: |
+          TARGET="${{ steps.target.outputs.dir }}"
           echo "============================================================"
-          echo "Created website folder : dist/OrbitCeramic/browser/"
-          echo "Hostinger website root : public_html/"
-          echo "Structure is copied 1:1 (same folders and file names)."
+          echo "SOURCE : dist/OrbitCeramic/browser/"
+          echo "TARGET : $TARGET"
+          echo "Site   : ${{ steps.target.outputs.site }} (${{ github.ref_name }})"
+          echo "Domain : ${{ steps.target.outputs.domain }}"
           echo "============================================================"
           cd dist/OrbitCeramic/browser
           find . -type f | sed 's|^\./||' | sort | while read -r file; do
-            echo "  $file  ->  public_html/$file"
+            echo "  $file  ->  ${TARGET}${file}"
           done
           echo "------------------------------------------------------------"
           echo "Total files: $(find . -type f | wc -l)"
+          echo "Open site  : ${{ steps.target.outputs.domain }}"
           echo "============================================================"
 
-      - name: Copy website into public_html
+      - name: Copy website to Hostinger (${{ steps.target.outputs.site }})
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
           server: 185.224.137.128
           username: u948222984
           password: "7hidSH$BE&=Fn@R"
-          # Ready website folder from Angular build
           local-dir: dist/OrbitCeramic/browser/
-          # Hostinger site root — must match File Manager public_html
-          server-dir: public_html/
-          # Always refresh public_html with the new website build
+          server-dir: ${{ steps.target.outputs.dir }}
           dangerous-clean-slate: true
           exclude: |
             **/.git*
