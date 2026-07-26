@@ -1,21 +1,43 @@
-<section class="about" id="about" aria-labelledby="about-heading">
-  <div class="about__grid">
-    <div class="about__copy" appReveal>
-      <p class="about__eyebrow">{{ content().eyebrow }}</p>
-      <h2 class="about__heading font-display" id="about-heading">{{ content().heading }}</h2>
+<section
+  class="bg-surface px-[clamp(1rem,4vw,1.5rem)] py-[clamp(3rem,8vw,7.5rem)]"
+  aria-labelledby="about-heading"
+>
+  <div
+    class="mx-auto grid w-full max-w-[1200px] items-center gap-[clamp(2rem,5vw,5rem)] md:grid-cols-2 min-[900px]:grid-cols-[1fr_1.05fr]"
+  >
+    <div class="min-w-0 w-full" appReveal>
+      <p
+        class="mb-[clamp(0.75rem,2vw,0.875rem)] text-[clamp(0.7rem,1.6vw,0.75rem)] font-medium tracking-[0.14em] text-stone-500 uppercase"
+      >
+        {{ content().eyebrow }}
+      </p>
+      <h2
+        class="font-display mb-[clamp(1rem,3vw,1.5rem)] w-full max-w-none text-[clamp(1.75rem,5.5vw,3.5rem)] font-medium tracking-[-0.02em] text-stone-900 md:max-w-[14ch]"
+        id="about-heading"
+      >
+        {{ content().heading }}
+      </h2>
       @for (paragraph of content().paragraphs; track paragraph) {
-        <p class="about__text">{{ paragraph }}</p>
+        <p
+          class="mb-[clamp(0.85rem,2.5vw,1.1rem)] w-full max-w-none text-[clamp(0.95rem,2.2vw,1.1rem)] leading-[1.7] text-stone-700 last:mb-0 md:max-w-[42ch] lg:max-w-[48ch]"
+        >
+          {{ paragraph }}
+        </p>
       }
     </div>
 
-    <figure class="about__figure" appReveal>
-      <img
-        [src]="content().image"
-        [alt]="content().imageAlt"
-        width="1200"
-        height="1500"
-        loading="lazy"
-      />
+    <figure class="m-0 w-full min-w-0 overflow-hidden" appReveal>
+      <picture>
+        <source srcset="/images/about/about-01.webp" type="image/webp" />
+        <img
+          class="aspect-4/5 w-full max-w-full object-cover"
+          [src]="content().image"
+          [alt]="content().imageAlt"
+          width="1200"
+          height="1500"
+          loading="lazy"
+        />
+      </picture>
     </figure>
   </div>
 </section>

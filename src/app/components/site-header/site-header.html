@@ -1,39 +1,84 @@
-<header class="site-header">
-  <div class="site-header__inner">
-    <a class="site-header__logo font-display" href="#top" (click)="closeMenu()">{{ brand() }}</a>
+<!-- Bar only is positioned; mobile overlay stays a viewport-fixed sibling -->
+<div
+  class="inset-x-0 top-0 z-[70]"
+  [class.absolute]="overlay() && !menuOpen()"
+  [class.sticky]="!overlay() || menuOpen()"
+  [class.bg-surface]="!overlay() || menuOpen()"
+  [class.border-b]="!overlay() || menuOpen()"
+  [class.border-stone-900/8]="!overlay() || menuOpen()"
+>
+  <div
+    class="relative z-50 mx-auto flex w-full max-w-[1200px] items-center justify-between gap-4 px-5 py-[1.35rem] md:grid md:grid-cols-[1fr_auto_1fr] md:gap-6 md:px-6"
+  >
+    <a
+      routerLink="/"
+      (click)="closeMenu()"
+      class="brand-mark brand-mark--header relative z-[1] min-w-0 flex-[0_1_auto]"
+      [class.text-surface]="overlay() && !menuOpen()"
+      [class.text-stone-900]="!overlay() || menuOpen()"
+      [class.mix-blend-difference]="overlay() && !menuOpen()"
+      [class.mix-blend-normal]="!overlay() || menuOpen()"
+      aria-label="Orbit Ceramic"
+    >
+      <span class="brand-mark__orbit">Orbit</span>
+      <span class="brand-mark__ceramic">Ceramic</span>
+    </a>
 
-    <nav class="site-header__nav" [class.is-open]="menuOpen()" aria-label="Primary">
+    <nav class="hidden items-center gap-8 md:flex" aria-label="Primary">
       @for (link of nav(); track link.href) {
-        <a [href]="link.href" (click)="closeMenu()">{{ link.label }}</a>
+        <a
+          [routerLink]="link.href"
+          routerLinkActive="opacity-70"
+          [routerLinkActiveOptions]="{ exact: link.href === '/' }"
+          class="text-[0.8125rem] font-medium tracking-[0.08em] uppercase transition-opacity duration-250 hover:opacity-70"
+          [class.text-surface]="overlay()"
+          [class.text-stone-900]="!overlay()"
+          [class.mix-blend-difference]="overlay()"
+          [class.mix-blend-normal]="!overlay()"
+        >
+          {{ link.label }}
+        </a>
       }
     </nav>
 
-    <div class="site-header__actions">
-      <a class="site-header__cart" href="#bestsellers" aria-label="Cart">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-          <path
-            d="M6 6h15l-1.5 9h-12L6 6Zm0 0L5 3H2"
-            stroke="currentColor"
-            stroke-width="1.5"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
-          <circle cx="9" cy="20" r="1.25" fill="currentColor" />
-          <circle cx="17" cy="20" r="1.25" fill="currentColor" />
-        </svg>
-      </a>
-
+    <div class="relative z-[1] ms-auto flex flex-none items-center justify-end md:ms-0">
       <button
         type="button"
-        class="site-header__menu-btn"
+        class="grid h-10 w-10 cursor-pointer place-content-center gap-1.5 border-0 bg-transparent p-0 md:hidden"
         [attr.aria-expanded]="menuOpen()"
         aria-controls="mobile-nav"
-        aria-label="Toggle menu"
+        [attr.aria-label]="menuOpen() ? 'Close menu' : 'Open menu'"
         (click)="toggleMenu()"
       >
-        <span></span>
-        <span></span>
+        <span
+          class="block h-[1.5px] w-[22px] origin-center transition-[transform,background-color] duration-250"
+          [ngClass]="menuBarClass(true)"
+        ></span>
+        <span
+          class="block h-[1.5px] w-[22px] origin-center transition-[transform,background-color] duration-250"
+          [ngClass]="menuBarClass(false)"
+        ></span>
       </button>
     </div>
   </div>
-</header>
+</div>
+
+@if (menuOpen()) {
+  <nav
+    id="mobile-nav"
+    class="fixed inset-0 z-[60] flex flex-col items-center justify-center gap-7 bg-stone-900 px-6 pt-20 pb-8 md:hidden"
+    aria-label="Mobile"
+  >
+    @for (link of nav(); track link.href) {
+      <a
+        [routerLink]="link.href"
+        routerLinkActive="opacity-70"
+        [routerLinkActiveOptions]="{ exact: link.href === '/' }"
+        (click)="closeMenu()"
+        class="text-xl font-medium tracking-[0.08em] text-surface uppercase"
+      >
+        {{ link.label }}
+      </a>
+    }
+  </nav>
+}

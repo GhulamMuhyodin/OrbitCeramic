@@ -1,24 +1,231 @@
-<section class="collections" id="collections" aria-labelledby="collections-heading">
-  <div class="collections__intro" appReveal>
-    <p class="collections__eyebrow">{{ content().eyebrow }}</p>
-    <h2 class="collections__heading font-display" id="collections-heading">
+<section
+  class="bg-stone-900 px-6 pt-[clamp(4rem,9vw,6.5rem)] pb-[clamp(5rem,10vw,7rem)] text-surface"
+  aria-labelledby="collections-heading"
+>
+  <div class="mx-auto mb-11 max-w-[1200px]">
+    <p class="mb-3 text-xs font-medium tracking-[0.14em] text-stone-300 uppercase">
+      {{ content().eyebrow }}
+    </p>
+    <h2
+      class="font-display mb-4 max-w-[16ch] text-[clamp(2.25rem,4.5vw,3.35rem)] font-medium leading-[1.05] tracking-[-0.02em]"
+      id="collections-heading"
+    >
       {{ content().heading }}
     </h2>
-    <p class="collections__lede">{{ content().lede }}</p>
-  </div>
-
-  <div class="collections__mosaic" appReveal>
-    @for (tile of content().items; track tile.id) {
-      <a
-        class="collections__tile"
-        [class.collections__tile--wide]="tile.span === 'wide'"
-        [class.collections__tile--tall]="tile.span === 'tall'"
-        [class.collections__tile--normal]="tile.span !== 'wide' && tile.span !== 'tall'"
-        href="#bestsellers"
-      >
-        <img [src]="tile.image" [alt]="tile.alt" width="900" height="1100" loading="lazy" />
-        <span class="collections__label font-display">{{ tile.title }}</span>
-      </a>
+    <p class="mb-5 max-w-[44ch] text-[1.05rem] leading-[1.65] text-surface/70">
+      {{ content().lede }}
+    </p>
+    @if (!isEmpty()) {
+      <p class="m-0 max-w-[48ch] text-[0.95rem] leading-[1.6] text-surface/80">
+        {{ content().customNote }}
+      </p>
     }
   </div>
+
+  @if (isEmpty()) {
+    <div
+      class="mx-auto mt-4 grid max-w-md justify-items-center gap-4 px-5 pt-10 pb-4 text-center"
+      role="status"
+    >
+      <div class="grid h-[5.5rem] w-[5.5rem] place-items-center text-stone-300" aria-hidden="true">
+        <svg width="72" height="72" viewBox="0 0 72 72" fill="none">
+          <circle cx="36" cy="36" r="34" stroke="currentColor" stroke-width="1.5" opacity="0.35" />
+          <path
+            d="M22 44c2.5-10 8-18 14-18s11.5 8 14 18"
+            stroke="currentColor"
+            stroke-width="1.75"
+            stroke-linecap="round"
+          />
+          <path d="M28 44h16" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" />
+          <path
+            d="M36 18v6M36 48v6M18 36h6M48 36h6"
+            stroke="currentColor"
+            stroke-width="1.5"
+            stroke-linecap="round"
+            opacity="0.55"
+          />
+          <circle cx="36" cy="36" r="3" fill="currentColor" opacity="0.7" />
+        </svg>
+      </div>
+      <h3 class="font-display m-0 text-[clamp(1.5rem,3vw,2rem)] font-medium leading-[1.15] text-surface">
+        {{ content().emptyTitle }}
+      </h3>
+      <p class="m-0 text-[0.95rem] leading-[1.6] text-surface/70">{{ content().emptyLede }}</p>
+      <a
+        class="inline-flex items-center justify-center border border-surface/55 bg-surface px-[1.15rem] py-3 text-xs font-semibold tracking-[0.1em] text-stone-900 uppercase transition-[background,color] duration-250 hover:bg-transparent hover:text-surface"
+        routerLink="/batch"
+        >{{ content().emptyCtaLabel }}</a
+      >
+    </div>
+  } @else {
+    <div class="mx-auto grid max-w-[1200px] gap-5">
+      @for (folder of folders(); track folder.batch.id) {
+        <section class="border border-surface/15 bg-stone-950/35">
+          <button
+            type="button"
+            class="flex w-full cursor-pointer flex-wrap items-baseline gap-x-4 gap-y-2.5 border-0 bg-transparent px-[1.15rem] py-4 text-left text-surface hover:bg-surface/5"
+            [attr.aria-expanded]="isOpen(folder.batch.id)"
+            (click)="toggleFolder(folder.batch.id)"
+          >
+            <span class="text-[0.85rem] text-stone-300" aria-hidden="true">
+              @if (isOpen(folder.batch.id)) {
+                ▾
+              } @else {
+                ▸
+              }
+            </span>
+            <span class="font-display text-[clamp(1.35rem,2.5vw,1.75rem)] font-medium">{{
+              folder.batch.label
+            }}</span>
+            <span
+              class="ms-auto text-[0.7rem] font-semibold tracking-[0.1em] text-stone-300 uppercase"
+            >
+              {{ folder.products.length }}
+              piece{{ folder.products.length === 1 ? '' : 's' }}
+              @if (folder.batch.soldOut) {
+                · {{ content().outOfStockLabel }}
+              }
+            </span>
+          </button>
+
+          @if (isOpen(folder.batch.id)) {
+            <div
+              class="grid grid-cols-1 gap-x-5 gap-y-8 px-[1.15rem] pb-6 sm:grid-cols-2 min-[980px]:gap-x-7 min-[980px]:gap-y-10"
+            >
+              @for (product of folder.products; track product.id) {
+                <article class="group flex flex-col gap-[0.95rem]">
+                  <div class="relative overflow-hidden bg-stone-700">
+                    <img
+                      class="aspect-4/5 w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+                      [src]="product.images[photoIndex(product.id)]"
+                      [alt]="product.alt + ' — photo ' + (photoIndex(product.id) + 1)"
+                      width="800"
+                      height="1000"
+                      loading="lazy"
+                    />
+                    @if (isUnavailable(folder.batch, product)) {
+                      <span
+                        class="absolute top-3.5 left-3.5 z-[2] border border-surface/30 bg-stone-950/80 px-2.5 py-1.5 text-[0.65rem] font-semibold tracking-[0.12em] uppercase"
+                      >
+                        {{ content().outOfStockLabel }}
+                      </span>
+                    }
+                    @if (product.images.length > 1) {
+                      <button
+                        type="button"
+                        class="absolute top-1/2 left-2.5 z-[2] grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border-0 bg-surface/90 text-[1.35rem] leading-none text-stone-900"
+                        (click)="prevPhoto(product, $event)"
+                        [attr.aria-label]="'Previous photo of ' + product.name"
+                      >
+                        ‹
+                      </button>
+                      <button
+                        type="button"
+                        class="absolute top-1/2 right-2.5 z-[2] grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border-0 bg-surface/90 text-[1.35rem] leading-none text-stone-900"
+                        (click)="nextPhoto(product, $event)"
+                        [attr.aria-label]="'Next photo of ' + product.name"
+                      >
+                        ›
+                      </button>
+                      <div class="absolute inset-x-0 bottom-3 z-[2] flex justify-center gap-1.5">
+                        @for (image of product.images; track image; let i = $index) {
+                          <button
+                            type="button"
+                            class="h-[0.45rem] w-[0.45rem] cursor-pointer rounded-full border-0 p-0"
+                            [class.bg-surface]="photoIndex(product.id) === i"
+                            [class.bg-surface/45]="photoIndex(product.id) !== i"
+                            (click)="setPhoto(product.id, i, $event)"
+                            [attr.aria-label]="'Show photo ' + (i + 1)"
+                          ></button>
+                        }
+                      </div>
+                    }
+                  </div>
+
+                  @if (product.images.length > 1) {
+                    <div class="flex gap-2 overflow-x-auto">
+                      @for (image of product.images; track image; let i = $index) {
+                        <button
+                          type="button"
+                          class="w-16 flex-none cursor-pointer border-2 bg-transparent p-0"
+                          [class.border-surface]="photoIndex(product.id) === i"
+                          [class.border-transparent]="photoIndex(product.id) !== i"
+                          [class.opacity-100]="photoIndex(product.id) === i"
+                          [class.opacity-60]="photoIndex(product.id) !== i"
+                          (click)="setPhoto(product.id, i)"
+                        >
+                          <img
+                            class="aspect-square w-full object-cover"
+                            [src]="image"
+                            [alt]="product.name + ' angle ' + (i + 1)"
+                            width="128"
+                            height="128"
+                            loading="lazy"
+                          />
+                        </button>
+                      }
+                    </div>
+                  }
+
+                  <div class="flex flex-col gap-3.5">
+                    <h3 class="font-display m-0 text-[1.35rem] font-medium">{{ product.name }}</h3>
+                    <p class="m-0 text-[0.9rem] leading-[1.55] text-surface/70">{{ product.summary }}</p>
+
+                    <dl class="m-0 grid gap-3">
+                      <div class="grid gap-1.5">
+                        <dt class="m-0 text-[0.7rem] font-semibold tracking-[0.12em] text-stone-500 uppercase">
+                          Dimensions
+                        </dt>
+                        <dd class="m-0 text-[0.9rem] leading-[1.45] text-stone-100">
+                          {{ product.dimensions }}
+                        </dd>
+                      </div>
+                      <div class="grid gap-1.5">
+                        <dt class="m-0 text-[0.7rem] font-semibold tracking-[0.12em] text-stone-500 uppercase">
+                          Colors
+                        </dt>
+                        <dd class="m-0">
+                          <ul class="m-0 flex list-none flex-wrap gap-x-3.5 gap-y-2.5 p-0">
+                            @for (color of product.colors; track color.id) {
+                              <li class="inline-flex items-center gap-1.5 text-sm">
+                                <span
+                                  class="h-3.5 w-3.5 shrink-0 border border-surface/35"
+                                  [style.background]="color.hex"
+                                  aria-hidden="true"
+                                ></span>
+                                <span>{{ color.name }}</span>
+                              </li>
+                            }
+                          </ul>
+                        </dd>
+                      </div>
+                    </dl>
+
+                    <div class="flex flex-wrap gap-2.5">
+                      @if (!isUnavailable(folder.batch, product)) {
+                        <a
+                          class="inline-flex items-center justify-center border border-surface/55 bg-transparent px-[1.15rem] py-3 text-xs font-semibold tracking-[0.1em] text-surface uppercase transition-[background,color] duration-250 hover:bg-surface hover:text-stone-900"
+                          routerLink="/batch"
+                        >
+                          View in batch
+                        </a>
+                      }
+                      <a
+                        class="inline-flex items-center justify-center border border-surface/55 bg-surface px-[1.15rem] py-3 text-xs font-semibold tracking-[0.1em] text-stone-900 uppercase transition-[background,color] duration-250 hover:bg-transparent hover:text-surface"
+                        [href]="customUrl(folder.batch, product)"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {{ content().customCtaLabel }}
+                      </a>
+                    </div>
+                  </div>
+                </article>
+              }
+            </div>
+          }
+        </section>
+      }
+    </div>
+  }
 </section>
