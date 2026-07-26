@@ -5,8 +5,8 @@ import { AboutContent } from '../../data/site-content.model';
 @Component({
   selector: 'app-about',
   imports: [RevealDirective],
+  host: { class: 'block' },
   templateUrl: './about.html',
-  styleUrl: './about.css',
 })
 export class About {
   readonly content = input.required<AboutContent>();

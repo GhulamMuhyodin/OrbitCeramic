@@ -1,12 +1,10 @@
 @if (content$ | async; as content) {
-  <app-site-header [brand]="content.brand" [nav]="content.nav" />
+  <app-site-header [brand]="content.brand" [nav]="content.nav" [overlay]="false" />
   <main>
-    <app-hero [content]="content.hero" />
     <app-batch
       [content]="content.batch"
       [brand]="content.brand"
       [whatsapp]="content.contact.whatsapp"
-      [timerOnly]="true"
     />
   </main>
   <app-site-footer
@@ -16,9 +14,9 @@
   />
 } @else {
   <div
-    class="grid min-h-dvh place-items-center bg-surface font-body text-stone-700"
+    class="grid min-h-[50dvh] place-items-center p-8 text-[0.95rem] tracking-wide text-muted"
     role="status"
   >
-    Loading Orbit Ceramic…
+    Loading batch…
   </div>
 }

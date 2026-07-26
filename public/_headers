@@ -1,0 +1,6 @@
+/*
+  Cache policy for editable content after static deploy.
+  Netlify / similar hosts honor this when present in the published root.
+*/
+/data/site-content.json
+  Cache-Control: no-cache, no-store, must-revalidate

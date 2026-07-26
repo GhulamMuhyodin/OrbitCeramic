@@ -1,159 +1,524 @@
 {
-  "brand": "Orbit Ceramic",
+  "version": 1,
+  "site": {
+    "id": "site-orbit",
+    "brand": "Orbit Ceramic",
+    "activeBatchId": "batch-002"
+  },
   "contact": {
-    "whatsapp": "92303227987366",
+    "id": "contact-main",
+    "siteId": "site-orbit",
+    "whatsapp": "923227987366",
     "email": "hello@orbitceramic.studio",
     "instagram": "https://instagram.com/orbitceramic",
     "instagramHandle": "@orbitceramic",
-    "visitLines": ["Anarkali", "Lahore"]
+    "visitLines": [
+      "Anarkali",
+      "Lahore"
+    ]
   },
-  "nav": [
-    { "label": "Collections", "href": "#collections" },
-    { "label": "Studio", "href": "#video" },
-    { "label": "Shop", "href": "#bestsellers" },
-    { "label": "About", "href": "#about" }
+  "navLinks": [
+    {
+      "id": "nav-1",
+      "siteId": "site-orbit",
+      "label": "Collections",
+      "href": "/collections",
+      "sortOrder": 1
+    },
+    {
+      "id": "nav-2",
+      "siteId": "site-orbit",
+      "label": "Journey",
+      "href": "/journey",
+      "sortOrder": 2
+    },
+    {
+      "id": "nav-3",
+      "siteId": "site-orbit",
+      "label": "Batch",
+      "href": "/batch",
+      "sortOrder": 3
+    },
+    {
+      "id": "nav-4",
+      "siteId": "site-orbit",
+      "label": "About",
+      "href": "/about",
+      "sortOrder": 4
+    }
   ],
-  "hero": {
-    "image": "/images/hero/hero-01.jpg",
-    "brand": "Orbit Ceramic",
-    "title": "Handmade forms for everyday ritual",
-    "lede": "Stone-fired vessels shaped slowly — cups, bowls, and tableware with a loft-born quiet.",
-    "ctaLabel": "Explore collections",
-    "ctaHref": "#collections"
-  },
-  "about": {
-    "eyebrow": "The maker",
-    "heading": "Clay, fire, and quiet hands",
-    "paragraphs": [
-      "Orbit Ceramic began in a loft workshop where stone and ash glaze meet. Each piece is thrown by hand, dried slowly, and fired until the surface holds a lived-in calm — brutal in material, soft in use.",
-      "We keep the story short so the work can speak: honest forms for coffee, bread, flowers, and the table you return to every day."
-    ],
-    "image": "/images/about/about-01.jpg",
-    "imageAlt": "Handmade ceramic vessels arranged in a loft studio"
-  },
-  "collections": {
-    "eyebrow": "Collections",
-    "heading": "A gallery of fired forms",
-    "lede": "Each collection is a cut of photographs — pieces side by side so you can feel the surface before you choose.",
-    "items": [
-      {
-        "id": "earth",
-        "title": "Earth Line",
-        "image": "/images/collections/earth-01.jpg",
-        "alt": "Stacked handmade ceramic bowls in warm earth tones",
-        "span": "wide"
-      },
-      {
-        "id": "stoneware",
-        "title": "Stoneware",
-        "image": "/images/collections/stoneware-01.jpg",
-        "alt": "Speckled stoneware mug on a wooden surface",
-        "span": "tall"
-      },
-      {
-        "id": "vessels",
-        "title": "Vessels",
-        "image": "/images/collections/vessels-01.jpg",
-        "alt": "Tall ceramic vase with matte glaze",
-        "span": "normal"
-      },
-      {
-        "id": "table",
-        "title": "Table",
-        "image": "/images/collections/table-01.jpg",
-        "alt": "Handmade ceramic plates and serving pieces",
-        "span": "normal"
-      },
-      {
-        "id": "raw",
-        "title": "Raw Clay",
-        "image": "/images/collections/raw-01.jpg",
-        "alt": "Clay pottery in progress on a studio shelf",
-        "span": "wide"
-      }
-    ]
-  },
-  "video": {
-    "eyebrow": "Video review",
-    "heading": "Feel the kiln’s quiet heat",
-    "lede": "A short look at glaze, ash, and the rhythm of the wheel — the atmosphere that makes you want to hold a cup.",
-    "posterImage": "/images/video/video-01.jpg",
-    "videoUrl": "https://www.youtube.com/embed/ScMzIvxBSi4?autoplay=1&rel=0",
-    "videoTitle": "Orbit Ceramic studio atmosphere"
-  },
-  "bestsellers": {
-    "eyebrow": "Customer favorites",
-    "heading": "The pieces people return for",
-    "lede": "Our most-held collection — cups and bowls already loved at breakfast tables. Tap a photo to expand, then buy on WhatsApp.",
-    "buyLabel": "Buy on WhatsApp",
-    "currency": "PKR",
-    "currencySymbol": "Rs",
-    "items": [
-      {
-        "id": "orbit-cup",
-        "name": "Orbit Cup",
-        "price": 12000,
-        "description": "Everyday drinking cup with soft glaze and a comfortable hand feel.",
-        "alt": "Handmade ceramic cup with soft glaze",
-        "images": [
-          "/images/products/orbit-cup/orbit-cup-01.jpg",
-          "/images/products/orbit-cup/orbit-cup-02.jpg",
-          "/images/products/orbit-cup/orbit-cup-03.jpg"
-        ]
-      },
-      {
-        "id": "ash-bowl",
-        "name": "Ash Bowl",
-        "price": 16000,
-        "description": "Deep serving bowl finished in ash glaze for soups, grains, and shared meals.",
-        "alt": "Deep ceramic bowl with ash glaze",
-        "images": [
-          "/images/products/ash-bowl/ash-bowl-01.jpg",
-          "/images/products/ash-bowl/ash-bowl-02.jpg",
-          "/images/products/ash-bowl/ash-bowl-03.jpg"
-        ]
-      },
-      {
-        "id": "loom-plate",
-        "name": "Loom Plate",
-        "price": 10000,
-        "description": "Wide dinner plate with a quiet rim — made for daily table rituals.",
-        "alt": "Wide ceramic dinner plate",
-        "images": [
-          "/images/products/loom-plate/loom-plate-01.jpg",
-          "/images/products/loom-plate/loom-plate-02.jpg",
-          "/images/products/loom-plate/loom-plate-03.jpg"
-        ]
-      },
-      {
-        "id": "kiln-vase",
-        "name": "Kiln Vase",
-        "price": 23000,
-        "description": "Sculptural vase with kiln-fired character for branches and single stems.",
-        "alt": "Sculptural ceramic vase",
-        "images": [
-          "/images/products/kiln-vase/kiln-vase-01.jpg",
-          "/images/products/kiln-vase/kiln-vase-02.jpg",
-          "/images/products/kiln-vase/kiln-vase-03.jpg"
-        ]
-      }
-    ]
-  },
-  "footer": {
-    "tagline": "Handmade pottery from a loft studio — stone gray, ash glaze, daily use.",
-    "visitLabel": "Visit",
-    "exploreLabel": "Explore",
-    "followLabel": "Follow",
-    "exploreLinks": [
-      { "label": "About", "href": "#about" },
-      { "label": "Collections", "href": "#collections" },
-      { "label": "Shop", "href": "#bestsellers" }
-    ],
-    "socialLinks": [
-      { "label": "Instagram", "hrefKey": "instagram" },
-      { "label": "Email", "hrefKey": "email" },
-      { "label": "Website", "hrefKey": "website" }
-    ],
-    "copyright": "All pieces made by hand."
+  "batches": [
+    {
+      "id": "batch-001",
+      "label": "Batch-001",
+      "launchAt": "2026-07-26T17:51:00+05:00",
+      "launchDisplay": "July 26, 2026 · 5:51 PM PKT",
+      "soldOut": true,
+      "sortOrder": 1,
+      "countdownEyebrow": "Next drop",
+      "countdownHeading": "Batch-001 opens the kiln doors",
+      "countdownLede": "A limited firing of cups, bowls, plates, and vessels. The countdown ends at launch — then photos, details, and WhatsApp orders go live.",
+      "celebrationHeading": "Batch-001 is live",
+      "celebrationLede": "The drop is open. Explore each piece — summary, dimensions, and the colors fired into the clay.",
+      "products": [
+        {
+          "id": "product-orbit-cup",
+          "name": "Orbit Cup",
+          "price": 12000,
+          "description": "Everyday drinking cup with soft glaze and a comfortable hand feel.",
+          "summary": "A round drinking cup with a quiet lip and soft belly — made for morning coffee and slow sips.",
+          "dimensions": "H 9 cm × Ø 8 cm",
+          "alt": "Handmade ceramic cup with soft glaze",
+          "sortOrder": 1,
+          "colors": [
+            {
+              "id": "pc-1",
+              "name": "Ash mist",
+              "hex": "#A8A29A",
+              "sortOrder": 1
+            },
+            {
+              "id": "pc-2",
+              "name": "Raw clay",
+              "hex": "#C4B5A0",
+              "sortOrder": 2
+            }
+          ],
+          "images": [
+            {
+              "id": "pi-1",
+              "url": "/images/products/orbit-cup/orbit-cup-01.jpg",
+              "sortOrder": 1
+            },
+            {
+              "id": "pi-2",
+              "url": "/images/products/orbit-cup/orbit-cup-02.jpg",
+              "sortOrder": 2
+            },
+            {
+              "id": "pi-3",
+              "url": "/images/products/orbit-cup/orbit-cup-03.jpg",
+              "sortOrder": 3
+            }
+          ],
+          "soldOut": false
+        },
+        {
+          "id": "product-ash-bowl",
+          "name": "Ash Bowl",
+          "price": 16000,
+          "description": "Deep serving bowl finished in ash glaze for soups, grains, and shared meals.",
+          "summary": "Deep serving bowl with ash-kissed glaze — meant for soups, grains, and the center of the table.",
+          "dimensions": "H 8 cm × Ø 18 cm",
+          "alt": "Deep ceramic bowl with ash glaze",
+          "sortOrder": 2,
+          "colors": [
+            {
+              "id": "pc-3",
+              "name": "Kiln ash",
+              "hex": "#6B6560",
+              "sortOrder": 1
+            },
+            {
+              "id": "pc-4",
+              "name": "Stone gray",
+              "hex": "#8A8680",
+              "sortOrder": 2
+            }
+          ],
+          "images": [
+            {
+              "id": "pi-4",
+              "url": "/images/products/ash-bowl/ash-bowl-01.jpg",
+              "sortOrder": 1
+            },
+            {
+              "id": "pi-5",
+              "url": "/images/products/ash-bowl/ash-bowl-02.jpg",
+              "sortOrder": 2
+            },
+            {
+              "id": "pi-6",
+              "url": "/images/products/ash-bowl/ash-bowl-03.jpg",
+              "sortOrder": 3
+            }
+          ],
+          "soldOut": false
+        },
+        {
+          "id": "product-loom-plate",
+          "name": "Loom Plate",
+          "price": 10000,
+          "description": "Wide dinner plate with a quiet rim — made for daily table rituals.",
+          "summary": "Wide dinner plate with a soft rim and even foot — for daily meals and quiet table ritual.",
+          "dimensions": "H 2.5 cm × Ø 26 cm",
+          "alt": "Wide ceramic dinner plate",
+          "sortOrder": 3,
+          "colors": [
+            {
+              "id": "pc-5",
+              "name": "Bone white",
+              "hex": "#E8E2D6",
+              "sortOrder": 1
+            },
+            {
+              "id": "pc-6",
+              "name": "Warm stone",
+              "hex": "#B7A99A",
+              "sortOrder": 2
+            }
+          ],
+          "images": [
+            {
+              "id": "pi-7",
+              "url": "/images/products/loom-plate/loom-plate-01.jpg",
+              "sortOrder": 1
+            },
+            {
+              "id": "pi-8",
+              "url": "/images/products/loom-plate/loom-plate-02.jpg",
+              "sortOrder": 2
+            },
+            {
+              "id": "pi-9",
+              "url": "/images/products/loom-plate/loom-plate-03.jpg",
+              "sortOrder": 3
+            }
+          ],
+          "soldOut": false
+        },
+        {
+          "id": "product-kiln-vase",
+          "name": "Kiln Vase",
+          "price": 23000,
+          "description": "Sculptural vase with kiln-fired character for branches and single stems.",
+          "summary": "Sculptural vase with kiln-marked character — made for branches, stems, and still corners.",
+          "dimensions": "H 28 cm × Ø 12 cm",
+          "alt": "Sculptural ceramic vase",
+          "sortOrder": 4,
+          "colors": [
+            {
+              "id": "pc-7",
+              "name": "Charcoal glaze",
+              "hex": "#3D3A37",
+              "sortOrder": 1
+            },
+            {
+              "id": "pc-8",
+              "name": "Clay blush",
+              "hex": "#C9B8A8",
+              "sortOrder": 2
+            }
+          ],
+          "images": [
+            {
+              "id": "pi-10",
+              "url": "/images/products/kiln-vase/kiln-vase-01.jpg",
+              "sortOrder": 1
+            },
+            {
+              "id": "pi-11",
+              "url": "/images/products/kiln-vase/kiln-vase-02.jpg",
+              "sortOrder": 2
+            },
+            {
+              "id": "pi-12",
+              "url": "/images/products/kiln-vase/kiln-vase-03.jpg",
+              "sortOrder": 3
+            }
+          ],
+          "soldOut": false
+        }
+      ]
+    },
+    {
+      "id": "batch-002",
+      "label": "Batch-002",
+      "launchAt": "2026-07-26T18:16:00+05:00",
+      "launchDisplay": "July 26, 2026 · 6:16 PM PKT",
+      "soldOut": false,
+      "sortOrder": 2,
+      "countdownEyebrow": "Next drop",
+      "countdownHeading": "Batch-002 opens the kiln doors",
+      "countdownLede": "The next limited firing is on the way — countdown to launch, then photos, details, and WhatsApp orders go live.",
+      "celebrationHeading": "Batch-002 is live",
+      "celebrationLede": "The drop is open. Explore each piece — summary, dimensions, and the colors fired into the clay.",
+      "products": [
+        {
+          "id": "product-b2-orbit-cup",
+          "name": "Orbit Cup",
+          "price": 12000,
+          "description": "Everyday drinking cup with soft glaze and a comfortable hand feel.",
+          "summary": "A round drinking cup with a quiet lip and soft belly — made for morning coffee and slow sips.",
+          "dimensions": "H 9 cm × Ø 8 cm",
+          "alt": "Handmade ceramic cup with soft glaze",
+          "sortOrder": 1,
+          "colors": [
+            {
+              "id": "pc-b2-1",
+              "name": "Ash mist",
+              "hex": "#A8A29A",
+              "sortOrder": 1
+            },
+            {
+              "id": "pc-b2-2",
+              "name": "Raw clay",
+              "hex": "#C4B5A0",
+              "sortOrder": 2
+            }
+          ],
+          "images": [
+            {
+              "id": "pi-b2-1",
+              "url": "/images/products/orbit-cup/orbit-cup-01.jpg",
+              "sortOrder": 1
+            },
+            {
+              "id": "pi-b2-2",
+              "url": "/images/products/orbit-cup/orbit-cup-02.jpg",
+              "sortOrder": 2
+            },
+            {
+              "id": "pi-b2-3",
+              "url": "/images/products/orbit-cup/orbit-cup-03.jpg",
+              "sortOrder": 3
+            }
+          ],
+          "soldOut": true
+        },
+        {
+          "id": "product-b2-ash-bowl",
+          "name": "Ash Bowl",
+          "price": 16000,
+          "description": "Deep serving bowl finished in ash glaze for soups, grains, and shared meals.",
+          "summary": "Deep serving bowl with ash-kissed glaze — meant for soups, grains, and the center of the table.",
+          "dimensions": "H 8 cm × Ø 18 cm",
+          "alt": "Deep ceramic bowl with ash glaze",
+          "sortOrder": 2,
+          "colors": [
+            {
+              "id": "pc-b2-3",
+              "name": "Kiln ash",
+              "hex": "#6B6560",
+              "sortOrder": 1
+            },
+            {
+              "id": "pc-b2-4",
+              "name": "Stone gray",
+              "hex": "#8A8680",
+              "sortOrder": 2
+            }
+          ],
+          "images": [
+            {
+              "id": "pi-b2-4",
+              "url": "/images/products/ash-bowl/ash-bowl-01.jpg",
+              "sortOrder": 1
+            },
+            {
+              "id": "pi-b2-5",
+              "url": "/images/products/ash-bowl/ash-bowl-02.jpg",
+              "sortOrder": 2
+            },
+            {
+              "id": "pi-b2-6",
+              "url": "/images/products/ash-bowl/ash-bowl-03.jpg",
+              "sortOrder": 3
+            }
+          ],
+          "soldOut": false
+        },
+        {
+          "id": "product-b2-loom-plate",
+          "name": "Loom Plate",
+          "price": 10000,
+          "description": "Wide dinner plate with a quiet rim — made for daily table rituals.",
+          "summary": "Wide dinner plate with a soft rim and even foot — for daily meals and quiet table ritual.",
+          "dimensions": "H 2.5 cm × Ø 26 cm",
+          "alt": "Wide ceramic dinner plate",
+          "sortOrder": 3,
+          "colors": [
+            {
+              "id": "pc-b2-5",
+              "name": "Bone white",
+              "hex": "#E8E2D6",
+              "sortOrder": 1
+            },
+            {
+              "id": "pc-b2-6",
+              "name": "Warm stone",
+              "hex": "#B7A99A",
+              "sortOrder": 2
+            }
+          ],
+          "images": [
+            {
+              "id": "pi-b2-7",
+              "url": "/images/products/loom-plate/loom-plate-01.jpg",
+              "sortOrder": 1
+            },
+            {
+              "id": "pi-b2-8",
+              "url": "/images/products/loom-plate/loom-plate-02.jpg",
+              "sortOrder": 2
+            },
+            {
+              "id": "pi-b2-9",
+              "url": "/images/products/loom-plate/loom-plate-03.jpg",
+              "sortOrder": 3
+            }
+          ],
+          "soldOut": false
+        },
+        {
+          "id": "product-b2-kiln-vase",
+          "name": "Kiln Vase",
+          "price": 23000,
+          "description": "Sculptural vase with kiln-fired character for branches and single stems.",
+          "summary": "Sculptural vase with kiln-marked character — made for branches, stems, and still corners.",
+          "dimensions": "H 28 cm × Ø 12 cm",
+          "alt": "Sculptural ceramic vase",
+          "sortOrder": 4,
+          "colors": [
+            {
+              "id": "pc-b2-7",
+              "name": "Charcoal glaze",
+              "hex": "#3D3A37",
+              "sortOrder": 1
+            },
+            {
+              "id": "pc-b2-8",
+              "name": "Clay blush",
+              "hex": "#C9B8A8",
+              "sortOrder": 2
+            }
+          ],
+          "images": [
+            {
+              "id": "pi-b2-10",
+              "url": "/images/products/kiln-vase/kiln-vase-01.jpg",
+              "sortOrder": 1
+            },
+            {
+              "id": "pi-b2-11",
+              "url": "/images/products/kiln-vase/kiln-vase-02.jpg",
+              "sortOrder": 2
+            },
+            {
+              "id": "pi-b2-12",
+              "url": "/images/products/kiln-vase/kiln-vase-03.jpg",
+              "sortOrder": 3
+            }
+          ],
+          "soldOut": false
+        }
+      ]
+    }
+  ],
+  "journeyVideos": [
+    {
+      "id": "jv-1",
+      "batchId": "batch-001",
+      "title": "Batch-001 kiln journey",
+      "lede": "From wheel to fire — the making of Batch-001.",
+      "posterImage": "/images/video/video-01.jpg",
+      "videoUrl": "https://www.youtube.com/embed/ScMzIvxBSi4?autoplay=1&rel=0",
+      "sortOrder": 1
+    },
+    {
+      "id": "jv-2",
+      "batchId": "batch-002",
+      "title": "Batch-002 kiln journey",
+      "lede": "From wheel to fire — the making of Batch-002.",
+      "posterImage": "/images/video/video-01.jpg",
+      "videoUrl": "https://www.youtube.com/embed/ScMzIvxBSi4?autoplay=1&rel=0",
+      "sortOrder": 1
+    }
+  ],
+  "pageCopy": {
+    "hero": {
+      "image": "/images/hero/hero-01.jpg",
+      "brand": "Orbit Ceramic",
+      "brandPrimary": "Orbit",
+      "brandSecondary": "Ceramic",
+      "title": "Handmade forms for everyday ritual",
+      "lede": "Stone-fired vessels shaped slowly — cups, bowls, and tableware with a loft-born quiet.",
+      "ctaLabel": "See Batch-002",
+      "ctaHref": "/batch"
+    },
+    "about": {
+      "eyebrow": "The maker",
+      "heading": "Mr. Ghulam Jilani",
+      "paragraphs": [
+        "I am a ceramic artist and clay craftsman with a deep passion for transforming raw clay into timeless works of art. My work is inspired by traditional pottery, antique forms, natural textures, and the quiet beauty found in handmade objects. Every piece I create is shaped by hand, allowing each bowl, vase, platter, mug, and decorative sculpture to carry its own unique character and story.",
+        "I specialize in handcrafted ceramic bowls, antique-inspired pottery, decorative clay art, custom ceramic pieces, and artisan home décor. My goal is to create heirloom-quality ceramics that celebrate the beauty of imperfection, the richness of traditional craftsmanship, and the lasting connection between the artist, the material, and the people who use my work."
+      ],
+      "image": "/images/about/about-01.jpg",
+      "imageAlt": "Handmade ceramic vessels arranged in a loft studio"
+    },
+    "collections": {
+      "eyebrow": "Collections",
+      "heading": "Batch forms, kept in the archive",
+      "lede": "Every firing leaves a record — image, colors, and dimensions — so you can feel the piece even after the drop sells out.",
+      "outOfStockLabel": "Out of stock",
+      "customNote": "Want this type of product? The design and form can stay the same — color, glaze, or surface details can change for a made-to-order piece.",
+      "customCtaLabel": "Request similar design",
+      "emptyTitle": "Collection opens with the batch",
+      "emptyLede": "Pieces appear here once the firing goes live — or stay archived after the drop sells out. Until then, follow the countdown on Batch.",
+      "emptyCtaLabel": "See batch countdown"
+    },
+    "journey": {
+      "eyebrow": "Journey",
+      "heading": "Fire, clay, and each batch’s story",
+      "lede": "Open a batch card to watch that firing’s journey — from the wheel to the kiln door.",
+      "openLabel": "Watch journey",
+      "backLabel": "All batches",
+      "emptyTitle": "Journey unlocks with the drop",
+      "emptyLede": "Batch journey videos appear here once that firing goes live. Until then, follow the countdown on Batch.",
+      "emptyCtaLabel": "See batch countdown"
+    },
+    "batchShop": {
+      "eyebrow": "Batch shop",
+      "heading": "Pieces from this firing",
+      "lede": "Each photo carries the story of the form — what it is, how large it sits in the hand, and which colors shaped the surface.",
+      "buyLabel": "Buy on WhatsApp",
+      "currency": "PKR",
+      "currencySymbol": "Rs"
+    },
+    "footer": {
+      "tagline": "Orbit Ceramic is a handcrafted ceramic and pottery studio based in Lahore, Pakistan, specializing in handmade ceramic art, antique pottery, clay craftsmanship, and timeless home décor. Every piece is carefully shaped by hand using premium clay, blending traditional pottery techniques with contemporary design to create functional works of art that last for generations.",
+      "visitLabel": "Visit",
+      "exploreLabel": "Explore",
+      "followLabel": "Follow",
+      "exploreLinks": [
+        {
+          "label": "About",
+          "href": "/about"
+        },
+        {
+          "label": "Collections",
+          "href": "/collections"
+        },
+        {
+          "label": "Batch",
+          "href": "/batch"
+        },
+        {
+          "label": "Journey",
+          "href": "/journey"
+        }
+      ],
+      "socialLinks": [
+        {
+          "label": "Instagram",
+          "hrefKey": "instagram"
+        },
+        {
+          "label": "Email",
+          "hrefKey": "email"
+        }
+      ],
+      "copyright": "All pieces made by hand."
+    }
   }
 }

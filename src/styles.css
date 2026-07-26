@@ -1,5 +1,23 @@
 @import 'tailwindcss';
 
+@theme {
+  --color-stone-950: #1a1a1a;
+  --color-stone-900: #2c2c2c;
+  --color-stone-700: #4a4a4a;
+  --color-stone-500: #7a7a7a;
+  --color-stone-300: #c4c2be;
+  --color-stone-100: #e8e6e2;
+  --color-clay: #d4cfc7;
+  --color-clay-deep: #9a8f82;
+  --color-surface: #f3f1ee;
+  --color-ink: #2c2c2c;
+  --color-muted: #4a4a4a;
+  /* Geometric sans matching the Orbit Ceramic wordmark */
+  --font-display: 'Montserrat', system-ui, sans-serif;
+  --font-body: 'Montserrat', system-ui, sans-serif;
+}
+
+/* Legacy CSS variable aliases for remaining component CSS during migration */
 :root {
   --stone-950: #1a1a1a;
   --stone-900: #2c2c2c;
@@ -10,44 +28,103 @@
   --clay: #d4cfc7;
   --clay-deep: #9a8f82;
   --surface: #f3f1ee;
-  --ink: var(--stone-900);
-  --muted: var(--stone-700);
-  --font-display: 'Cormorant Garamond', Georgia, serif;
-  --font-body: 'DM Sans', system-ui, sans-serif;
+  --ink: #2c2c2c;
+  --muted: #4a4a4a;
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
 
-html {
-  scroll-behavior: smooth;
-}
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    font-family: var(--font-body);
+    color: var(--color-ink);
+    background: var(--color-surface);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-body {
-  margin: 0;
-  min-height: 100dvh;
-  font-family: var(--font-body);
-  color: var(--ink);
-  background: var(--surface);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
+  img {
+    display: block;
+    max-width: 100%;
+  }
 
-img {
-  display: block;
-  max-width: 100%;
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
 }
 
 .font-display {
   font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.02em;
+}
+
+/* Logo wordmark: bold "orbit" + light tracked "ceramic" */
+.brand-mark {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+  font-family: var(--font-display);
+  text-transform: capitalize;
+  text-decoration: none;
+}
+
+.brand-mark__orbit {
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.brand-mark__ceramic {
+  margin-top: 0.2em;
+  margin-right: -0.35em;
+  font-size: 0.48em;
+  font-weight: 300;
+  letter-spacing: 0.35em;
+  padding: 0;
+  text-align: inherit;
+}
+
+.brand-mark--header {
+  font-size: 1.05rem;
+  align-items: flex-start;
+}
+
+.brand-mark--header .brand-mark__ceramic {
+  font-size: 0.52em;
+  letter-spacing: 0.32em;
+  margin-right: -0.32em;
+  padding: 0;
+}
+
+.brand-mark--hero {
+  font-size: clamp(2.75rem, 7vw, 5.25rem);
+  align-items: flex-start;
+}
+
+.brand-mark--hero .brand-mark__ceramic {
+  font-size: 0.5em;
+  letter-spacing: 0.35em;
+  margin-right: -0.35em;
+  padding: 0;
+}
+
+.brand-mark--footer {
+  font-size: clamp(1.35rem, 3.8vw, 2.25rem);
+  align-items: flex-start;
+}
+
+.brand-mark--footer .brand-mark__ceramic {
+  font-size: 0.5em;
+  letter-spacing: clamp(0.22em, 0.8vw, 0.35em);
+  margin-right: calc(-1 * clamp(0.22em, 0.8vw, 0.35em));
+  padding: 0;
 }
 
 .reveal {

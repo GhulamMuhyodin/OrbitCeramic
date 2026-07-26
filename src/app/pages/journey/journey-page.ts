@@ -1,18 +1,17 @@
 import { AsyncPipe } from '@angular/common';
 import { Component, inject } from '@angular/core';
-import { Batch } from '../../components/batch/batch';
-import { Hero } from '../../components/hero/hero';
+import { Journey } from '../../components/journey/journey';
 import { SiteFooter } from '../../components/site-footer/site-footer';
 import { SiteHeader } from '../../components/site-header/site-header';
 import { SiteContentService } from '../../services/site-content.service';
 
 @Component({
-  selector: 'app-home',
-  imports: [AsyncPipe, SiteHeader, Hero, Batch, SiteFooter],
+  selector: 'app-journey-page',
+  imports: [AsyncPipe, SiteHeader, Journey, SiteFooter],
   host: { class: 'block' },
-  templateUrl: './home.html',
+  templateUrl: './journey-page.html',
 })
-export class HomePage {
+export class JourneyPage {
   private readonly contentService = inject(SiteContentService);
   protected readonly content$ = this.contentService.load();
 }
