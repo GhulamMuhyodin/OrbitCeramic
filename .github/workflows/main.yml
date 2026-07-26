@@ -1,7 +1,9 @@
 name: Deploy Angular to Hostinger
 
-# Builds the site on CI, then uploads ONLY the static browser build
-# (dist/OrbitCeramic/browser/*) into Hostinger public_html — not full source.
+# Website deploy:
+#   Build  → dist/OrbitCeramic/browser/   (full ready website)
+#   Upload → public_html/                 (same structure, site root)
+# Example: browser/index.html → public_html/index.html
 on:
   push:
     branches:
@@ -22,50 +24,47 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build production site
+      - name: Build production website
         run: npm run build
 
-      - name: Verify browser build exists
+      - name: Verify website root is ready
         run: |
-          test -f dist/OrbitCeramic/browser/index.html
-          echo "Build output ready:"
-          ls -la dist/OrbitCeramic/browser
+          ROOT="dist/OrbitCeramic/browser"
+          test -f "$ROOT/index.html"
+          test -f "$ROOT/.htaccess"
+          echo "Website root ($ROOT):"
+          ls -la "$ROOT"
 
-      - name: List files that will copy into public_html
+      - name: List files copying into public_html (website root)
         run: |
           echo "============================================================"
-          echo "SOURCE : dist/OrbitCeramic/browser/"
-          echo "TARGET : public_html/"
+          echo "Created website folder : dist/OrbitCeramic/browser/"
+          echo "Hostinger website root : public_html/"
+          echo "Structure is copied 1:1 (same folders and file names)."
           echo "============================================================"
-          echo ""
-          echo "Each line = file copied to Hostinger public_html:"
-          echo ""
           cd dist/OrbitCeramic/browser
           find . -type f | sed 's|^\./||' | sort | while read -r file; do
             echo "  $file  ->  public_html/$file"
           done
-          echo ""
+          echo "------------------------------------------------------------"
           echo "Total files: $(find . -type f | wc -l)"
           echo "============================================================"
 
-      - name: Upload build to public_html
+      - name: Copy website into public_html
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
-          # Host only — do not include ftp://
           server: 185.224.137.128
           username: u948222984
-          # Quote password: unquoted & breaks YAML
           password: "7hidSH$BE&=Fn@R"
+          # Ready website folder from Angular build
           local-dir: dist/OrbitCeramic/browser/
-          # If files land in public_html/public_html/, change this to ./
+          # Hostinger site root — must match File Manager public_html
           server-dir: public_html/
-          # Wipe server-dir then upload fresh build (forces full replace)
+          # Always refresh public_html with the new website build
           dangerous-clean-slate: true
           exclude: |
             **/.git*
             **/.git*/**
             **/node_modules/**
-            **/.htaccess
             **/cgi-bin/**
-          # Shows creating/replacing/deleting for every file in the Action log
           log-level: verbose
