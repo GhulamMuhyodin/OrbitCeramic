@@ -62,352 +62,66 @@
       "celebrationLede": "The drop is open. Explore each piece — summary, dimensions, and the colors fired into the clay.",
       "products": [
         {
-          "id": "product-orbit-cup",
-          "name": "Orbit Cup",
-          "price": 12000,
-          "description": "Everyday drinking cup with soft glaze and a comfortable hand feel.",
-          "summary": "A round drinking cup with a quiet lip and soft belly — made for morning coffee and slow sips.",
-          "dimensions": "H 9 cm × Ø 8 cm",
-          "alt": "Handmade ceramic cup with soft glaze",
+          "id": "product-orbit-shoes",
+          "name": "Orbit Shoes",
+          "price": 8000,
+          "description": "Everyday setup for a shoes with soft glaze and a comfortable hand feel.",
+          "summary": "A round shoes with a quiet lip and soft belly — made for morning coffee and slow sips.",
+          "dimensions": "H 06 cm × W 06 cm",
+          "alt": "Handmade ceramic shoes with soft glaze",
           "sortOrder": 1,
           "colors": [
             {
               "id": "pc-1",
               "name": "Ash mist",
-              "hex": "#A8A29A",
+              "hex": "#D3AD19",
               "sortOrder": 1
             },
             {
               "id": "pc-2",
               "name": "Raw clay",
-              "hex": "#C4B5A0",
+              "hex": "#C7C1AD",
               "sortOrder": 2
+            },
+            {
+              "id": "pc-3",
+              "name": "Clay",
+              "hex": "#24201F",
+              "sortOrder": 3
+            },
+            {
+              "id": "pc-2",
+              "name": "Raw clay",
+              "hex": "#3C3D37",
+              "sortOrder": 4
+            },
+            {
+              "id": "pc-3",
+              "name": "Clay",
+              "hex": "#202C14",
+              "sortOrder": 5
             }
           ],
           "images": [
             {
               "id": "pi-1",
-              "url": "/images/products/orbit-cup/orbit-cup-01.jpg",
+              "url": "/images/products/orbit-b1-pod/orbit-pod-b1-01.jpeg",
               "sortOrder": 1
             },
             {
               "id": "pi-2",
-              "url": "/images/products/orbit-cup/orbit-cup-02.jpg",
+              "url": "/images/products/orbit-b1-pod/orbit-pod-b1-02.jpeg",
               "sortOrder": 2
             },
             {
               "id": "pi-3",
-              "url": "/images/products/orbit-cup/orbit-cup-03.jpg",
+              "url": "/images/products/orbit-b1-pod/orbit-pod-b1-03.jpeg",
               "sortOrder": 3
-            }
-          ],
-          "soldOut": false
-        },
-        {
-          "id": "product-ash-bowl",
-          "name": "Ash Bowl",
-          "price": 16000,
-          "description": "Deep serving bowl finished in ash glaze for soups, grains, and shared meals.",
-          "summary": "Deep serving bowl with ash-kissed glaze — meant for soups, grains, and the center of the table.",
-          "dimensions": "H 8 cm × Ø 18 cm",
-          "alt": "Deep ceramic bowl with ash glaze",
-          "sortOrder": 2,
-          "colors": [
-            {
-              "id": "pc-3",
-              "name": "Kiln ash",
-              "hex": "#6B6560",
-              "sortOrder": 1
             },
             {
-              "id": "pc-4",
-              "name": "Stone gray",
-              "hex": "#8A8680",
-              "sortOrder": 2
-            }
-          ],
-          "images": [
-            {
-              "id": "pi-4",
-              "url": "/images/products/ash-bowl/ash-bowl-01.jpg",
-              "sortOrder": 1
-            },
-            {
-              "id": "pi-5",
-              "url": "/images/products/ash-bowl/ash-bowl-02.jpg",
-              "sortOrder": 2
-            },
-            {
-              "id": "pi-6",
-              "url": "/images/products/ash-bowl/ash-bowl-03.jpg",
-              "sortOrder": 3
-            }
-          ],
-          "soldOut": false
-        },
-        {
-          "id": "product-loom-plate",
-          "name": "Loom Plate",
-          "price": 10000,
-          "description": "Wide dinner plate with a quiet rim — made for daily table rituals.",
-          "summary": "Wide dinner plate with a soft rim and even foot — for daily meals and quiet table ritual.",
-          "dimensions": "H 2.5 cm × Ø 26 cm",
-          "alt": "Wide ceramic dinner plate",
-          "sortOrder": 3,
-          "colors": [
-            {
-              "id": "pc-5",
-              "name": "Bone white",
-              "hex": "#E8E2D6",
-              "sortOrder": 1
-            },
-            {
-              "id": "pc-6",
-              "name": "Warm stone",
-              "hex": "#B7A99A",
-              "sortOrder": 2
-            }
-          ],
-          "images": [
-            {
-              "id": "pi-7",
-              "url": "/images/products/loom-plate/loom-plate-01.jpg",
-              "sortOrder": 1
-            },
-            {
-              "id": "pi-8",
-              "url": "/images/products/loom-plate/loom-plate-02.jpg",
-              "sortOrder": 2
-            },
-            {
-              "id": "pi-9",
-              "url": "/images/products/loom-plate/loom-plate-03.jpg",
-              "sortOrder": 3
-            }
-          ],
-          "soldOut": false
-        },
-        {
-          "id": "product-kiln-vase",
-          "name": "Kiln Vase",
-          "price": 23000,
-          "description": "Sculptural vase with kiln-fired character for branches and single stems.",
-          "summary": "Sculptural vase with kiln-marked character — made for branches, stems, and still corners.",
-          "dimensions": "H 28 cm × Ø 12 cm",
-          "alt": "Sculptural ceramic vase",
-          "sortOrder": 4,
-          "colors": [
-            {
-              "id": "pc-7",
-              "name": "Charcoal glaze",
-              "hex": "#3D3A37",
-              "sortOrder": 1
-            },
-            {
-              "id": "pc-8",
-              "name": "Clay blush",
-              "hex": "#C9B8A8",
-              "sortOrder": 2
-            }
-          ],
-          "images": [
-            {
-              "id": "pi-10",
-              "url": "/images/products/kiln-vase/kiln-vase-01.jpg",
-              "sortOrder": 1
-            },
-            {
-              "id": "pi-11",
-              "url": "/images/products/kiln-vase/kiln-vase-02.jpg",
-              "sortOrder": 2
-            },
-            {
-              "id": "pi-12",
-              "url": "/images/products/kiln-vase/kiln-vase-03.jpg",
-              "sortOrder": 3
-            }
-          ],
-          "soldOut": false
-        }
-      ]
-    },
-    {
-      "id": "batch-002",
-      "label": "Batch-002",
-      "launchAt": "2026-07-26T18:16:00+05:00",
-      "launchDisplay": "July 26, 2026 · 6:16 PM PKT",
-      "soldOut": false,
-      "sortOrder": 2,
-      "countdownEyebrow": "Next drop",
-      "countdownHeading": "Batch-002 opens the kiln doors",
-      "countdownLede": "The next limited firing is on the way — countdown to launch, then photos, details, and WhatsApp orders go live.",
-      "celebrationHeading": "Batch-002 is live",
-      "celebrationLede": "The drop is open. Explore each piece — summary, dimensions, and the colors fired into the clay.",
-      "products": [
-        {
-          "id": "product-b2-orbit-cup",
-          "name": "Orbit Cup",
-          "price": 12000,
-          "description": "Everyday drinking cup with soft glaze and a comfortable hand feel.",
-          "summary": "A round drinking cup with a quiet lip and soft belly — made for morning coffee and slow sips.",
-          "dimensions": "H 9 cm × Ø 8 cm",
-          "alt": "Handmade ceramic cup with soft glaze",
-          "sortOrder": 1,
-          "colors": [
-            {
-              "id": "pc-b2-1",
-              "name": "Ash mist",
-              "hex": "#A8A29A",
-              "sortOrder": 1
-            },
-            {
-              "id": "pc-b2-2",
-              "name": "Raw clay",
-              "hex": "#C4B5A0",
-              "sortOrder": 2
-            }
-          ],
-          "images": [
-            {
-              "id": "pi-b2-1",
-              "url": "/images/products/orbit-cup/orbit-cup-01.jpg",
-              "sortOrder": 1
-            },
-            {
-              "id": "pi-b2-2",
-              "url": "/images/products/orbit-cup/orbit-cup-02.jpg",
-              "sortOrder": 2
-            },
-            {
-              "id": "pi-b2-3",
-              "url": "/images/products/orbit-cup/orbit-cup-03.jpg",
-              "sortOrder": 3
-            }
-          ],
-          "soldOut": true
-        },
-        {
-          "id": "product-b2-ash-bowl",
-          "name": "Ash Bowl",
-          "price": 16000,
-          "description": "Deep serving bowl finished in ash glaze for soups, grains, and shared meals.",
-          "summary": "Deep serving bowl with ash-kissed glaze — meant for soups, grains, and the center of the table.",
-          "dimensions": "H 8 cm × Ø 18 cm",
-          "alt": "Deep ceramic bowl with ash glaze",
-          "sortOrder": 2,
-          "colors": [
-            {
-              "id": "pc-b2-3",
-              "name": "Kiln ash",
-              "hex": "#6B6560",
-              "sortOrder": 1
-            },
-            {
-              "id": "pc-b2-4",
-              "name": "Stone gray",
-              "hex": "#8A8680",
-              "sortOrder": 2
-            }
-          ],
-          "images": [
-            {
-              "id": "pi-b2-4",
-              "url": "/images/products/ash-bowl/ash-bowl-01.jpg",
-              "sortOrder": 1
-            },
-            {
-              "id": "pi-b2-5",
-              "url": "/images/products/ash-bowl/ash-bowl-02.jpg",
-              "sortOrder": 2
-            },
-            {
-              "id": "pi-b2-6",
-              "url": "/images/products/ash-bowl/ash-bowl-03.jpg",
-              "sortOrder": 3
-            }
-          ],
-          "soldOut": false
-        },
-        {
-          "id": "product-b2-loom-plate",
-          "name": "Loom Plate",
-          "price": 10000,
-          "description": "Wide dinner plate with a quiet rim — made for daily table rituals.",
-          "summary": "Wide dinner plate with a soft rim and even foot — for daily meals and quiet table ritual.",
-          "dimensions": "H 2.5 cm × Ø 26 cm",
-          "alt": "Wide ceramic dinner plate",
-          "sortOrder": 3,
-          "colors": [
-            {
-              "id": "pc-b2-5",
-              "name": "Bone white",
-              "hex": "#E8E2D6",
-              "sortOrder": 1
-            },
-            {
-              "id": "pc-b2-6",
-              "name": "Warm stone",
-              "hex": "#B7A99A",
-              "sortOrder": 2
-            }
-          ],
-          "images": [
-            {
-              "id": "pi-b2-7",
-              "url": "/images/products/loom-plate/loom-plate-01.jpg",
-              "sortOrder": 1
-            },
-            {
-              "id": "pi-b2-8",
-              "url": "/images/products/loom-plate/loom-plate-02.jpg",
-              "sortOrder": 2
-            },
-            {
-              "id": "pi-b2-9",
-              "url": "/images/products/loom-plate/loom-plate-03.jpg",
-              "sortOrder": 3
-            }
-          ],
-          "soldOut": false
-        },
-        {
-          "id": "product-b2-kiln-vase",
-          "name": "Kiln Vase",
-          "price": 23000,
-          "description": "Sculptural vase with kiln-fired character for branches and single stems.",
-          "summary": "Sculptural vase with kiln-marked character — made for branches, stems, and still corners.",
-          "dimensions": "H 28 cm × Ø 12 cm",
-          "alt": "Sculptural ceramic vase",
-          "sortOrder": 4,
-          "colors": [
-            {
-              "id": "pc-b2-7",
-              "name": "Charcoal glaze",
-              "hex": "#3D3A37",
-              "sortOrder": 1
-            },
-            {
-              "id": "pc-b2-8",
-              "name": "Clay blush",
-              "hex": "#C9B8A8",
-              "sortOrder": 2
-            }
-          ],
-          "images": [
-            {
-              "id": "pi-b2-10",
-              "url": "/images/products/kiln-vase/kiln-vase-01.jpg",
-              "sortOrder": 1
-            },
-            {
-              "id": "pi-b2-11",
-              "url": "/images/products/kiln-vase/kiln-vase-02.jpg",
-              "sortOrder": 2
-            },
-            {
-              "id": "pi-b2-12",
-              "url": "/images/products/kiln-vase/kiln-vase-03.jpg",
-              "sortOrder": 3
+              "id": "pi-1",
+              "url": "/images/products/orbit-b1-pod/orbit-pod-b1-04.jpeg",
+              "sortOrder": 4
             }
           ],
           "soldOut": false
@@ -421,7 +135,7 @@
       "batchId": "batch-001",
       "title": "Batch-001 kiln journey",
       "lede": "From wheel to fire — the making of Batch-001.",
-      "posterImage": "/images/video/video-01.jpg",
+      "posterImage": "/images/journey/batch-001/01.jpg",
       "videoUrl": "https://www.youtube.com/embed/ScMzIvxBSi4?autoplay=1&rel=0",
       "sortOrder": 1
     },
@@ -430,11 +144,20 @@
       "batchId": "batch-002",
       "title": "Batch-002 kiln journey",
       "lede": "From wheel to fire — the making of Batch-002.",
-      "posterImage": "/images/video/video-01.jpg",
+      "posterImage": "/images/journey/batch-002/01.jpg",
       "videoUrl": "https://www.youtube.com/embed/ScMzIvxBSi4?autoplay=1&rel=0",
       "sortOrder": 1
     }
   ],
+  "journeyImages": [
+    {
+      "id": "ji-b1-1",
+      "batchId": "batch-001",
+      "url": "/images/journey/batch-001/01.jpg",
+      "alt": "Batch-001 — clay on the wheel",
+      "sortOrder": 1
+    }
+   ],
   "pageCopy": {
     "hero": {
       "image": "/images/hero/hero-01.jpg",

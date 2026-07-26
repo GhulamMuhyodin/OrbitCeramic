@@ -8,6 +8,7 @@ site
         └── images[]           (1 product → many images, each has id)
 
 journeyVideos[]                (FK batchId)
+journeyImages[]                (FK batchId — batch-wise still photos)
 navLinks / contact / pageCopy  (site-level)
 ```
 

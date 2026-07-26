@@ -9,7 +9,7 @@ import { NavLink } from '../../data/site-content.model';
   selector: 'app-site-header',
   imports: [NgClass, RouterLink, RouterLinkActive],
   host: {
-    class: 'block',
+    class: 'sticky top-0 z-[70] block w-full',
   },
   templateUrl: './site-header.html',
 })
@@ -20,7 +20,7 @@ export class SiteHeader {
 
   readonly brand = input.required<string>();
   readonly nav = input.required<NavLink[]>();
-  readonly overlay = input(true);
+  readonly overlay = input(false);
 
   protected readonly menuOpen = signal(false);
 
