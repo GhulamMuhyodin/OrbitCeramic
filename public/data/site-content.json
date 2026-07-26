@@ -53,7 +53,7 @@
       "label": "Batch-001",
       "launchAt": "2026-07-26T17:51:00+05:00",
       "launchDisplay": "July 26, 2026 · 5:51 PM PKT",
-      "soldOut": true,
+      "soldOut": false,
       "sortOrder": 1,
       "countdownEyebrow": "Next drop",
       "countdownHeading": "Batch-001 opens the kiln doors",
@@ -133,18 +133,9 @@
     {
       "id": "jv-1",
       "batchId": "batch-001",
-      "title": "Batch-001 kiln journey",
+      "title": "Batch-001 shoes journey",
       "lede": "From wheel to fire — the making of Batch-001.",
-      "posterImage": "/images/journey/batch-001/01.jpg",
-      "videoUrl": "https://www.youtube.com/embed/ScMzIvxBSi4?autoplay=1&rel=0",
-      "sortOrder": 1
-    },
-    {
-      "id": "jv-2",
-      "batchId": "batch-002",
-      "title": "Batch-002 kiln journey",
-      "lede": "From wheel to fire — the making of Batch-002.",
-      "posterImage": "/images/journey/batch-002/01.jpg",
+      "posterImage": "/images/products/orbit-b1-pod/orbit-pod-b1-03.jpeg",
       "videoUrl": "https://www.youtube.com/embed/ScMzIvxBSi4?autoplay=1&rel=0",
       "sortOrder": 1
     }
@@ -153,7 +144,7 @@
     {
       "id": "ji-b1-1",
       "batchId": "batch-001",
-      "url": "/images/journey/batch-001/01.jpg",
+      "url": "/images/products/orbit-b1-pod/orbit-pod-b1-02.jpeg",
       "alt": "Batch-001 — clay on the wheel",
       "sortOrder": 1
     }
