@@ -2,11 +2,7 @@ import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/
 import { provideHttpClient, withFetch } from '@angular/common/http';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { provideRouter, withInMemoryScrolling } from '@angular/router';
-import {
-  provideClientHydration,
-  withEventReplay,
-  withHttpTransferCacheOptions,
-} from '@angular/platform-browser';
+import { provideClientHydration, withEventReplay } from '@angular/platform-browser';
 
 import { routes } from './app.routes';
 
@@ -21,11 +17,7 @@ export const appConfig: ApplicationConfig = {
       }),
     ),
     provideHttpClient(withFetch()),
-    provideClientHydration(
-      withEventReplay(),
-      withHttpTransferCacheOptions({
-        filter: (req) => !req.url.includes('/data/site-content.json'),
-      }),
-    ),
+    // Content JSON uses transferCache: false per-request so post-deploy edits apply.
+    provideClientHydration(withEventReplay()),
   ],
 };
