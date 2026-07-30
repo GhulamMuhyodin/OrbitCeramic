@@ -1,5 +1,5 @@
 import { isPlatformBrowser } from '@angular/common';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient } from '@angular/common/http';
 import { Injectable, PLATFORM_ID, inject } from '@angular/core';
 import { Observable, map, shareReplay } from 'rxjs';
 import { SiteContent, SiteContentDb, assembleSiteContent } from '../data/site-content.model';
@@ -12,8 +12,9 @@ export class SiteContentService {
   private readonly platformId = inject(PLATFORM_ID);
 
   /**
-   * Loads relational JSON tables, then assembles UI view models.
-   * Cache-busted in the browser so post-deploy JSON edits apply on refresh.
+   * Loads relational JSON at runtime (not baked into the JS bundle).
+   * Browser requests always bypass HTTP/transfer cache so editing
+   * `data/site-content.json` on the server after deploy shows up on refresh.
    */
   private readonly content$ = this.createContent$();
 
@@ -24,10 +25,10 @@ export class SiteContentService {
   private createContent$(): Observable<SiteContent> {
     return this.http
       .get<SiteContentDb>(this.contentUrl(), {
-        headers: new HttpHeaders({
-          'Cache-Control': 'no-cache',
-          Pragma: 'no-cache',
-        }),
+        // Never reuse SSR/prerender transfer cache — always hit the live JSON file.
+        transferCache: false,
+        // Bypass browser HTTP cache (Fetch API).
+        cache: 'no-store',
       })
       .pipe(
         map((db) => assembleSiteContent(db)),
@@ -36,6 +37,7 @@ export class SiteContentService {
   }
 
   private contentUrl(): string {
+    // Extra query bust for proxies/CDNs that ignore Cache-Control.
     if (isPlatformBrowser(this.platformId)) {
       return `${CONTENT_PATH}?t=${Date.now()}`;
     }
