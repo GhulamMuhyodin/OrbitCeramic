@@ -60,11 +60,11 @@ jobs:
           username: u948222984
           password: "7hidSH$BE&=Fn@R"
           local-dir: dist/OrbitCeramic/browser/
-          server-dir: domains/mediumvioletred-trout-528447.hostingersite.com/public_html/
-          dangerous-clean-slate: true
-          exclude: |
-            **/.git*
-            **/.git*/**
-            **/node_modules/**
-            **/cgi-bin/**
-          log-level: minimal
+          # If File Manager shows files under public_html/public_html/,
+          # change this to ./  (FTP account already starts in public_html)
+          server-dir: ./domains/mediumvioletred-trout-528447.hostingersite.com/public_html/
+          log-level: standard
+
+
+
+

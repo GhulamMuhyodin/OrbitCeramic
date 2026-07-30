@@ -99,8 +99,8 @@
                       class="aspect-4/5 w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                       [src]="product.images[photoIndex(product.id)]"
                       [alt]="product.alt + ' — photo ' + (photoIndex(product.id) + 1)"
-                      width="800"
-                      height="1000"
+                      width="1080"
+                      height="1350"
                       loading="lazy"
                     />
                     @if (isUnavailable(folder.batch, product)) {
@@ -155,11 +155,11 @@
                           (click)="setPhoto(product.id, i)"
                         >
                           <img
-                            class="aspect-square w-full object-cover"
+                            class="aspect-4/5 w-full object-cover"
                             [src]="image"
                             [alt]="product.name + ' angle ' + (i + 1)"
-                            width="128"
-                            height="128"
+                            width="108"
+                            height="135"
                             loading="lazy"
                           />
                         </button>
