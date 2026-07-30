@@ -48,7 +48,13 @@
               class="mb-3 inline-flex items-center gap-2 text-[0.7rem] font-semibold tracking-[0.12em] text-surface/75 uppercase transition-colors duration-200 hover:text-surface"
               [routerLink]="row.href"
             >
-              <span class="size-1.5 shrink-0 rounded-full bg-surface/70" aria-hidden="true"></span>
+              <span
+                class="size-1.5 shrink-0 rounded-full"
+                [class.hero-status-dot--live]="row.status === 'live'"
+                [class.hero-status-dot--scheduled]="row.status === 'scheduled'"
+                [class.hero-status-dot--recent]="row.status === 'recent'"
+                aria-hidden="true"
+              ></span>
               <span>{{ statusLabel(row.status) }} · {{ row.label }}</span>
             </a>
             <ul class="m-0 flex list-none flex-wrap gap-2.5 p-0">

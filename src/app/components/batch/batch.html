@@ -130,9 +130,17 @@
         {{ content().shop.eyebrow }}
       </p>
       <p
-        class="font-display mb-2.5 text-[clamp(1.15rem,2vw,1.45rem)] font-medium tracking-[0.04em] text-stone-900"
+        class="font-display mb-2.5 inline-flex items-center gap-2 text-[clamp(1.15rem,2vw,1.45rem)] font-medium tracking-[0.04em] text-stone-900"
       >
-        {{ content().label }} · {{ content().soldOut ? 'Sold out' : 'Live' }}
+        {{ content().label }} ·
+        @if (content().soldOut) {
+          Sold out
+        } @else {
+          <span class="inline-flex items-center gap-1.5">
+            <span class="batch-live-dot" aria-hidden="true"></span>
+            Live
+          </span>
+        }
       </p>
       <h2
         class="font-display mb-4 max-w-[16ch] text-[clamp(2.25rem,4.5vw,3.35rem)] font-medium leading-[1.05] tracking-[-0.02em] text-stone-900"

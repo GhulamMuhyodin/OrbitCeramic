@@ -1,5 +1,27 @@
 /* Batch motion — launch-day confetti + celebration burst + lightbox fades */
 
+.batch-live-dot {
+  display: inline-block;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 9999px;
+  background: #22c55e;
+  box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.55);
+  animation: live-dot-blink 1.4s ease-in-out infinite;
+}
+
+@keyframes live-dot-blink {
+  0%,
+  100% {
+    opacity: 1;
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.45);
+  }
+  50% {
+    opacity: 0.35;
+    box-shadow: 0 0 0 0.35rem rgba(34, 197, 94, 0);
+  }
+}
+
 .batch-reveal {
   animation: batch-reveal 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
@@ -137,6 +159,11 @@
   .batch-confetti__piece,
   .batch-lightbox {
     animation: none;
+  }
+
+  .batch-live-dot {
+    animation: none;
+    opacity: 1;
   }
 
   .batch-celebrate-burst span,
