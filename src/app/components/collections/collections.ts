@@ -1,4 +1,15 @@
-import { Component, computed, input, signal } from '@angular/core';
+import { isPlatformBrowser } from '@angular/common';
+import {
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  inject,
+  input,
+  PLATFORM_ID,
+  signal,
+  viewChild,
+} from '@angular/core';
 import { RouterLink } from '@angular/router';
 import {
   BatchContent,
@@ -14,6 +25,15 @@ interface CollectionFolder {
   products: ProductItem[];
 }
 
+interface CollectionProductRow {
+  batch: BatchContent;
+  product: ProductItem;
+}
+
+type CollectionsViewMode = 'by-batch' | 'view-all';
+
+const PAGE_SIZE = 8;
+
 @Component({
   selector: 'app-collections',
   imports: [RouterLink],
@@ -21,6 +41,9 @@ interface CollectionFolder {
   templateUrl: './collections.html',
 })
 export class Collections {
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly loadMoreSentinel = viewChild<ElementRef<HTMLElement>>('loadMoreSentinel');
+
   readonly content = input.required<CollectionsContent>();
   readonly batches = input.required<BatchContent[]>();
   readonly brand = input.required<string>();
@@ -35,9 +58,69 @@ export class Collections {
 
   protected readonly isEmpty = computed(() => this.folders().length === 0);
 
+  /** Flat catalog: available first, sold-out last. */
+  protected readonly allProducts = computed((): CollectionProductRow[] => {
+    const rows = this.folders().flatMap((folder) =>
+      folder.products.map((product) => ({ batch: folder.batch, product })),
+    );
+    return [...rows].sort((a, b) => {
+      const aOut = isProductUnavailable(a.batch, a.product) ? 1 : 0;
+      const bOut = isProductUnavailable(b.batch, b.product) ? 1 : 0;
+      return aOut - bOut;
+    });
+  });
+
+  protected readonly viewMode = signal<CollectionsViewMode>('by-batch');
+  protected readonly visibleCount = signal(PAGE_SIZE);
+
+  protected readonly visibleProducts = computed(() =>
+    this.allProducts().slice(0, this.visibleCount()),
+  );
+
+  protected readonly hasMore = computed(
+    () => this.viewMode() === 'view-all' && this.visibleCount() < this.allProducts().length,
+  );
+
   /** Open folder ids — all collapsed by default. */
   protected readonly openFolderIds = signal<Set<string>>(new Set());
   protected readonly activeIndexes = signal<Record<string, number>>({});
+
+  constructor() {
+    effect((onCleanup) => {
+      if (!isPlatformBrowser(this.platformId)) {
+        return;
+      }
+      if (!this.hasMore()) {
+        return;
+      }
+
+      const sentinel = this.loadMoreSentinel()?.nativeElement;
+      if (!sentinel) {
+        return;
+      }
+
+      const observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting) && this.hasMore()) {
+            this.visibleCount.update((count) =>
+              Math.min(count + PAGE_SIZE, this.allProducts().length),
+            );
+          }
+        },
+        { rootMargin: '240px 0px' },
+      );
+
+      observer.observe(sentinel);
+      onCleanup(() => observer.disconnect());
+    });
+  }
+
+  protected setViewMode(mode: CollectionsViewMode): void {
+    this.viewMode.set(mode);
+    if (mode === 'view-all') {
+      this.visibleCount.set(PAGE_SIZE);
+    }
+  }
 
   protected isOpen(batchId: string): boolean {
     return this.openFolderIds().has(batchId);

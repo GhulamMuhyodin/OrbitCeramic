@@ -15,20 +15,24 @@ export class SiteContentService {
    * Loads relational JSON tables, then assembles UI view models.
    * Cache-busted in the browser so post-deploy JSON edits apply on refresh.
    */
-  private readonly content$ = this.http
-    .get<SiteContentDb>(this.contentUrl(), {
-      headers: new HttpHeaders({
-        'Cache-Control': 'no-cache',
-        Pragma: 'no-cache',
-      }),
-    })
-    .pipe(
-      map((db) => assembleSiteContent(db)),
-      shareReplay({ bufferSize: 1, refCount: false }),
-    );
+  private readonly content$ = this.createContent$();
 
   load(): Observable<SiteContent> {
     return this.content$;
+  }
+
+  private createContent$(): Observable<SiteContent> {
+    return this.http
+      .get<SiteContentDb>(this.contentUrl(), {
+        headers: new HttpHeaders({
+          'Cache-Control': 'no-cache',
+          Pragma: 'no-cache',
+        }),
+      })
+      .pipe(
+        map((db) => assembleSiteContent(db)),
+        shareReplay({ bufferSize: 1, refCount: false }),
+      );
   }
 
   private contentUrl(): string {

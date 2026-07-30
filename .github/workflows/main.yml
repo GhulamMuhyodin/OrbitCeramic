@@ -42,7 +42,7 @@ jobs:
           local-dir: dist/OrbitCeramic/browser/
           # If File Manager shows files under public_html/public_html/,
           # change this to ./  (FTP account already starts in public_html)
-          server-dir: ./domains/mediumvioletred-trout-528447.hostingersite.com/public_html/
+          server-dir: ../domains/mediumvioletred-trout-528447.hostingersite.com/public_html/
           log-level: standard
 
 

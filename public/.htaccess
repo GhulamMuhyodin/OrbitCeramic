@@ -1,0 +1,15 @@
+# Hostinger Apache — prerendered pages + SPA deep-link fallback
+DirectoryIndex index.html
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Serve existing files and folders (includes /view-all/index.html)
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Unknown paths → SPA shell; Angular router resolves the page
+  RewriteRule ^ index.html [L]
+</IfModule>

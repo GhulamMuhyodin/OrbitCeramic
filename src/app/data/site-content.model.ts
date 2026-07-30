@@ -44,6 +44,8 @@ export interface CollectionsContent {
   outOfStockLabel: string;
   customNote: string;
   customCtaLabel: string;
+  viewByBatchLabel: string;
+  viewAllLabel: string;
   emptyTitle: string;
   emptyLede: string;
   emptyCtaLabel: string;

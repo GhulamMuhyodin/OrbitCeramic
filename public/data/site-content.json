@@ -177,6 +177,8 @@
       "outOfStockLabel": "Out of stock",
       "customNote": "Want this type of product? The design and form can stay the same — color, glaze, or surface details can change for a made-to-order piece.",
       "customCtaLabel": "Request similar design",
+      "viewByBatchLabel": "By batch",
+      "viewAllLabel": "View all",
       "emptyTitle": "Collection opens with the batch",
       "emptyLede": "Pieces appear here once the firing goes live — or stay archived after the drop sells out. Until then, follow the countdown on Batch.",
       "emptyCtaLabel": "See batch countdown"
