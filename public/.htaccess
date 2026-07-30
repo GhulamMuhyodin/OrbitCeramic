@@ -1,0 +1,11 @@
+# Orbit Ceramic — Hostinger / Apache (public_html root)
+Options -MultiViews
+RewriteEngine On
+
+# Don't rewrite real files or folders
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# Angular routes → index.html
+RewriteRule ^ index.html [L]
