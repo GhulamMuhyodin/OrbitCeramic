@@ -155,6 +155,15 @@ export interface JourneyVideoRow {
   sortOrder: number;
 }
 
+/** Still photos for a batch journey (wheel → kiln story). */
+export interface JourneyImageRow {
+  id: string;
+  batchId: string;
+  url: string;
+  alt: string;
+  sortOrder: number;
+}
+
 export interface PageCopyTables {
   hero: HeroContent;
   about: AboutContent;
@@ -172,6 +181,7 @@ export interface SiteContentDb {
   navLinks: NavLinkRow[];
   batches: BatchRow[];
   journeyVideos: JourneyVideoRow[];
+  journeyImages?: JourneyImageRow[];
   pageCopy: PageCopyTables;
 }
 
@@ -219,6 +229,10 @@ export interface BatchContent {
 export interface JourneyBatchCard {
   batch: BatchContent;
   videos: JourneyVideoRow[];
+  /** Batch-specific journey stills (card cover + gallery). */
+  images: JourneyImageRow[];
+  /** Cover for the batch card — first journey image, else first video poster. */
+  coverImage: string;
 }
 
 /** Hydrated view used by pages/components. */
@@ -287,13 +301,25 @@ export function assembleSiteContent(db: SiteContentDb): SiteContent {
   const active =
     batches.find((b) => b.id === db.site.activeBatchId) ?? batches[0];
 
+  const journeyImages = bySort(db.journeyImages ?? []);
+
   const journeyCards: JourneyBatchCard[] = batches
-    .map((batch) => ({
-      batch,
-      videos: bySort(db.journeyVideos.filter((v) => v.batchId === batch.id)),
-    }))
-    // Journey videos unlock only after the batch goes live.
-    .filter((card) => card.videos.length > 0 && isBatchLive(card.batch.launchAt));
+    .map((batch) => {
+      const videos = bySort(db.journeyVideos.filter((v) => v.batchId === batch.id));
+      const images = journeyImages.filter((img) => img.batchId === batch.id);
+      return {
+        batch,
+        videos,
+        images,
+        coverImage: images[0]?.url ?? videos[0]?.posterImage ?? '',
+      };
+    })
+    // Journey unlocks after the batch goes live and has video and/or photos.
+    .filter(
+      (card) =>
+        (card.videos.length > 0 || card.images.length > 0) &&
+        isBatchLive(card.batch.launchAt),
+    );
 
   return {
     brand: db.site.brand,
