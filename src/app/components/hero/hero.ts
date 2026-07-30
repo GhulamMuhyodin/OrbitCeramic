@@ -1,6 +1,6 @@
 import { Component, input } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { HeroContent } from '../../data/site-content.model';
+import { HeroContent, HeroHighlightBatch } from '../../data/site-content.model';
 
 @Component({
   selector: 'app-hero',
@@ -11,4 +11,16 @@ import { HeroContent } from '../../data/site-content.model';
 })
 export class Hero {
   readonly content = input.required<HeroContent>();
+  readonly highlights = input<HeroHighlightBatch[]>([]);
+
+  protected statusLabel(status: HeroHighlightBatch['status']): string {
+    switch (status) {
+      case 'scheduled':
+        return 'Upcoming';
+      case 'live':
+        return 'Live';
+      case 'recent':
+        return 'Recently launched';
+    }
+  }
 }

@@ -155,6 +155,8 @@ export interface BatchRow {
   launchDisplay: string;
   soldOut: boolean;
   sortOrder: number;
+  /** Days before/after launchAt when hero highlight images replace the default hero photo. */
+  heroWindowDays?: number;
   countdownEyebrow: string;
   countdownHeading: string;
   countdownLede: string;
@@ -183,6 +185,15 @@ export interface JourneyImageRow {
   sortOrder: number;
 }
 
+/** Dedicated hero backdrop + thumb images for a batch (FK = batchId). */
+export interface HeroHighlightImageRow {
+  id: string;
+  batchId: string;
+  url: string;
+  alt: string;
+  sortOrder: number;
+}
+
 export interface PageCopyTables {
   hero: HeroContent;
   about: AboutContent;
@@ -201,6 +212,7 @@ export interface SiteContentDb {
   batches: BatchRow[];
   journeyVideos: JourneyVideoRow[];
   journeyImages?: JourneyImageRow[];
+  heroHighlightImages?: HeroHighlightImageRow[];
   pageCopy: PageCopyTables;
 }
 
@@ -232,6 +244,8 @@ export interface BatchContent {
   launchAt: string;
   launchDisplay: string;
   soldOut: boolean;
+  /** Days before/after launch when hero highlight images apply. */
+  heroWindowDays: number;
   countdown: {
     eyebrow: string;
     heading: string;
@@ -254,12 +268,31 @@ export interface JourneyBatchCard {
   coverImage: string;
 }
 
+export interface HeroHighlightImage {
+  url: string;
+  alt: string;
+}
+
+/** Thumbs from heroHighlightImages table for scheduled / live / recent batches. */
+export interface HeroHighlightBatch {
+  batchId: string;
+  label: string;
+  status: 'scheduled' | 'live' | 'recent';
+  images: HeroHighlightImage[];
+  href: string;
+}
+
+const HERO_HIGHLIGHT_IMAGE_CAP = 4;
+/** Default days before/after launch when batch.heroWindowDays is omitted. */
+const DEFAULT_HERO_WINDOW_DAYS = 10;
+
 /** Hydrated view used by pages/components. */
 export interface SiteContent {
   brand: string;
   contact: ContactInfo;
   nav: NavLink[];
   hero: HeroContent;
+  heroHighlights: HeroHighlightBatch[];
   about: AboutContent;
   collections: CollectionsContent;
   journey: JourneyPageCopy;
@@ -298,6 +331,10 @@ export function assembleSiteContent(db: SiteContentDb): SiteContent {
     launchAt: row.launchAt,
     launchDisplay: row.launchDisplay,
     soldOut: row.soldOut,
+    heroWindowDays:
+      typeof row.heroWindowDays === 'number' && row.heroWindowDays >= 0
+        ? row.heroWindowDays
+        : DEFAULT_HERO_WINDOW_DAYS,
     countdown: {
       eyebrow: row.countdownEyebrow,
       heading: row.countdownHeading,
@@ -321,6 +358,7 @@ export function assembleSiteContent(db: SiteContentDb): SiteContent {
     batches.find((b) => b.id === db.site.activeBatchId) ?? batches[0];
 
   const journeyImages = bySort(db.journeyImages ?? []);
+  const heroHighlightRows = bySort(db.heroHighlightImages ?? []);
 
   const journeyCards: JourneyBatchCard[] = batches
     .map((batch) => {
@@ -340,11 +378,23 @@ export function assembleSiteContent(db: SiteContentDb): SiteContent {
         isBatchLive(card.batch.launchAt),
     );
 
+  const heroHighlights = assembleHeroHighlights(active, batches, heroHighlightRows);
+  const heroImage = resolveHeroBackdropImage(
+    db.pageCopy.hero.image,
+    active,
+    batches,
+    heroHighlightRows,
+  );
+
   return {
     brand: db.site.brand,
     contact: db.contact,
     nav: bySort(db.navLinks).map(({ label, href }) => ({ label, href })),
-    hero: db.pageCopy.hero,
+    hero: {
+      ...db.pageCopy.hero,
+      image: heroImage,
+    },
+    heroHighlights,
     about: db.pageCopy.about,
     collections: db.pageCopy.collections,
     journey: db.pageCopy.journey,
@@ -353,6 +403,112 @@ export function assembleSiteContent(db: SiteContentDb): SiteContent {
     journeyCards,
     footer: db.pageCopy.footer,
   };
+}
+
+function batchHeroImages(
+  batchId: string,
+  heroHighlightRows: HeroHighlightImageRow[],
+): HeroHighlightImage[] {
+  return heroHighlightRows
+    .filter((row) => row.batchId === batchId)
+    .slice(0, HERO_HIGHLIGHT_IMAGE_CAP)
+    .map((row) => ({
+      url: row.url,
+      alt: row.alt,
+    }));
+}
+
+/** True when now is within the batch hero window (before or after launch). */
+export function isWithinHeroLaunchWindow(
+  launchAt: string,
+  windowDays = DEFAULT_HERO_WINDOW_DAYS,
+  now = Date.now(),
+): boolean {
+  const launch = Date.parse(launchAt);
+  if (!Number.isFinite(launch)) {
+    return false;
+  }
+  const windowMs = Math.max(0, windowDays) * 24 * 60 * 60 * 1000;
+  return Math.abs(now - launch) <= windowMs;
+}
+
+function batchInHeroWindow(batch: BatchContent, now = Date.now()): boolean {
+  return isWithinHeroLaunchWindow(batch.launchAt, batch.heroWindowDays, now);
+}
+
+/**
+ * Prefer first heroHighlightImages row for an in-window batch;
+ * otherwise keep the static hero image from pageCopy.
+ */
+function resolveHeroBackdropImage(
+  defaultImage: string,
+  active: BatchContent,
+  batches: BatchContent[],
+  heroHighlightRows: HeroHighlightImageRow[],
+  now = Date.now(),
+): string {
+  if (batchInHeroWindow(active, now)) {
+    const activeImage = batchHeroImages(active.id, heroHighlightRows)[0]?.url;
+    if (activeImage) {
+      return activeImage;
+    }
+  }
+
+  const recent = [...batches]
+    .filter(
+      (b) =>
+        b.id !== active.id && isBatchLive(b.launchAt, now) && batchInHeroWindow(b, now),
+    )
+    .sort((a, b) => Date.parse(b.launchAt) - Date.parse(a.launchAt))[0];
+
+  const recentImage = recent
+    ? batchHeroImages(recent.id, heroHighlightRows)[0]?.url
+    : undefined;
+  return recentImage ?? defaultImage;
+}
+
+function assembleHeroHighlights(
+  active: BatchContent,
+  batches: BatchContent[],
+  heroHighlightRows: HeroHighlightImageRow[],
+  now = Date.now(),
+): HeroHighlightBatch[] {
+  const rows: HeroHighlightBatch[] = [];
+
+  if (batchInHeroWindow(active, now)) {
+    const activeImages = batchHeroImages(active.id, heroHighlightRows);
+    if (activeImages.length > 0) {
+      rows.push({
+        batchId: active.id,
+        label: active.label,
+        status: isBatchLive(active.launchAt, now) ? 'live' : 'scheduled',
+        images: activeImages,
+        href: '/batch',
+      });
+    }
+  }
+
+  const recent = [...batches]
+    .filter(
+      (b) =>
+        b.id !== active.id && isBatchLive(b.launchAt, now) && batchInHeroWindow(b, now),
+    )
+    .sort((a, b) => Date.parse(b.launchAt) - Date.parse(a.launchAt))[0];
+
+  if (recent) {
+    const recentImages = batchHeroImages(recent.id, heroHighlightRows);
+    if (recentImages.length > 0) {
+      rows.push({
+        batchId: recent.id,
+        label: recent.label,
+        status: 'recent',
+        images: recentImages,
+        href: '/batch',
+      });
+    }
+  }
+
+  return rows;
 }
 
 export function whatsappBuyUrl(
@@ -395,6 +551,17 @@ export function contactHref(contact: ContactInfo, key: FooterSocialLink['hrefKey
 export function isBatchLive(launchAt: string, now = Date.now()): boolean {
   const launch = Date.parse(launchAt);
   return Number.isFinite(launch) && now >= launch;
+}
+
+const LAUNCH_CELEBRATION_DAY_MS = 24 * 60 * 60 * 1000;
+
+/** True during the first 24 hours after launch (celebration / confetti window). */
+export function isWithinLaunchCelebrationDay(launchAt: string, now = Date.now()): boolean {
+  const launch = Date.parse(launchAt);
+  if (!Number.isFinite(launch) || now < launch) {
+    return false;
+  }
+  return now - launch < LAUNCH_CELEBRATION_DAY_MS;
 }
 
 /** Product is buyable only when neither the batch nor the product is sold out. */

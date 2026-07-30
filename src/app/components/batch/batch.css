@@ -1,4 +1,4 @@
-/* Batch motion — celebration burst + lightbox/celebrate fades */
+/* Batch motion — launch-day confetti + celebration burst + lightbox fades */
 
 .batch-reveal {
   animation: batch-reveal 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
@@ -29,6 +29,44 @@
   background: #f3f1ee;
   width: 0.4rem;
   height: 0.4rem;
+}
+
+/* Continuous confetti rain for the first 24h after launch */
+.batch-confetti__piece {
+  position: absolute;
+  top: -12vh;
+  left: calc((var(--i) * 2.7%) + 1%);
+  width: 0.45rem;
+  height: 0.7rem;
+  border-radius: 1px;
+  opacity: 0.85;
+  background: #c4a574;
+  animation: confetti-fall calc(4.5s + (var(--i) * 0.11s)) linear infinite;
+  animation-delay: calc(var(--i) * -0.28s);
+  transform: rotate(calc(var(--i) * 17deg));
+}
+
+.batch-confetti__piece:nth-child(3n) {
+  background: #2c2c2c;
+  width: 0.35rem;
+  height: 0.55rem;
+}
+
+.batch-confetti__piece:nth-child(3n + 1) {
+  background: #e8dfd2;
+  width: 0.5rem;
+  height: 0.35rem;
+}
+
+.batch-confetti__piece:nth-child(4n) {
+  background: #8b7355;
+  border-radius: 50%;
+  width: 0.4rem;
+  height: 0.4rem;
+}
+
+.batch-confetti__piece:nth-child(5n) {
+  background: #5c6b4a;
 }
 
 .batch-lightbox {
@@ -77,16 +115,32 @@
   }
 }
 
+@keyframes confetti-fall {
+  0% {
+    transform: translate3d(0, 0, 0) rotate(0deg);
+    opacity: 0;
+  }
+  8% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate3d(calc((var(--i) % 5 - 2) * 18px), 112vh, 0) rotate(720deg);
+    opacity: 0.35;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .batch-reveal,
   .batch-celebrate,
   .batch-celebrate-panel,
   .batch-celebrate-burst span,
+  .batch-confetti__piece,
   .batch-lightbox {
     animation: none;
   }
 
-  .batch-celebrate-burst span {
-    opacity: 0;
+  .batch-celebrate-burst span,
+  .batch-confetti {
+    display: none;
   }
 }

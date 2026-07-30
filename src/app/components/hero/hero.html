@@ -12,7 +12,7 @@
       fetchpriority="high"
     />
     <div
-      class="absolute inset-0 bg-[linear-gradient(180deg,rgba(26,26,26,0.35)_0%,rgba(26,26,26,0.15)_40%,rgba(26,26,26,0.72)_100%),linear-gradient(90deg,rgba(26,26,26,0.45)_0%,transparent_55%)]"
+      class="absolute inset-0 bg-[linear-gradient(180deg,rgba(26,26,26,0.35)_0%,rgba(26,26,26,0.15)_40%,rgba(26,26,26,0.78)_100%),linear-gradient(90deg,rgba(26,26,26,0.45)_0%,transparent_55%)]"
     ></div>
   </div>
 
@@ -39,5 +39,41 @@
     >
       {{ content().ctaLabel }}
     </a>
+
+    @if (highlights().length > 0) {
+      <div class="hero-rise hero-rise-delay-4 mt-10 flex flex-col gap-6" aria-label="Batch highlights">
+        @for (row of highlights(); track row.batchId + row.status) {
+          <div>
+            <a
+              class="mb-3 inline-flex items-center gap-2 text-[0.7rem] font-semibold tracking-[0.12em] text-surface/75 uppercase transition-colors duration-200 hover:text-surface"
+              [routerLink]="row.href"
+            >
+              <span class="size-1.5 shrink-0 rounded-full bg-surface/70" aria-hidden="true"></span>
+              <span>{{ statusLabel(row.status) }} · {{ row.label }}</span>
+            </a>
+            <ul class="m-0 flex list-none flex-wrap gap-2.5 p-0">
+              @for (image of row.images; track image.url) {
+                <li>
+                  <a
+                    class="hero-highlight-thumb group relative block size-[clamp(3.75rem,12vw,5rem)] overflow-hidden border border-surface/25 bg-stone-800 transition-[border-color,transform] duration-300 hover:border-surface/70"
+                    [routerLink]="row.href"
+                    [attr.aria-label]="'Open ' + row.label + ' — ' + image.alt"
+                  >
+                    <img
+                      class="size-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+                      [src]="image.url"
+                      [alt]="image.alt"
+                      width="160"
+                      height="160"
+                      loading="lazy"
+                    />
+                  </a>
+                </li>
+              }
+            </ul>
+          </div>
+        }
+      </div>
+    }
   </div>
 </section>

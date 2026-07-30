@@ -19,6 +19,10 @@
   animation-delay: 0.32s;
 }
 
+.hero-rise-delay-4 {
+  animation-delay: 0.42s;
+}
+
 @keyframes hero-rise {
   from {
     opacity: 0;
@@ -43,5 +47,9 @@
   .hero-img,
   .hero-rise {
     animation: none;
+  }
+
+  .hero-highlight-thumb img {
+    transition: none;
   }
 }

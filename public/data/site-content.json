@@ -3,7 +3,7 @@
   "site": {
     "id": "site-orbit",
     "brand": "Orbit Ceramic",
-    "activeBatchId": "batch-002"
+    "activeBatchId": "batch-001"
   },
   "contact": {
     "id": "contact-main",
@@ -51,10 +51,11 @@
     {
       "id": "batch-001",
       "label": "Batch-001",
-      "launchAt": "2026-07-26T17:51:00+05:00",
-      "launchDisplay": "July 26, 2026 · 5:51 PM PKT",
+      "launchAt": "2026-07-30T22:05:00+05:00",
+      "launchDisplay": "July 30, 2026 · 10:00 PM PKT",
       "soldOut": false,
       "sortOrder": 1,
+      "heroWindowDays": 10,
       "countdownEyebrow": "Next drop",
       "countdownHeading": "Batch-001 opens the kiln doors",
       "countdownLede": "A limited firing of cups, bowls, plates, and vessels. The countdown ends at launch — then photos, details, and WhatsApp orders go live.",
@@ -148,7 +149,37 @@
       "alt": "Batch-001 — clay on the wheel",
       "sortOrder": 1
     }
-   ],
+  ],
+  "heroHighlightImages": [
+    {
+      "id": "hh-b1-1",
+      "batchId": "batch-001",
+      "url": "/images/products/orbit-b1-pod/orbit-pod-b1-01.jpeg",
+      "alt": "Batch-001 — Orbit Shoes",
+      "sortOrder": 1
+    },
+    {
+      "id": "hh-b1-2",
+      "batchId": "batch-001",
+      "url": "/images/products/orbit-b1-pod/orbit-pod-b1-02.jpeg",
+      "alt": "Batch-001 detail",
+      "sortOrder": 2
+    },
+    {
+      "id": "hh-b1-3",
+      "batchId": "batch-001",
+      "url": "/images/products/orbit-b1-pod/orbit-pod-b1-03.jpeg",
+      "alt": "Batch-001 glaze surface",
+      "sortOrder": 3
+    },
+    {
+      "id": "hh-b1-4",
+      "batchId": "batch-001",
+      "url": "/images/products/orbit-b1-pod/orbit-pod-b1-04.jpeg",
+      "alt": "Batch-001 form study",
+      "sortOrder": 4
+    }
+  ],
   "pageCopy": {
     "hero": {
       "image": "/images/hero/hero-01.jpg",
