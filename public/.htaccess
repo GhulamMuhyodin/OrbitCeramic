@@ -1,11 +1,15 @@
-# Orbit Ceramic — Hostinger / Apache (public_html root)
-Options -MultiViews
-RewriteEngine On
+# Hostinger Apache — prerendered pages + SPA deep-link fallback
+DirectoryIndex index.html
 
-# Don't rewrite real files or folders
-RewriteCond %{REQUEST_FILENAME} -f [OR]
-RewriteCond %{REQUEST_FILENAME} -d
-RewriteRule ^ - [L]
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
 
-# Angular routes → index.html
-RewriteRule ^ index.html [L]
+  # Serve existing files and folders (includes /view-all/index.html)
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Unknown paths → SPA shell; Angular router resolves the page
+  RewriteRule ^ index.html [L]
+</IfModule>

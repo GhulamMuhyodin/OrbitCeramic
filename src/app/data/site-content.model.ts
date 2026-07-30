@@ -29,12 +29,29 @@ export interface HeroContent {
   ctaHref: string;
 }
 
+export interface AboutReview {
+  id: string;
+  quote: string;
+  name: string;
+  detail: string;
+  /** Star rating from 1 to 5. */
+  rating: number;
+  /** Optional photo; when empty, gender avatar is used. */
+  image?: string;
+  imageAlt?: string;
+  /** Used for default avatar when image is missing. */
+  gender: 'woman' | 'man';
+}
+
 export interface AboutContent {
   eyebrow: string;
   heading: string;
   paragraphs: string[];
   image: string;
   imageAlt: string;
+  reviewsEyebrow: string;
+  reviewsHeading: string;
+  reviews: AboutReview[];
 }
 
 export interface CollectionsContent {
@@ -44,6 +61,8 @@ export interface CollectionsContent {
   outOfStockLabel: string;
   customNote: string;
   customCtaLabel: string;
+  viewByBatchLabel: string;
+  viewAllLabel: string;
   emptyTitle: string;
   emptyLede: string;
   emptyCtaLabel: string;

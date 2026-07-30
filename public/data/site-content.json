@@ -9,7 +9,7 @@
     "id": "contact-main",
     "siteId": "site-orbit",
     "whatsapp": "923227987366",
-    "email": "hello@orbitceramic.studio",
+    "email": "theorbitceramic@gmail.com",
     "instagram": "https://instagram.com/orbitceramic",
     "instagramHandle": "@orbitceramic",
     "visitLines": [
@@ -168,7 +168,51 @@
         "I specialize in handcrafted ceramic bowls, antique-inspired pottery, decorative clay art, custom ceramic pieces, and artisan home décor. My goal is to create heirloom-quality ceramics that celebrate the beauty of imperfection, the richness of traditional craftsmanship, and the lasting connection between the artist, the material, and the people who use my work."
       ],
       "image": "/images/about/about-01.jpg",
-      "imageAlt": "Handmade ceramic vessels arranged in a loft studio"
+      "imageAlt": "Handmade ceramic vessels arranged in a loft studio",
+      "reviewsEyebrow": "Client voices",
+      "reviewsHeading": "What collectors say",
+      "reviews": [
+        {
+          "id": "review-1",
+          "quote": "The cup feels quiet in the hand — soft glaze, honest weight. It has become my morning ritual piece.",
+          "name": "Ayesha R.",
+          "detail": "Lahore · Batch-001",
+          "gender": "woman",
+          "rating": 5,
+          "image": "",
+          "imageAlt": ""
+        },
+        {
+          "id": "review-2",
+          "quote": "We ordered a custom glaze on the same form. The studio listened carefully and the piece arrived exactly as imagined.",
+          "name": "Hassan M.",
+          "detail": "Islamabad · Made to order",
+          "gender": "man",
+          "rating": 5,
+          "image": "",
+          "imageAlt": ""
+        },
+        {
+          "id": "review-3",
+          "quote": "You can see the maker in every edge. Not factory polish — real clay character. Worth the wait for the drop.",
+          "name": "Sara K.",
+          "detail": "Karachi · Batch-001",
+          "gender": "woman",
+          "rating": 4,
+          "image": "",
+          "imageAlt": ""
+        },
+        {
+          "id": "review-4",
+          "quote": "Gifted a bowl to my sister. She wrote back the same day. Orbit makes objects people keep, not shelf décor.",
+          "name": "Bilal A.",
+          "detail": "Lahore · Gift order",
+          "gender": "man",
+          "rating": 5,
+          "image": "",
+          "imageAlt": ""
+        }
+      ]
     },
     "collections": {
       "eyebrow": "Collections",
@@ -177,6 +221,8 @@
       "outOfStockLabel": "Out of stock",
       "customNote": "Want this type of product? The design and form can stay the same — color, glaze, or surface details can change for a made-to-order piece.",
       "customCtaLabel": "Request similar design",
+      "viewByBatchLabel": "By batch",
+      "viewAllLabel": "View all",
       "emptyTitle": "Collection opens with the batch",
       "emptyLede": "Pieces appear here once the firing goes live — or stay archived after the drop sells out. Until then, follow the countdown on Batch.",
       "emptyCtaLabel": "See batch countdown"

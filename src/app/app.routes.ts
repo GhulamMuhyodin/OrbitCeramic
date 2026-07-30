@@ -17,6 +17,16 @@ export const routes: Routes = [
     title: 'Collections — Orbit Ceramic',
   },
   {
+    path: 'view-all',
+    redirectTo: 'collections',
+    pathMatch: 'full',
+  },
+  {
+    path: 'all',
+    redirectTo: 'collections',
+    pathMatch: 'full',
+  },
+  {
     path: 'journey',
     component: JourneyPage,
     title: 'Journey — Orbit Ceramic',
