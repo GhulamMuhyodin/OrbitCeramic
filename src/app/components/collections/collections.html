@@ -16,9 +16,42 @@
       {{ content().lede }}
     </p>
     @if (!isEmpty()) {
-      <p class="m-0 max-w-[48ch] text-[0.95rem] leading-[1.6] text-surface/80">
+      <p class="m-0 mb-8 max-w-[48ch] text-[0.95rem] leading-[1.6] text-surface/80">
         {{ content().customNote }}
       </p>
+
+      <div
+        class="flex flex-wrap gap-x-6 gap-y-2 border-b border-surface/15"
+        role="tablist"
+        aria-label="Collections view"
+      >
+        <button
+          type="button"
+          role="tab"
+          class="cursor-pointer border-0 border-b-2 bg-transparent px-0 py-3 text-xs font-semibold tracking-[0.12em] uppercase transition-colors duration-200"
+          [class.border-surface]="viewMode() === 'by-batch'"
+          [class.text-surface]="viewMode() === 'by-batch'"
+          [class.border-transparent]="viewMode() !== 'by-batch'"
+          [class.text-surface/45]="viewMode() !== 'by-batch'"
+          [attr.aria-selected]="viewMode() === 'by-batch'"
+          (click)="setViewMode('by-batch')"
+        >
+          {{ content().viewByBatchLabel }}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="cursor-pointer border-0 border-b-2 bg-transparent px-0 py-3 text-xs font-semibold tracking-[0.12em] uppercase transition-colors duration-200"
+          [class.border-surface]="viewMode() === 'view-all'"
+          [class.text-surface]="viewMode() === 'view-all'"
+          [class.border-transparent]="viewMode() !== 'view-all'"
+          [class.text-surface/45]="viewMode() !== 'view-all'"
+          [attr.aria-selected]="viewMode() === 'view-all'"
+          (click)="setViewMode('view-all')"
+        >
+          {{ content().viewAllLabel }}
+        </button>
+      </div>
     }
   </div>
 
@@ -57,8 +90,8 @@
         >{{ content().emptyCtaLabel }}</a
       >
     </div>
-  } @else {
-    <div class="mx-auto grid max-w-[1200px] gap-5">
+  } @else if (viewMode() === 'by-batch') {
+    <div class="mx-auto grid max-w-[1200px] gap-5" role="tabpanel">
       @for (folder of folders(); track folder.batch.id) {
         <section class="border border-surface/15 bg-stone-950/35">
           <button
@@ -225,6 +258,101 @@
             </div>
           }
         </section>
+      }
+    </div>
+  } @else {
+    <div class="mx-auto max-w-[1200px]" role="tabpanel">
+      <div
+        class="grid grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 min-[980px]:grid-cols-3 min-[980px]:gap-x-7 min-[980px]:gap-y-10"
+      >
+        @for (row of visibleProducts(); track row.product.id) {
+          <article class="group flex flex-col gap-[0.95rem]">
+            <div class="relative overflow-hidden bg-stone-700">
+              <img
+                class="aspect-4/5 w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
+                [src]="row.product.images[photoIndex(row.product.id)]"
+                [alt]="row.product.alt + ' — photo ' + (photoIndex(row.product.id) + 1)"
+                width="1080"
+                height="1350"
+                loading="lazy"
+              />
+              @if (isUnavailable(row.batch, row.product)) {
+                <span
+                  class="absolute top-3.5 left-3.5 z-[2] border border-surface/30 bg-stone-950/80 px-2.5 py-1.5 text-[0.65rem] font-semibold tracking-[0.12em] uppercase"
+                >
+                  {{ content().outOfStockLabel }}
+                </span>
+              }
+              @if (row.product.images.length > 1) {
+                <button
+                  type="button"
+                  class="absolute top-1/2 left-2.5 z-[2] grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border-0 bg-surface/90 text-[1.35rem] leading-none text-stone-900"
+                  (click)="prevPhoto(row.product, $event)"
+                  [attr.aria-label]="'Previous photo of ' + row.product.name"
+                >
+                  ‹
+                </button>
+                <button
+                  type="button"
+                  class="absolute top-1/2 right-2.5 z-[2] grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border-0 bg-surface/90 text-[1.35rem] leading-none text-stone-900"
+                  (click)="nextPhoto(row.product, $event)"
+                  [attr.aria-label]="'Next photo of ' + row.product.name"
+                >
+                  ›
+                </button>
+                <div class="absolute inset-x-0 bottom-3 z-[2] flex justify-center gap-1.5">
+                  @for (image of row.product.images; track image; let i = $index) {
+                    <button
+                      type="button"
+                      class="h-[0.45rem] w-[0.45rem] cursor-pointer rounded-full border-0 p-0"
+                      [class.bg-surface]="photoIndex(row.product.id) === i"
+                      [class.bg-surface/45]="photoIndex(row.product.id) !== i"
+                      (click)="setPhoto(row.product.id, i, $event)"
+                      [attr.aria-label]="'Show photo ' + (i + 1)"
+                    ></button>
+                  }
+                </div>
+              }
+            </div>
+
+            <div class="flex flex-col gap-3">
+              <p class="m-0 text-[0.7rem] font-semibold tracking-[0.12em] text-stone-400 uppercase">
+                {{ row.batch.label }}
+              </p>
+              <h3 class="font-display m-0 text-[1.25rem] font-medium">{{ row.product.name }}</h3>
+              <p class="m-0 text-[0.9rem] leading-[1.55] text-surface/70">{{ row.product.summary }}</p>
+
+              <div class="flex flex-wrap gap-2.5 pt-1">
+                @if (!isUnavailable(row.batch, row.product)) {
+                  <a
+                    class="inline-flex items-center justify-center border border-surface/55 bg-transparent px-[1.15rem] py-3 text-xs font-semibold tracking-[0.1em] text-surface uppercase transition-[background,color] duration-250 hover:bg-surface hover:text-stone-900"
+                    routerLink="/batch"
+                  >
+                    View in batch
+                  </a>
+                }
+                <a
+                  class="inline-flex items-center justify-center border border-surface/55 bg-surface px-[1.15rem] py-3 text-xs font-semibold tracking-[0.1em] text-stone-900 uppercase transition-[background,color] duration-250 hover:bg-transparent hover:text-surface"
+                  [href]="customUrl(row.batch, row.product)"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  {{ content().customCtaLabel }}
+                </a>
+              </div>
+            </div>
+          </article>
+        }
+      </div>
+
+      @if (hasMore()) {
+        <div
+          #loadMoreSentinel
+          class="mt-10 flex justify-center py-4 text-[0.75rem] font-semibold tracking-[0.12em] text-stone-400 uppercase"
+          aria-hidden="true"
+        >
+          Loading more
+        </div>
       }
     </div>
   }
