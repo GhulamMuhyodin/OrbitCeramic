@@ -13,3 +13,11 @@ DirectoryIndex index.html
   # Unknown paths → SPA shell; Angular router resolves the page
   RewriteRule ^ index.html [L]
 </IfModule>
+
+# Always serve live site content (editable after deploy without rebuild)
+<IfModule mod_headers.c>
+  <FilesMatch "site-content\.json$">
+    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+    Header set Pragma "no-cache"
+  </FilesMatch>
+</IfModule>
