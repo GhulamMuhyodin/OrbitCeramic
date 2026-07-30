@@ -29,19 +29,6 @@
           type="button"
           role="tab"
           class="cursor-pointer border-0 border-b-2 bg-transparent px-0 py-3 text-xs font-semibold tracking-[0.12em] uppercase transition-colors duration-200"
-          [class.border-surface]="viewMode() === 'by-batch'"
-          [class.text-surface]="viewMode() === 'by-batch'"
-          [class.border-transparent]="viewMode() !== 'by-batch'"
-          [class.text-surface/45]="viewMode() !== 'by-batch'"
-          [attr.aria-selected]="viewMode() === 'by-batch'"
-          (click)="setViewMode('by-batch')"
-        >
-          {{ content().viewByBatchLabel }}
-        </button>
-        <button
-          type="button"
-          role="tab"
-          class="cursor-pointer border-0 border-b-2 bg-transparent px-0 py-3 text-xs font-semibold tracking-[0.12em] uppercase transition-colors duration-200"
           [class.border-surface]="viewMode() === 'view-all'"
           [class.text-surface]="viewMode() === 'view-all'"
           [class.border-transparent]="viewMode() !== 'view-all'"
@@ -50,6 +37,19 @@
           (click)="setViewMode('view-all')"
         >
           {{ content().viewAllLabel }}
+        </button>
+        <button
+          type="button"
+          role="tab"
+          class="cursor-pointer border-0 border-b-2 bg-transparent px-0 py-3 text-xs font-semibold tracking-[0.12em] uppercase transition-colors duration-200"
+          [class.border-surface]="viewMode() === 'by-batch'"
+          [class.text-surface]="viewMode() === 'by-batch'"
+          [class.border-transparent]="viewMode() !== 'by-batch'"
+          [class.text-surface/45]="viewMode() !== 'by-batch'"
+          [attr.aria-selected]="viewMode() === 'by-batch'"
+          (click)="setViewMode('by-batch')"
+        >
+          {{ content().viewByBatchLabel }}
         </button>
       </div>
     }

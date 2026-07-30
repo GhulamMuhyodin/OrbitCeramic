@@ -70,7 +70,7 @@ export class Collections {
     });
   });
 
-  protected readonly viewMode = signal<CollectionsViewMode>('by-batch');
+  protected readonly viewMode = signal<CollectionsViewMode>('view-all');
   protected readonly visibleCount = signal(PAGE_SIZE);
 
   protected readonly visibleProducts = computed(() =>
