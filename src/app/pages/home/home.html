@@ -1,5 +1,5 @@
 @if (content$ | async; as content) {
-  <app-site-header [brand]="content.brand" [nav]="content.nav" />
+  <app-site-header [brand]="content.brand" [nav]="content.nav" [overlay]="false" />
   <main>
     <app-hero [content]="content.hero" />
     <app-batch

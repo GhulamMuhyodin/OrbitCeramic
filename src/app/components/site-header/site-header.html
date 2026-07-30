@@ -1,11 +1,10 @@
-<!-- Bar only is positioned; mobile overlay stays a viewport-fixed sibling -->
+<!-- Sticky host keeps bar on screen; mobile menu is viewport-fixed -->
 <div
-  class="inset-x-0 top-0 z-[70]"
-  [class.absolute]="overlay() && !menuOpen()"
-  [class.sticky]="!overlay() || menuOpen()"
+  class="w-full"
   [class.bg-surface]="!overlay() || menuOpen()"
   [class.border-b]="!overlay() || menuOpen()"
   [class.border-stone-900/8]="!overlay() || menuOpen()"
+  [class.bg-transparent]="overlay() && !menuOpen()"
 >
   <div
     class="relative z-50 mx-auto flex w-full max-w-[1200px] items-center justify-between gap-4 px-5 py-[1.35rem] md:grid md:grid-cols-[1fr_auto_1fr] md:gap-6 md:px-6"

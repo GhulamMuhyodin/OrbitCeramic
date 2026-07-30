@@ -129,8 +129,8 @@
                 class="aspect-4/5 w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
                 [src]="product.images[photoIndex(product.id)]"
                 [alt]="product.alt + ' — photo ' + (photoIndex(product.id) + 1)"
-                width="800"
-                height="1000"
+                width="1080"
+                height="1350"
                 loading="lazy"
               />
             </button>
@@ -304,7 +304,7 @@
       (click)="closeLightbox()"
     >
       <div
-        class="relative grid max-h-[calc(100dvh-2rem)] w-full max-w-[920px] gap-4 overflow-auto bg-stone-950 p-4 text-surface"
+        class="relative grid max-h-[calc(100dvh-2rem)] w-full max-w-[min(100%,560px)] gap-4 overflow-auto bg-stone-950 p-4 text-surface"
         (click)="$event.stopPropagation()"
       >
         <button
@@ -316,31 +316,35 @@
           ×
         </button>
 
-        <div class="relative bg-stone-900">
-          <img
-            class="mx-auto max-h-[min(68dvh,720px)] w-full object-contain"
-            [src]="product.images[photoIndex(product.id)]"
-            [alt]="product.alt + ' — photo ' + (photoIndex(product.id) + 1)"
-          />
+        <div class="relative mx-auto w-full max-w-[min(100%,540px,calc(72dvh*1080/1350))]">
+          <div class="relative aspect-4/5 overflow-hidden bg-stone-900">
+            <img
+              class="absolute inset-0 h-full w-full object-cover"
+              [src]="product.images[photoIndex(product.id)]"
+              [alt]="product.alt + ' — photo ' + (photoIndex(product.id) + 1)"
+              width="1080"
+              height="1350"
+            />
 
-          @if (product.images.length > 1) {
-            <button
-              type="button"
-              class="absolute top-1/2 left-3 z-[2] grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border-0 bg-surface/90 text-2xl leading-none text-stone-900"
-              (click)="prevPhoto(product, $event)"
-              [attr.aria-label]="'Previous photo of ' + product.name"
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              class="absolute top-1/2 right-3 z-[2] grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border-0 bg-surface/90 text-2xl leading-none text-stone-900"
-              (click)="nextPhoto(product, $event)"
-              [attr.aria-label]="'Next photo of ' + product.name"
-            >
-              ›
-            </button>
-          }
+            @if (product.images.length > 1) {
+              <button
+                type="button"
+                class="absolute top-1/2 left-3 z-[2] grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border-0 bg-surface/90 text-2xl leading-none text-stone-900"
+                (click)="prevPhoto(product, $event)"
+                [attr.aria-label]="'Previous photo of ' + product.name"
+              >
+                ‹
+              </button>
+              <button
+                type="button"
+                class="absolute top-1/2 right-3 z-[2] grid h-11 w-11 -translate-y-1/2 place-items-center rounded-full border-0 bg-surface/90 text-2xl leading-none text-stone-900"
+                (click)="nextPhoto(product, $event)"
+                [attr.aria-label]="'Next photo of ' + product.name"
+              >
+                ›
+              </button>
+            }
+          </div>
         </div>
 
         <div class="grid gap-3.5">
@@ -384,9 +388,11 @@
                   (click)="setPhoto(product.id, i)"
                 >
                   <img
-                    class="aspect-square w-full object-cover"
+                    class="aspect-4/5 w-full object-cover"
                     [src]="image"
                     [alt]="product.name + ' thumbnail ' + (i + 1)"
+                    width="108"
+                    height="135"
                   />
                 </button>
               }
