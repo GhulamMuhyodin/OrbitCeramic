@@ -1,0 +1,360 @@
+@if (batch(); as b) {
+  <div class="flex-1 min-h-0 overflow-auto p-4 pb-6 md:p-6">
+    <div class="mx-auto mb-2 w-full max-w-5xl">
+      <a class="inline-flex items-center gap-2 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-700" routerLink="/admin/batches">
+        <span class="material-symbols-outlined text-base">arrow_back</span>
+        All batches
+      </a>
+    </div>
+
+    <div class="mx-auto mb-5 w-full max-w-5xl">
+      <p class="mb-2 text-[0.68rem] font-bold uppercase tracking-[0.16em] text-clay-deep">Batch editor</p>
+      <h1 class="m-0 text-2xl font-semibold tracking-tight md:text-3xl">{{ b.label }}</h1>
+      <p class="mt-2 max-w-xl text-sm leading-relaxed text-muted md:text-[0.95rem]">
+        Set the launch time, add products and photos, then choose when this batch should appear on the public site.
+        @if (scheduleStatus() === 'scheduled') {
+          <span class="ml-2 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-amber-700">Scheduled</span>
+        } @else if (scheduleStatus() === 'live') {
+          <span class="ml-2 inline-flex rounded-full bg-green-50 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-green-700">Live</span>
+        } @else {
+          <span class="ml-2 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-slate-700">Complete</span>
+        }
+        @if (!isPersisted()) {
+          <span class="ml-2 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-slate-600">Draft — save required</span>
+        } @else if (isActive()) {
+          <span class="ml-2 inline-flex rounded-full bg-green-50 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-green-700">Website batch</span>
+        } @else {
+          <button class="ml-2 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-700" type="button" (click)="setActive()">Show on website</button>
+        }
+      </p>
+    </div>
+
+    <div class="mx-auto mb-4 w-full max-w-5xl rounded-2xl border border-stone-200 bg-white p-4 shadow-sm">
+      <div class="flex items-start gap-3">
+        <span class="material-symbols-outlined mt-0.5 text-xl text-[#9a7656]">info</span>
+        <div>
+          <h2 class="m-0 text-sm font-semibold text-stone-800">How batch status works</h2>
+          <p class="mt-1 text-sm leading-relaxed text-stone-600">
+            <strong>Draft</strong> means this batch exists only in the editor until you save it. <strong>Scheduled</strong>
+            means the saved launch time is in the future. At that time the batch becomes
+            <strong>Live</strong> automatically for its first 24 hours. <strong>Active on website</strong> means this
+            is the batch currently selected for the public homepage and shop. These are separate settings.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="mx-auto mb-4 flex w-full max-w-5xl flex-wrap gap-2">
+      <button class="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-medium text-green-700" type="button" (click)="setLiveNow()">Launch immediately</button>
+      <button class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700" type="button" (click)="setScheduled()">Schedule for later</button>
+      @if (scheduleStatus() === 'live') {
+        <button class="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-700" type="button" (click)="setActive()">Show this batch on website</button>
+      }
+    </div>
+
+    @if (formError(); as err) {
+      <div class="mx-auto mb-4 flex w-full max-w-5xl items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-800" role="alert">
+        <span class="material-symbols-outlined text-base">error</span>
+        <span>{{ err }}</span>
+      </div>
+    }
+
+    <div class="mx-auto grid w-full max-w-5xl gap-4">
+      <p-card header="1 · Launch" subheader="Date & time drive the public countdown" styleClass="overflow-hidden">
+        <div class="admin-section-intro">
+          <span class="material-symbols-outlined">schedule</span>
+          <span>Choose the exact date and local time. The public countdown changes automatically when you save.</span>
+        </div>
+        <div class="mt-2 grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
+          <div class="admin-float-field">
+            <label class="mb-1 block text-sm font-medium text-stone-700">Batch label</label>
+            <input pInputText class="w-full" [ngModel]="b.label" (ngModelChange)="patchBatch({ label: $event })" />
+            <small class="mt-1 block text-xs text-stone-500">Shown on shop & countdown</small>
+          </div>
+
+          <div class="admin-float-field">
+            <label class="mb-1 block text-sm font-medium text-stone-700">Launch date</label>
+            <input type="date" class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2" [ngModel]="dateInputValue(b.launchAt)" (ngModelChange)="onLaunchDateInput($event)" />
+            <small class="mt-1 block text-xs text-stone-500">Pick the calendar day</small>
+          </div>
+
+          <div class="admin-float-field">
+            <label class="mb-1 block text-sm font-medium text-stone-700">Launch time</label>
+            <input type="time" class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2" [ngModel]="launchTimeValue(b.launchAt)" (ngModelChange)="onLaunchTime($event)" />
+            <small class="mt-1 block text-xs text-stone-500">Local time</small>
+          </div>
+
+          <div class="admin-float-field">
+            <label class="mb-1 block text-sm font-medium text-stone-700">Launch display text</label>
+            <input pInputText class="w-full" [ngModel]="b.launchDisplay" (ngModelChange)="patchBatch({ launchDisplay: $event })" />
+            <small class="mt-1 block text-xs text-stone-500">Short label like “Aug 15 · 10 PM”</small>
+          </div>
+
+          <div>
+            <label class="mb-1 block text-sm font-medium text-stone-700">Sort order</label>
+            <input pInputText type="number" class="w-full" [ngModel]="b.sortOrder" (ngModelChange)="patchBatch({ sortOrder: +$event })" />
+          </div>
+
+          <div>
+            <label class="mb-1 block text-sm font-medium text-stone-700">Hero window days</label>
+            <input pInputText type="number" class="w-full" [ngModel]="b.heroWindowDays ?? 10" (ngModelChange)="patchBatch({ heroWindowDays: +$event })" />
+            <small class="mt-1 block text-xs text-stone-500">Days the hero highlights stay featured</small>
+          </div>
+
+          <div class="flex min-h-14 items-center">
+            <label class="flex items-center gap-2 text-sm font-medium text-stone-700">
+              <input type="checkbox" [ngModel]="b.soldOut" (ngModelChange)="patchBatch({ soldOut: $event })" />
+              Entire batch sold out
+            </label>
+          </div>
+
+          <div>
+            <label class="mb-1 block text-sm font-medium text-stone-700">Countdown eyebrow</label>
+            <input pInputText class="w-full" [ngModel]="b.countdownEyebrow" (ngModelChange)="patchBatch({ countdownEyebrow: $event })" />
+          </div>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-stone-700">Countdown heading</label>
+            <input pInputText class="w-full" [ngModel]="b.countdownHeading" (ngModelChange)="patchBatch({ countdownHeading: $event })" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="mb-1 block text-sm font-medium text-stone-700">Countdown lede</label>
+            <textarea pTextarea class="w-full" rows="2" [ngModel]="b.countdownLede" (ngModelChange)="patchBatch({ countdownLede: $event })"></textarea>
+          </div>
+          <div class="md:col-span-2">
+            <label class="mb-1 block text-sm font-medium text-stone-700">Celebration heading</label>
+            <input pInputText class="w-full" [ngModel]="b.celebrationHeading" (ngModelChange)="patchBatch({ celebrationHeading: $event })" />
+          </div>
+          <div class="md:col-span-2">
+            <label class="mb-1 block text-sm font-medium text-stone-700">Celebration lede</label>
+            <textarea pTextarea class="w-full" rows="2" [ngModel]="b.celebrationLede" (ngModelChange)="patchBatch({ celebrationLede: $event })"></textarea>
+          </div>
+        </div>
+      </p-card>
+
+      <p-card header="2 · Products ({{ b.products.length }})" subheader="Name, price (Rs), and at least one photo each" styleClass="overflow-hidden">
+        <div class="mb-4 flex flex-wrap gap-2">
+          <p-button type="button" label="Add product" (onClick)="addProduct()" />
+        </div>
+
+        <div class="flex flex-col gap-2">
+          @for (p of b.products; track p.id) {
+            <div class="flex cursor-pointer items-center gap-3 rounded-xl border border-stone-200 bg-white p-3" [class.border-stone-900]="selectedProductId() === p.id" [class.ring-1]="selectedProductId() === p.id" [class.ring-stone-900]="selectedProductId() === p.id" [class.border-amber-500]="!p.images.length || p.price < 0" [class.bg-amber-50]="!p.images.length || p.price < 0" (click)="selectProduct(p.id)" (keyup.enter)="selectProduct(p.id)" tabindex="0" role="button">
+              @if (p.images[0]; as img) {
+                <img class="size-13 shrink-0 rounded-[10px] object-cover" [src]="img.url" [alt]="p.alt || p.name" />
+              } @else {
+                <div class="grid size-13 shrink-0 place-items-center rounded-[10px] bg-linear-to-br from-[#ebe4db] to-clay text-stone-500">
+                  <span class="material-symbols-outlined text-lg">image_not_supported</span>
+                </div>
+              }
+              <div class="min-w-0 flex-1">
+                <strong>{{ p.name }}</strong>
+                <div class="mt-0.5 text-[0.78rem] text-muted">
+                  Rs {{ p.price | number: '1.0-0' }} · {{ p.images.length }} photo(s)
+                  @if (!p.images.length) {
+                    <span class="font-semibold text-amber-700"> · image required</span>
+                  }
+                </div>
+              </div>
+              <span class="material-symbols-outlined text-base text-stone-500">edit</span>
+            </div>
+          }
+        </div>
+
+        @if (product(); as p) {
+          <div class="mt-3 rounded-2xl border border-stone-950/10 bg-[#fffcf8] p-4">
+            <h3 class="mb-2 mt-0 text-[0.98rem] font-semibold">Editing: {{ p.name }}</h3>
+            <div class="mt-2 grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
+              <div>
+                <label class="mb-1 block text-sm font-medium text-stone-700">Name</label>
+                <input pInputText class="w-full" [ngModel]="p.name" (ngModelChange)="patchProduct({ name: $event })" />
+              </div>
+
+              <div>
+                <label class="mb-1 block text-sm font-medium text-stone-700">Price</label>
+                <div class="flex items-center rounded-lg border border-stone-300 bg-white px-3">
+                  <span class="mr-2 font-bold text-muted">Rs</span>
+                  <input class="w-full border-0 bg-transparent py-2 outline-none" type="number" min="0" step="1" [ngModel]="p.price" (ngModelChange)="onPriceChange($event)" />
+                </div>
+                <small class="mt-1 block text-xs text-stone-500">Amount in Pakistani Rupees</small>
+              </div>
+
+              <div class="md:col-span-2">
+                <label class="mb-1 block text-sm font-medium text-stone-700">Summary</label>
+                <input pInputText class="w-full" [ngModel]="p.summary" (ngModelChange)="patchProduct({ summary: $event })" />
+              </div>
+              <div class="md:col-span-2">
+                <label class="mb-1 block text-sm font-medium text-stone-700">Description</label>
+                <textarea pTextarea class="w-full" rows="3" [ngModel]="p.description" (ngModelChange)="patchProduct({ description: $event })"></textarea>
+              </div>
+              <div>
+                <label class="mb-1 block text-sm font-medium text-stone-700">Dimensions</label>
+                <input pInputText class="w-full" [ngModel]="p.dimensions" (ngModelChange)="patchProduct({ dimensions: $event })" />
+              </div>
+              <div class="flex min-h-14 items-center">
+                <label class="flex items-center gap-2 text-sm font-medium text-stone-700">
+                  <input type="checkbox" [ngModel]="p.soldOut" (ngModelChange)="patchProduct({ soldOut: $event })" />
+                  Sold out
+                </label>
+              </div>
+            </div>
+
+            <h4 class="mb-2 mt-5 text-[0.98rem] font-semibold">
+              Product images
+              <span class="ml-2 inline-flex rounded-full bg-orange-100 px-1.5 py-0.5 text-[0.62rem] font-bold uppercase text-orange-800">required</span>
+            </h4>
+            <label class="admin-upload-field my-2 mb-4" [class.pointer-events-none]="uploading()" [class.opacity-55]="uploading()" [class.border-amber-500]="!p.images.length" [class.bg-amber-50]="!p.images.length">
+              <span class="material-symbols-outlined text-[1.85rem] text-clay-deep">{{ p.images.length ? 'add_photo_alternate' : 'cloud_upload' }}</span>
+              <span class="text-[0.92rem] font-semibold text-ink">{{ p.images.length ? 'Add more photos' : 'Upload product photos' }}</span>
+              <span class="text-xs text-muted">JPG or PNG · at least one image required to save</span>
+              <input type="file" accept="image/*" multiple hidden (change)="onUploadProductImages($event)" />
+            </label>
+            @if (p.images.length) {
+              <div class="mt-3 grid grid-cols-[repeat(auto-fill,minmax(7.75rem,1fr))] gap-3">
+                @for (im of p.images; track im.id; let i = $index) {
+                  <figure class="relative m-0 overflow-hidden rounded-xl border border-stone-950/10 bg-[#f5f1eb]">
+                    <img class="aspect-square w-full object-cover" [src]="im.url" [alt]="'Image ' + (i + 1)" />
+                    <figcaption class="truncate px-2 py-1.5 text-[0.65rem] text-muted">{{ isDataUrl(im.url) ? 'Uploaded' : 'Photo ' + (i + 1) }}</figcaption>
+                    <button class="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-red-600" type="button" (click)="removeProductImage(i)">
+                      <span class="material-symbols-outlined text-base">delete</span>
+                    </button>
+                  </figure>
+                }
+              </div>
+            }
+
+            <h4 class="mb-2 mt-5 text-[0.98rem] font-semibold">Colors</h4>
+            @for (c of p.colors; track c.id; let i = $index) {
+              <div class="mb-2 grid grid-cols-1 items-center gap-2 md:grid-cols-[1fr_1fr_auto_auto]">
+                <div>
+                  <label class="mb-1 block text-sm font-medium text-stone-700">Name</label>
+                  <input pInputText class="w-full" [ngModel]="c.name" (ngModelChange)="updateColor(i, { name: $event })" />
+                </div>
+                <div>
+                  <label class="mb-1 block text-sm font-medium text-stone-700">Hex</label>
+                  <input pInputText class="w-full" [ngModel]="c.hex" (ngModelChange)="updateColor(i, { hex: $event })" />
+                </div>
+                <input type="color" class="size-8 cursor-pointer rounded-lg border border-stone-950/10" [ngModel]="c.hex" (ngModelChange)="updateColor(i, { hex: $event })" [attr.aria-label]="'Color for ' + c.name" />
+                <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" type="button" (click)="removeColor(i)">Remove</button>
+              </div>
+            }
+            <button class="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-700" type="button" (click)="addColor()">Add color</button>
+            <div class="mt-4 border-t border-stone-950/10 pt-3">
+              <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700" type="button" (click)="deleteProduct()">Delete product</button>
+            </div>
+          </div>
+        } @else if (!b.products.length) {
+          <p class="mb-3 text-sm leading-relaxed text-stone-500">Add a product, set its price, then upload images.</p>
+        } @else {
+          <p class="mb-3 text-sm leading-relaxed text-stone-500">Select a product to edit.</p>
+        }
+      </p-card>
+
+      <p-card header="3 · Journey" subheader="Optional process film and stills for this batch" styleClass="overflow-hidden">
+        <h4 class="mb-2 mt-0 text-[0.98rem] font-semibold">Journey video</h4>
+        @if (journeyVideo(); as jv) {
+          <div class="mt-2 grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
+            <div>
+              <label class="mb-1 block text-sm font-medium text-stone-700">Title</label>
+              <input pInputText class="w-full" [ngModel]="jv.title" (ngModelChange)="patchJourneyVideo({ title: $event })" />
+            </div>
+            <div>
+              <label class="mb-1 block text-sm font-medium text-stone-700">Video link</label>
+              <input pInputText type="url" class="w-full" placeholder="https://www.youtube.com/embed/..." [ngModel]="jv.videoUrl" (ngModelChange)="patchJourneyVideo({ videoUrl: $event, videoMediaId: undefined })" />
+              <small class="mt-1 block text-xs text-stone-500">Paste a YouTube embed URL or hosted video URL.</small>
+            </div>
+            <div class="md:col-span-2">
+              <label class="mb-1 block text-sm font-medium text-stone-700">Lede</label>
+              <textarea pTextarea class="w-full" rows="2" [ngModel]="jv.lede" (ngModelChange)="patchJourneyVideo({ lede: $event })"></textarea>
+            </div>
+          </div>
+          <div class="mb-4 mt-4 flex flex-wrap gap-2">
+            <label class="admin-upload-field admin-upload-field--inline text-sm font-semibold">
+              <span class="material-symbols-outlined text-base">image</span>
+              Upload poster
+              <input type="file" accept="image/*" hidden (change)="onUploadJourneyPoster($event)" />
+            </label>
+            <label class="admin-upload-field admin-upload-field--inline text-sm font-semibold">
+              <span class="material-symbols-outlined text-base">movie</span>
+              Upload video
+              <input type="file" accept="video/*" hidden (change)="onUploadJourneyVideoFile($event)" />
+            </label>
+            <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700" type="button" (click)="clearJourneyVideo()">Remove video</button>
+          </div>
+          @if (jv.posterImage) {
+            <img [src]="jv.posterImage" alt="Poster" class="mt-2 max-w-48 rounded-xl border border-stone-950/10" />
+          }
+          @if (jv.videoUrl && !isDataUrl(jv.videoUrl)) {
+            <p class="mb-3 text-sm leading-relaxed text-stone-500">Video URL: {{ jv.videoUrl }}</p>
+          } @else if (jv.videoUrl) {
+            <p class="mb-3 text-sm leading-relaxed text-stone-500">Video file attached.</p>
+          }
+        } @else {
+          <button class="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-700" type="button" (click)="ensureJourneyVideo()">Add journey video</button>
+        }
+
+        <h4 class="mb-2 mt-5 text-[0.98rem] font-semibold">Journey images</h4>
+        <label class="admin-upload-field admin-upload-field--inline my-2 mb-4" [class.pointer-events-none]="uploading()" [class.opacity-55]="uploading()">
+          <span class="material-symbols-outlined text-[1.85rem] text-clay-deep">upload</span>
+          <span class="text-[0.92rem] font-semibold text-ink">Upload journey stills</span>
+          <input type="file" accept="image/*" multiple hidden (change)="onUploadJourneyImages($event)" />
+        </label>
+        @if (journeyImages().length) {
+          <div class="mt-3 grid grid-cols-[repeat(auto-fill,minmax(7.75rem,1fr))] gap-3">
+            @for (im of journeyImages(); track im.id) {
+              <figure class="relative m-0 overflow-hidden rounded-xl border border-stone-950/10 bg-[#f5f1eb]">
+                <img class="aspect-square w-full object-cover" [src]="im.url" [alt]="im.alt" />
+                <figcaption class="px-2 py-1.5">
+                  <input class="w-full border-0 bg-transparent text-[0.65rem] text-muted" [ngModel]="im.alt" (ngModelChange)="updateJourneyImageAlt(im.id, $event)" placeholder="Alt text" />
+                </figcaption>
+                <button class="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-red-600" type="button" (click)="removeJourneyImage(im.id)">
+                  <span class="material-symbols-outlined text-base">delete</span>
+                </button>
+              </figure>
+            }
+          </div>
+        } @else {
+          <p class="mb-3 text-sm leading-relaxed text-stone-500">No journey stills yet for this batch.</p>
+        }
+      </p-card>
+
+      <p-card header="4 · Batch images" subheader="Hero highlight photos — required before showing on website" [styleClass]="!hasBatchImages() ? 'overflow-hidden border border-amber-500' : 'overflow-hidden'">
+        <label class="admin-upload-field my-2 mb-4" [class.pointer-events-none]="uploading()" [class.opacity-55]="uploading()" [class.border-amber-500]="!hasBatchImages()" [class.bg-amber-50]="!hasBatchImages()">
+          <span class="material-symbols-outlined text-[1.85rem] text-clay-deep">cloud_upload</span>
+          <span class="text-[0.92rem] font-semibold text-ink">Upload batch highlight images</span>
+          <span class="text-xs text-muted">Shown in the hero window · JPG or PNG</span>
+          <input type="file" accept="image/*" multiple hidden (change)="onUploadHighlights($event)" />
+        </label>
+        @if (highlights().length) {
+          <div class="mt-3 grid grid-cols-[repeat(auto-fill,minmax(7.75rem,1fr))] gap-3">
+            @for (h of highlights(); track h.id) {
+              <figure class="relative m-0 overflow-hidden rounded-xl border border-stone-950/10 bg-[#f5f1eb]">
+                <img class="aspect-square w-full object-cover" [src]="h.url" [alt]="h.alt" />
+                <figcaption class="px-2 py-1.5">
+                  <input class="w-full border-0 bg-transparent text-[0.65rem] text-muted" [ngModel]="h.alt" (ngModelChange)="updateHighlightAlt(h.id, $event)" placeholder="Alt text" />
+                </figcaption>
+                <button class="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-red-600" type="button" (click)="removeHighlight(h.id)">
+                  <span class="material-symbols-outlined text-base">delete</span>
+                </button>
+              </figure>
+            }
+          </div>
+        } @else {
+          <p class="mb-3 text-sm font-semibold leading-relaxed text-amber-700">No batch images yet — upload them before showing this batch on the website.</p>
+        }
+      </p-card>
+    </div>
+  </div>
+
+  <div class="admin-form-actions shrink-0 border-t border-stone-200 bg-[#fffcf8] px-4 py-3 shadow-[0_-10px_32px_rgba(28,25,23,0.08)] md:px-5">
+    @if (dirty()) {
+      <span class="min-w-28 flex-1 text-sm font-bold text-amber-700">Unsaved changes</span>
+    } @else {
+      <span class="min-w-28 flex-1 text-sm font-bold text-green-700">Saved</span>
+    }
+    <p-button type="button" label="Save to database" [disabled]="!dirty()" (onClick)="save()" />
+  </div>
+} @else {
+  <div class="flex-1 min-h-0 overflow-auto p-4 pb-6 md:p-6">
+    <p class="mb-3 text-sm leading-relaxed text-stone-500">Batch not found.</p>
+  </div>
+}

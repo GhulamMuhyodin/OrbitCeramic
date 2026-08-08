@@ -130,6 +130,8 @@ export interface ProductImageEmbedded {
   id: string;
   url: string;
   sortOrder: number;
+  /** Future PHP media row id */
+  mediaId?: string;
 }
 
 /** Product belongs to a batch; owns many colors + many images. */
@@ -166,6 +168,7 @@ export interface BatchRow {
   products: ProductRow[];
 }
 
+/** One video per batch (DB UNIQUE batch_id). sortOrder kept for older JSON. */
 export interface JourneyVideoRow {
   id: string;
   batchId: string;
@@ -173,7 +176,9 @@ export interface JourneyVideoRow {
   lede: string;
   posterImage: string;
   videoUrl: string;
-  sortOrder: number;
+  sortOrder?: number;
+  posterMediaId?: string;
+  videoMediaId?: string;
 }
 
 /** Still photos for a batch journey (wheel → kiln story). */
@@ -183,6 +188,7 @@ export interface JourneyImageRow {
   url: string;
   alt: string;
   sortOrder: number;
+  mediaId?: string;
 }
 
 /** Dedicated hero backdrop + thumb images for a batch (FK = batchId). */
@@ -192,6 +198,7 @@ export interface HeroHighlightImageRow {
   url: string;
   alt: string;
   sortOrder: number;
+  mediaId?: string;
 }
 
 export interface PageCopyTables {
@@ -348,21 +355,30 @@ export function assembleSiteContent(db: SiteContentDb): SiteContent {
     items: assembleProducts(row.id, row.products),
   });
 
-  const batchRows = bySort(db.batches);
-  if (batchRows.length === 0) {
-    throw new Error('site-content.json must include at least one batch row.');
-  }
+  const batchRows = bySort(db.batches ?? []);
 
   const batches = batchRows.map(assembleBatch);
-  const active =
-    batches.find((b) => b.id === db.site.activeBatchId) ?? batches[0];
+  const active = batches.find((b) => b.id === db.site.activeBatchId) ?? batches[0] ?? {
+    id: '',
+    label: '',
+    launchAt: '',
+    launchDisplay: '',
+    soldOut: true,
+    heroWindowDays: DEFAULT_HERO_WINDOW_DAYS,
+    countdown: { eyebrow: '', heading: '', lede: '' },
+    celebration: { heading: '', lede: '' },
+    shop: db.pageCopy.batchShop,
+    items: [],
+  };
 
   const journeyImages = bySort(db.journeyImages ?? []);
   const heroHighlightRows = bySort(db.heroHighlightImages ?? []);
 
   const journeyCards: JourneyBatchCard[] = batches
     .map((batch) => {
-      const videos = bySort(db.journeyVideos.filter((v) => v.batchId === batch.id));
+      const videos = [...(db.journeyVideos ?? []).filter((v) => v.batchId === batch.id)].sort(
+        (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
+      );
       const images = journeyImages.filter((img) => img.batchId === batch.id);
       return {
         batch,
@@ -393,6 +409,8 @@ export function assembleSiteContent(db: SiteContentDb): SiteContent {
     hero: {
       ...db.pageCopy.hero,
       image: heroImage,
+      ctaLabel: active.label ? `See ${active.label}` : 'See batch',
+      ctaHref: '/batch',
     },
     heroHighlights,
     about: db.pageCopy.about,
@@ -551,6 +569,22 @@ export function contactHref(contact: ContactInfo, key: FooterSocialLink['hrefKey
 export function isBatchLive(launchAt: string, now = Date.now()): boolean {
   const launch = Date.parse(launchAt);
   return Number.isFinite(launch) && now >= launch;
+}
+
+export type BatchScheduleStatus = 'scheduled' | 'live' | 'complete';
+
+export function getBatchScheduleStatus(
+  launchAt: string,
+  now = Date.now(),
+): BatchScheduleStatus {
+  const launch = Date.parse(launchAt);
+  if (!Number.isFinite(launch)) {
+    return 'scheduled';
+  }
+  if (now < launch) {
+    return 'scheduled';
+  }
+  return isWithinLaunchCelebrationDay(launchAt, now) ? 'live' : 'complete';
 }
 
 const LAUNCH_CELEBRATION_DAY_MS = 24 * 60 * 60 * 1000;

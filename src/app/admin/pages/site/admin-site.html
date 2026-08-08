@@ -1,0 +1,85 @@
+@if (db(); as d) {
+  <div class="flex-1 min-h-0 overflow-auto p-4 md:p-6 pb-6">
+    <div class="mx-auto mb-5 w-full max-w-4xl">
+      <p class="text-[0.68rem] font-bold tracking-[0.16em] uppercase text-clay-deep mb-2">Studio</p>
+      <h1 class="text-2xl md:text-3xl font-semibold tracking-tight m-0">Site &amp; Contact</h1>
+      <p class="mt-2 text-sm md:text-[0.95rem] text-muted leading-relaxed max-w-xl">Brand, active batch, and validated contact details. Header nav stays in <code>site-content.json</code>.</p>
+    </div>
+
+    @if (formError(); as err) {
+      <div class="mb-4 flex max-w-3xl items-start gap-2 rounded-xl border border-red-200 bg-red-50 p-3 text-sm font-medium text-red-800" role="alert">
+        <span class="material-symbols-outlined text-base">error</span>
+        <span>{{ err }}</span>
+      </div>
+    }
+
+    <div class="admin-form-card grid gap-4">
+      <p-card header="Site" subheader="Brand identity and which batch is live" styleClass="overflow-hidden">
+        <div class="admin-section-intro">
+          <span class="material-symbols-outlined">tips_and_updates</span>
+          <span>The selected website batch controls the public homepage countdown and shop content.</span>
+        </div>
+        <div class="mt-2 grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
+          <div class="admin-float-field">
+            <label class="admin-field-label">Brand name</label>
+            <input pInputText class="w-full" [ngModel]="d.site.brand" (ngModelChange)="patchSite('brand', $event)" />
+            <small class="admin-field-help">Shown in the site header and browser experience.</small>
+          </div>
+          <div class="admin-float-field">
+            <label class="admin-field-label">Website batch</label>
+            <p-select [options]="d.batches" optionLabel="label" optionValue="id" [ngModel]="d.site.activeBatchId" (ngModelChange)="patchSite('activeBatchId', $event)" styleClass="w-full" [showClear]="true" />
+            <small class="admin-field-help">The batch customers see first on the public site.</small>
+          </div>
+        </div>
+      </p-card>
+
+      <p-card header="Contact" subheader="Phone and email are validated before save" styleClass="overflow-hidden">
+        <div class="admin-section-intro">
+          <span class="material-symbols-outlined">contact_mail</span>
+          <span>These details power WhatsApp orders, customer questions, and the footer contact links.</span>
+        </div>
+        <div class="mt-2 grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
+          <div class="admin-float-field" [class.admin-field-error]="phoneInvalid()">
+            <label>WhatsApp / phone</label>
+            <input pInputText type="tel" class="w-full" placeholder="923001234567" [ngModel]="d.contact.whatsapp" (ngModelChange)="patchContact('whatsapp', $event)" />
+            <small class="admin-field-help">{{ phoneInvalid() ? 'Use digits or +country code (8–15 digits)' : phoneHint }}</small>
+          </div>
+
+          <div class="admin-float-field" [class.admin-field-error]="emailInvalid()">
+            <label>Email</label>
+            <input pInputText type="email" class="w-full" placeholder="hello@orbitceramic.com" [ngModel]="d.contact.email" (ngModelChange)="patchContact('email', $event)" />
+            <small class="admin-field-help">{{ emailInvalid() ? 'Enter a valid email address' : 'Used for customer inquiries' }}</small>
+          </div>
+
+          <div class="admin-float-field">
+            <label>Instagram URL</label>
+            <input pInputText type="url" class="w-full" [ngModel]="d.contact.instagram" (ngModelChange)="patchContact('instagram', $event)" />
+          </div>
+
+          <div class="admin-float-field">
+            <label>Instagram handle</label>
+            <div class="flex items-center gap-2 rounded-md border border-stone-300 bg-white px-3">
+              <span class="text-stone-500">@</span>
+              <input class="w-full border-0 bg-transparent py-2 outline-none" [ngModel]="d.contact.instagramHandle" (ngModelChange)="patchContact('instagramHandle', $event)" />
+            </div>
+          </div>
+
+          <div class="admin-float-field md:col-span-2">
+            <label>Website URL</label>
+            <input pInputText type="url" class="w-full" [ngModel]="d.contact.website || ''" (ngModelChange)="patchContact('website', $event)" />
+          </div>
+
+        </div>
+      </p-card>
+    </div>
+  </div>
+
+  <div class="shrink-0 flex flex-wrap items-center gap-3 border-t border-stone-200 bg-[#fffcf8] px-4 py-3 shadow-[0_-10px_32px_rgba(28,25,23,0.08)] md:px-5">
+    @if (dirty()) {
+      <span class="min-w-28 flex-1 text-sm font-bold text-amber-700">Unsaved changes</span>
+    } @else {
+      <span class="min-w-28 flex-1 text-sm font-bold text-green-700">Saved</span>
+    }
+    <p-button type="button" label="Save to database" [disabled]="!dirty()" (onClick)="save()" />
+  </div>
+}

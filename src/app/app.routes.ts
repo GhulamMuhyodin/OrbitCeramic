@@ -47,6 +47,10 @@ export const routes: Routes = [
     title: 'Batch — Orbit Ceramic',
   },
   {
+    path: 'admin',
+    loadChildren: () => import('./admin/admin.routes').then((m) => m.adminRoutes),
+  },
+  {
     path: '**',
     redirectTo: '',
   },

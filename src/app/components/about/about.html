@@ -83,11 +83,11 @@
                       loading="lazy"
                     />
                   } @else {
-                    <mat-icon
-                      class="review-avatar-icon text-stone-700"
-                      [svgIcon]="reviewAvatarIcon(review)"
+                    <span
+                      class="review-avatar-icon flex size-full items-center justify-center text-stone-700"
                       aria-hidden="true"
-                    ></mat-icon>
+                      [innerHTML]="reviewAvatarIconSvg(review)"
+                    ></span>
                   }
                 </figure>
 
@@ -98,13 +98,14 @@
                   >
                     <div class="review-stars flex items-center gap-0.5" aria-hidden="true">
                       @for (star of starSlots; track star) {
-                        <mat-icon
+                        <span
                           class="review-star-icon"
                           [class.review-star-icon--filled]="isStarFilled(review, star)"
                           [class.review-star-icon--empty]="!isStarFilled(review, star)"
+                          aria-hidden="true"
                         >
-                          {{ isStarFilled(review, star) ? 'star' : 'star_border' }}
-                        </mat-icon>
+                          {{ isStarFilled(review, star) ? '★' : '☆' }}
+                        </span>
                       }
                     </div>
                     <span class="text-[0.75rem] font-semibold tracking-[0.08em] text-stone-500 uppercase">
