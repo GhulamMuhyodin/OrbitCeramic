@@ -49,8 +49,14 @@ export class AdminDashboardPage {
     },
     {
       path: '/admin/about',
-      title: 'About & Reviews',
-      desc: 'Maker bio and client voices',
+      title: 'About',
+      desc: 'Maker story, image, and review headings',
+      icon: 'article',
+    },
+    {
+      path: '/admin/reviews',
+      title: 'Reviews',
+      desc: 'Client voices shown on About',
       icon: 'rate_review',
     },
   ];

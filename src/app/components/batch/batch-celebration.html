@@ -1,0 +1,33 @@
+<div
+  class="batch-celebrate fixed inset-0 z-[200] grid place-items-center bg-stone-950/80 p-6 backdrop-blur-[6px]"
+  role="dialog"
+  aria-modal="true"
+  aria-labelledby="batch-celebrate-heading"
+>
+  <div class="batch-celebrate-burst pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
+    @for (i of confettiPieces; track i) {
+      <span [style.--i]="i"></span>
+    }
+  </div>
+  <div
+    class="batch-celebrate-panel relative z-[1] max-w-md bg-surface px-7 py-9 text-center text-stone-900 shadow-lg"
+  >
+    <p class="mb-3 text-xs font-medium tracking-[0.14em] text-stone-700 uppercase">
+      {{ content().label }}
+    </p>
+    <h3
+      class="font-display mb-3.5 text-[clamp(2rem,4vw,2.75rem)] font-medium leading-[1.05]"
+      id="batch-celebrate-heading"
+    >
+      {{ content().celebration.heading }}
+    </h3>
+    <p class="mb-6 text-base leading-[1.6] text-stone-700">{{ content().celebration.lede }}</p>
+    <button
+      type="button"
+      class="inline-block cursor-pointer border border-stone-900 bg-stone-900 px-[1.35rem] py-3.5 text-xs font-semibold tracking-[0.1em] text-surface uppercase hover:bg-transparent hover:text-stone-900"
+      (click)="dismissCelebration()"
+    >
+      View the batch
+    </button>
+  </div>
+</div>

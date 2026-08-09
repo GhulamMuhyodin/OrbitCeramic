@@ -368,16 +368,13 @@ export class AdminDbService {
         eyebrow: about.eyebrow,
         heading: about.heading,
         image: about.image,
+        imageMediaId: about.imageMediaId,
         imageAlt: about.imageAlt,
         reviewsEyebrow: about.reviewsEyebrow,
         reviewsHeading: about.reviewsHeading,
         paragraphs: about.paragraphs,
       })
       .pipe(
-        switchMap(() => {
-          const ops = about.reviews.map((r) => this.persistReview(r));
-          return ops.length ? forkJoin(ops) : of([]);
-        }),
         tap(() => {
           this.dirty.set(false);
           this.saving.set(false);
@@ -389,6 +386,40 @@ export class AdminDbService {
       );
   }
 
+  saveReviews(): Observable<unknown> {
+    const db = this.db();
+    if (!db) {
+      return throwError(() => new Error('Not loaded'));
+    }
+    this.saving.set(true);
+    const ops = db.pageCopy.about.reviews.map((r) => this.persistReview(r));
+    return (ops.length ? forkJoin(ops) : of([])).pipe(
+      tap(() => {
+        this.dirty.set(false);
+        this.saving.set(false);
+      }),
+      catchError((err) => {
+        this.saving.set(false);
+        return throwError(() => err);
+      }),
+    );
+  }
+
+  saveReview(review: AboutReview): Observable<AboutReview> {
+    this.saving.set(true);
+    return this.persistReview(review).pipe(
+      tap((saved) => {
+        this.upsertReview(saved);
+        this.dirty.set(false);
+        this.saving.set(false);
+      }),
+      catchError((err) => {
+        this.saving.set(false);
+        return throwError(() => err);
+      }),
+    );
+  }
+
   persistReview(review: AboutReview): Observable<AboutReview> {
     const body: Partial<AboutReview> & { isPublished?: boolean; sortOrder?: number } = {
       quote: review.quote,
@@ -398,8 +429,9 @@ export class AdminDbService {
       gender: review.gender,
       image: review.image || undefined,
       imageAlt: review.imageAlt || undefined,
+      imageMediaId: review.imageMediaId || undefined,
       isPublished: true,
-      sortOrder: 0,
+      sortOrder: review.sortOrder ?? 0,
     };
     if (this.knownReviewIds.has(review.id)) {
       return this.api.updateReview(review.id, body);
@@ -770,6 +802,7 @@ export class AdminDbService {
   }
 
   createEmptyReview(): AboutReview {
+    const nextOrder = (this.db()?.pageCopy.about.reviews.length ?? 0) + 1;
     return {
       id: newId('review'),
       quote: '',
@@ -779,6 +812,7 @@ export class AdminDbService {
       gender: 'woman',
       image: '',
       imageAlt: '',
+      sortOrder: nextOrder,
     };
   }
 
@@ -826,10 +860,15 @@ export class AdminDbService {
       heading: '',
       paragraphs: [],
       image: '',
+      imageMediaId: undefined,
       imageAlt: '',
       reviewsEyebrow: '',
       reviewsHeading: '',
       reviews: [],
+    };
+    const about: SiteContentDb['pageCopy']['about'] = {
+      ...aboutRaw,
+      reviews: aboutRaw.reviews ?? [],
     };
 
     const mappedReviews: AboutReview[] =
@@ -844,7 +883,7 @@ export class AdminDbService {
             image: r.image ?? '',
             imageAlt: r.imageAlt ?? '',
           }))
-        : aboutRaw.reviews ?? [];
+        : about.reviews;
 
     const contact: ContactInfo = bootstrap.contact ?? {
       id: 'contact-main',

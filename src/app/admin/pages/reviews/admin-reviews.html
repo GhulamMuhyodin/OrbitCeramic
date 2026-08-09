@@ -1,0 +1,182 @@
+@if (db(); as d) {
+  <div class="flex-1 min-h-0 overflow-auto p-4 pb-6 md:p-6">
+    <div class="mx-auto mb-5 w-full max-w-4xl">
+      <h1 class="m-0 text-2xl font-semibold tracking-tight md:text-3xl">Reviews</h1>
+      <p class="mt-2 max-w-xl text-sm leading-relaxed text-muted md:text-[0.95rem]">Client voices shown on the public About section. Add, edit, and delete reviews in a focused modal.</p>
+    </div>
+
+    <div class="admin-form-card grid gap-4">
+      <p-card header="Reviews" styleClass="overflow-hidden">
+        <div class="admin-section-intro">
+          <span class="material-symbols-outlined">reviews</span>
+          <span>Add a review or select one to edit it in a focused popup. Changes stay local until you press Save to database.</span>
+        </div>
+
+        <div class="mb-4 flex flex-wrap gap-2">
+          <p-button type="button" label="Add review" (onClick)="addReview()" />
+        </div>
+
+        @for (review of reviews(); track review.id) {
+          <div
+            class="mb-2 flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white p-3"
+            [class.border-stone-900]="selectedId() === review.id"
+            [class.ring-1]="selectedId() === review.id"
+            [class.ring-stone-900]="selectedId() === review.id"
+            (click)="selectReview(review.id)"
+            (keyup.enter)="selectReview(review.id)"
+            tabindex="0"
+            role="button"
+          >
+            <div class="flex items-center gap-3">
+              <div class="flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-stone-100 text-stone-600">
+                @if (review.image) {
+                  <img
+                    class="h-full w-full object-cover"
+                    [src]="review.image"
+                    [alt]="review.imageAlt || review.name || 'Review image'"
+                  />
+                } @else {
+                  <span class="text-xl font-semibold uppercase">{{ review.gender === 'woman' ? 'W' : 'M' }}</span>
+                }
+              </div>
+              <div class="min-w-0">
+                <strong class="block truncate">{{ review.name || 'Untitled' }}</strong>
+                <span class="text-sm text-stone-500">{{ review.detail || 'No detail provided' }}</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="rounded-full bg-amber-50 px-2 py-1 text-xs font-semibold text-amber-700">{{ review.rating }}★</span>
+              <button
+                type="button"
+                class="rounded-full border border-stone-200 bg-white px-2.5 py-2 text-sm text-stone-700 transition hover:border-stone-300 hover:bg-stone-50"
+                (click)="deleteReviewRow(review.id, $event)"
+                aria-label="Delete review"
+              >
+                <span class="material-symbols-outlined">delete</span>
+              </button>
+            </div>
+          </div>
+        }
+      </p-card>
+    </div>
+  </div>
+
+  @if (draftReview(); as r) {
+    <p-dialog
+      [visible]="reviewDialogOpen()"
+      (visibleChange)="reviewDialogOpen.set($event)"
+      [modal]="true"
+      [draggable]="false"
+      [resizable]="false"
+      [header]="reviewDialogTitle()"
+      styleClass="admin-review-dialog"
+      [style]="{ width: 'min(92vw, 42rem)' }"
+    >
+      <p class="mb-5 mt-0 text-sm leading-relaxed text-stone-500">
+        Enter review details, then click Review to preview before saving.
+      </p>
+      <div class="grid grid-cols-1 gap-5 md:grid-cols-2">
+        <div class="admin-float-field">
+          <label>Name <span class="text-rose-600">*</span></label>
+          <input pInputText class="w-full" [ngModel]="r.name" (ngModelChange)="patchReview({ name: $event })" />
+        </div>
+        <div class="admin-float-field">
+          <label>Description <span class="text-rose-600">*</span></label>
+          <input pInputText class="w-full" [ngModel]="r.detail" (ngModelChange)="patchReview({ detail: $event })" />
+        </div>
+        <div class="admin-float-field md:col-span-2">
+          <label>Quote</label>
+          <textarea pTextarea class="w-full" rows="4" [ngModel]="r.quote" (ngModelChange)="patchReview({ quote: $event })"></textarea>
+        </div>
+        <div class="admin-float-field">
+          <label>Rating <span class="text-rose-600">*</span></label>
+          <p-select [options]="[1,2,3,4,5]" [ngModel]="r.rating" (ngModelChange)="patchReview({ rating: +$event })" styleClass="w-full" />
+        </div>
+        <div class="admin-float-field">
+          <label>Gender</label>
+          <p-select [options]="[{label: 'Woman', value: 'woman'}, {label: 'Man', value: 'man'}]" optionLabel="label" optionValue="value" [ngModel]="r.gender" (ngModelChange)="patchReview({ gender: $event })" styleClass="w-full" />
+        </div>
+        <div class="admin-float-field md:col-span-2">
+          <label class="mb-1 block text-sm font-medium text-stone-700">Review image <span class="text-rose-600">*</span></label>
+          <div class="grid gap-3">
+            <label
+              class="admin-upload-field my-2 mb-0 flex items-center justify-between gap-3"
+              [class.pointer-events-none]="uploading()"
+              [class.opacity-55]="uploading()"
+            >
+              <span class="material-symbols-outlined text-[1.85rem] text-clay-deep">cloud_upload</span>
+              <span class="text-[0.92rem] font-semibold text-ink">
+                {{ r.image ? 'Replace review image' : 'Upload review image' }}
+              </span>
+              <input type="file" accept="image/*" hidden (change)="onUploadReviewImage($event)" />
+            </label>
+
+            @if (r.image) {
+              <div class="rounded-3xl border border-stone-200 bg-white p-3 shadow-sm">
+                <figure class="m-0 overflow-hidden rounded-3xl bg-[#f5f1eb]">
+                  <img
+                    class="aspect-4/3 w-full object-cover"
+                    [src]="r.image"
+                    [alt]="r.imageAlt || r.name || 'Review photo'"
+                  />
+                </figure>
+                <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+                  <span class="text-sm text-stone-500">Preview of the review image.</span>
+                  <button
+                    type="button"
+                    class="rounded-full border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+                    (click)="removeReviewImage()"
+                  >
+                    Remove image
+                  </button>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+        <div class="admin-float-field md:col-span-2">
+          <label>Image alt text</label>
+          <input pInputText class="w-full" [ngModel]="r.imageAlt || ''" (ngModelChange)="patchReview({ imageAlt: $event })" />
+        </div>
+      </div>
+
+      @if (reviewPreview()) {
+        <div class="mt-5 rounded-3xl border border-stone-200 bg-surface p-5">
+          <p class="mb-4 text-xs font-semibold uppercase tracking-[0.16em] text-stone-500">Preview</p>
+          <div class="grid gap-4 text-stone-700 sm:grid-cols-[1fr_auto]">
+            <div>
+              <p class="text-sm font-semibold text-stone-900">{{ r.name || 'Untitled' }}</p>
+              <p class="mt-1 text-sm text-stone-500">{{ r.detail }}</p>
+              <div class="mt-3 inline-flex items-center gap-2 rounded-full bg-amber-50 px-3 py-1 text-xs font-semibold text-amber-700">{{ r.rating }}★</div>
+              <p class="mt-4 text-sm leading-6 text-stone-700">{{ r.quote }}</p>
+            </div>
+            @if (r.image) {
+              <div class="overflow-hidden rounded-3xl border border-stone-200 bg-white">
+                <img class="aspect-4/3 w-full object-cover" [src]="r.image" [alt]="r.imageAlt || r.name || 'Review photo'" />
+              </div>
+            }
+          </div>
+        </div>
+      }
+
+      <ng-template #footer>
+        <div class="flex w-full flex-wrap justify-between gap-2 mt-2">
+            <p-button type="button" class="p-button-text" label="Cancel" (onClick)="closeReviewDialog()" />
+          <div class="flex flex-wrap gap-2">
+            <p-button type="button" label="Review" severity="secondary" (onClick)="showReviewPreview()" />
+            <p-button type="button" label="{{ isEditing() ? 'Update' : 'Save' }}" (onClick)="saveReview()" />
+          </div>
+        </div>
+      </ng-template>
+    </p-dialog>
+  }
+
+  <div class="shrink-0 flex flex-wrap items-center gap-3 border-t border-stone-200 bg-[#fffcf8] px-4 py-3 shadow-[0_-10px_32px_rgba(28,25,23,0.08)] md:px-5">
+    @if (dirty()) {
+      <span class="min-w-28 flex-1 text-sm font-bold text-amber-700">Unsaved changes</span>
+    } @else {
+      <span class="min-w-28 flex-1 text-sm font-bold text-green-700">Saved</span>
+    }
+    <p-button type="button" label="Save to database" [disabled]="!dirty()" (onClick)="save()" />
+  </div>
+}

@@ -99,8 +99,17 @@ final class ContentRepository
         $stmt = $this->pdo->prepare('SELECT * FROM page_about WHERE site_id = ? LIMIT 1');
         $stmt->execute([$siteId]);
         $row = $stmt->fetch();
-        if (!$row) {
-            return null;
+        $hasAbout = (bool) $row;
+        if (!$hasAbout) {
+            $row = [
+                'eyebrow' => '',
+                'heading' => '',
+                'image' => '',
+                'image_alt' => '',
+                'reviews_eyebrow' => '',
+                'reviews_heading' => '',
+                'image_media_id' => null,
+            ];
         }
 
         $pStmt = $this->pdo->prepare(
@@ -135,7 +144,11 @@ final class ContentRepository
             $reviews[] = $item;
         }
 
-        return [
+        if (!$hasAbout && count($paragraphs) === 0 && count($reviews) === 0) {
+            return null;
+        }
+
+        $output = [
             'eyebrow' => $row['eyebrow'],
             'heading' => $row['heading'],
             'paragraphs' => $paragraphs,
@@ -145,6 +158,10 @@ final class ContentRepository
             'reviewsHeading' => $row['reviews_heading'],
             'reviews' => $reviews,
         ];
+        if ($row['image_media_id']) {
+            $output['imageMediaId'] = $row['image_media_id'];
+        }
+        return $output;
     }
 
     public function getPageCollections(string $siteId): ?array

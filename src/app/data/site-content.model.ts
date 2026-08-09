@@ -39,8 +39,12 @@ export interface AboutReview {
   /** Optional photo; when empty, gender avatar is used. */
   image?: string;
   imageAlt?: string;
+  /** Optional backend media reference for the image. */
+  imageMediaId?: string;
   /** Used for default avatar when image is missing. */
   gender: 'woman' | 'man';
+  /** UI sort order for review list rendering. */
+  sortOrder?: number;
 }
 
 export interface AboutContent {
@@ -48,6 +52,7 @@ export interface AboutContent {
   heading: string;
   paragraphs: string[];
   image: string;
+  imageMediaId?: string;
   imageAlt: string;
   reviewsEyebrow: string;
   reviewsHeading: string;

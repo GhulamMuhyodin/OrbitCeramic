@@ -74,7 +74,7 @@ export class SiteContentService {
       copyright: '',
     };
 
-    const about = (pc['about'] as SiteContentDb['pageCopy']['about']) ?? {
+    const aboutRaw = (pc['about'] as SiteContentDb['pageCopy']['about']) ?? {
       eyebrow: '',
       heading: '',
       paragraphs: [],
@@ -83,6 +83,10 @@ export class SiteContentService {
       reviewsEyebrow: '',
       reviewsHeading: '',
       reviews: [],
+    };
+    const about: SiteContentDb['pageCopy']['about'] = {
+      ...aboutRaw,
+      reviews: aboutRaw.reviews ?? [],
     };
 
     return {

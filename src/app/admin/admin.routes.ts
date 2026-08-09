@@ -42,7 +42,13 @@ export const adminRoutes: Routes = [
         path: 'about',
         loadComponent: () =>
           import('./pages/about/admin-about').then((m) => m.AdminAboutPage),
-        title: 'About & Reviews — Admin',
+        title: 'About — Admin',
+      },
+      {
+        path: 'reviews',
+        loadComponent: () =>
+          import('./pages/reviews/admin-reviews').then((m) => m.AdminReviewsPage),
+        title: 'Reviews — Admin',
       },
     ],
   },

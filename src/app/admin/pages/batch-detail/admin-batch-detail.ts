@@ -205,6 +205,9 @@ export class AdminBatchDetailPage {
     if (!isValidLaunchDate(b.launchAt)) {
       return 'Choose a valid launch date and time';
     }
+    if (!b.products.length) {
+      return 'At least one product is required in this batch';
+    }
     if (this.isActive() && !this.highlights().length) {
       return 'Active batch needs at least one highlight image';
     }
@@ -216,7 +219,7 @@ export class AdminBatchDetailPage {
         return `“${p.name || 'Product'}” needs a valid price (Rs 0 or more)`;
       }
       if (!p.images.length) {
-        return `“${p.name}” needs at least one product image`;
+        return `“${p.name || 'Product'}” needs at least one product image`;
       }
     }
     return null;
@@ -570,6 +573,10 @@ export class AdminBatchDetailPage {
     if (!b) {
       return;
     }
+    const confirmed = confirm('Launch this batch immediately? Click Yes to set the launch time to now.');
+    if (!confirmed) {
+      return;
+    }
     const now = new Date();
     this.patchBatch({ launchAt: now.toISOString() });
     this.formError.set(null);
@@ -580,6 +587,10 @@ export class AdminBatchDetailPage {
   protected setScheduled(): void {
     const b = this.batch();
     if (!b) {
+      return;
+    }
+    const confirmed = confirm('Schedule this batch for later? Click Yes to move the launch to tomorrow.');
+    if (!confirmed) {
       return;
     }
     const next = new Date(b.launchAt || Date.now());

@@ -67,19 +67,19 @@
         </div>
         <div class="mt-2 grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
           <div class="admin-float-field">
-            <label class="mb-1 block text-sm font-medium text-stone-700">Batch label</label>
+            <label class="mb-1 block text-sm font-medium text-stone-700">Batch label <span class="text-rose-600">*</span></label>
             <input pInputText class="w-full" [ngModel]="b.label" (ngModelChange)="patchBatch({ label: $event })" />
             <small class="mt-1 block text-xs text-stone-500">Shown on shop & countdown</small>
           </div>
 
           <div class="admin-float-field">
-            <label class="mb-1 block text-sm font-medium text-stone-700">Launch date</label>
+            <label class="mb-1 block text-sm font-medium text-stone-700">Launch date <span class="text-rose-600">*</span></label>
             <input type="date" class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2" [ngModel]="dateInputValue(b.launchAt)" (ngModelChange)="onLaunchDateInput($event)" />
             <small class="mt-1 block text-xs text-stone-500">Pick the calendar day</small>
           </div>
 
           <div class="admin-float-field">
-            <label class="mb-1 block text-sm font-medium text-stone-700">Launch time</label>
+            <label class="mb-1 block text-sm font-medium text-stone-700">Launch time <span class="text-rose-600">*</span></label>
             <input type="time" class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2" [ngModel]="launchTimeValue(b.launchAt)" (ngModelChange)="onLaunchTime($event)" />
             <small class="mt-1 block text-xs text-stone-500">Local time</small>
           </div>
@@ -165,12 +165,12 @@
             <h3 class="mb-2 mt-0 text-[0.98rem] font-semibold">Editing: {{ p.name }}</h3>
             <div class="mt-2 grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
               <div>
-                <label class="mb-1 block text-sm font-medium text-stone-700">Name</label>
+                <label class="mb-1 block text-sm font-medium text-stone-700">Name <span class="text-rose-600">*</span></label>
                 <input pInputText class="w-full" [ngModel]="p.name" (ngModelChange)="patchProduct({ name: $event })" />
               </div>
 
               <div>
-                <label class="mb-1 block text-sm font-medium text-stone-700">Price</label>
+                <label class="mb-1 block text-sm font-medium text-stone-700">Price <span class="text-rose-600">*</span></label>
                 <div class="flex items-center rounded-lg border border-stone-300 bg-white px-3">
                   <span class="mr-2 font-bold text-muted">Rs</span>
                   <input class="w-full border-0 bg-transparent py-2 outline-none" type="number" min="0" step="1" [ngModel]="p.price" (ngModelChange)="onPriceChange($event)" />
@@ -199,7 +199,7 @@
             </div>
 
             <h4 class="mb-2 mt-5 text-[0.98rem] font-semibold">
-              Product images
+              Product images <span class="text-rose-600">*</span>
               <span class="ml-2 inline-flex rounded-full bg-orange-100 px-1.5 py-0.5 text-[0.62rem] font-bold uppercase text-orange-800">required</span>
             </h4>
             <label class="admin-upload-field my-2 mb-4" [class.pointer-events-none]="uploading()" [class.opacity-55]="uploading()" [class.border-amber-500]="!p.images.length" [class.bg-amber-50]="!p.images.length">
