@@ -228,14 +228,21 @@ CREATE TABLE IF NOT EXISTS page_about (
   image           VARCHAR(1024) NOT NULL,
   image_media_id  VARCHAR(64)   NULL,
   image_alt       VARCHAR(512)  NOT NULL,
-  reviews_eyebrow VARCHAR(128)  NOT NULL,
-  reviews_heading VARCHAR(255)  NOT NULL,
   PRIMARY KEY (site_id),
   KEY idx_page_about_media (image_media_id),
   CONSTRAINT fk_page_about_site FOREIGN KEY (site_id) REFERENCES sites (id)
     ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT fk_page_about_media FOREIGN KEY (image_media_id) REFERENCES media (id)
     ON UPDATE CASCADE ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS page_reviews (
+  site_id         VARCHAR(64)   NOT NULL,
+  eyebrow         VARCHAR(128)  NOT NULL,
+  heading         VARCHAR(255)  NOT NULL,
+  PRIMARY KEY (site_id),
+  CONSTRAINT fk_page_reviews_site FOREIGN KEY (site_id) REFERENCES sites (id)
+    ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS about_paragraphs (

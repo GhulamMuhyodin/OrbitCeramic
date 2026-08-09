@@ -59,6 +59,11 @@ export interface AboutContent {
   reviews: AboutReview[];
 }
 
+export interface ReviewsContent {
+  eyebrow: string;
+  heading: string;
+}
+
 export interface CollectionsContent {
   eyebrow: string;
   heading: string;

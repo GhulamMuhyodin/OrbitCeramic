@@ -370,8 +370,6 @@ export class AdminDbService {
         image: about.image,
         imageMediaId: about.imageMediaId,
         imageAlt: about.imageAlt,
-        reviewsEyebrow: about.reviewsEyebrow,
-        reviewsHeading: about.reviewsHeading,
         paragraphs: about.paragraphs,
       })
       .pipe(

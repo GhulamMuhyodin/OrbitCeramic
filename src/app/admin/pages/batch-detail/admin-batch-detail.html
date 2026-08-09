@@ -45,8 +45,9 @@
     </div>
 
     <div class="mx-auto mb-4 flex w-full max-w-5xl flex-wrap gap-2">
-      <button class="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-medium text-green-700" type="button" (click)="setLiveNow()">Launch immediately</button>
-      <button class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-medium text-amber-700" type="button" (click)="setScheduled()">Schedule for later</button>
+      @if (scheduleStatus() === 'scheduled' && isPersisted()) {
+        <button class="rounded-lg border border-green-200 bg-green-50 px-3 py-2 text-sm font-medium text-green-700" type="button" (click)="setLiveNow()">Launch immediately</button>
+      }
       @if (scheduleStatus() === 'live') {
         <button class="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-700" type="button" (click)="setActive()">Show this batch on website</button>
       }
@@ -107,7 +108,15 @@
               Entire batch sold out
             </label>
           </div>
+        </div>
+      </p-card>
 
+      <p-card header="2 · Countdown & celebration" subheader="Public countdown and live celebration copy" styleClass="overflow-hidden">
+        <div class="admin-section-intro">
+          <span class="material-symbols-outlined">rocket_launch</span>
+          <span>Edit the text shown during the countdown and after launch on the public site.</span>
+        </div>
+        <div class="mt-2 grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
           <div>
             <label class="mb-1 block text-sm font-medium text-stone-700">Countdown eyebrow</label>
             <input pInputText class="w-full" [ngModel]="b.countdownEyebrow" (ngModelChange)="patchBatch({ countdownEyebrow: $event })" />

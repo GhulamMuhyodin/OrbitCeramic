@@ -274,14 +274,21 @@ CREATE TABLE IF NOT EXISTS page_about (
   image           VARCHAR(1024) NOT NULL,
   image_media_id  VARCHAR(64)   NULL,
   image_alt       VARCHAR(512)  NOT NULL,
-  reviews_eyebrow VARCHAR(128)  NOT NULL,
-  reviews_heading VARCHAR(255)  NOT NULL,
   PRIMARY KEY (site_id),
   KEY idx_p1_page_about_media (image_media_id),
   CONSTRAINT fk_p1_page_about_site FOREIGN KEY (site_id) REFERENCES sites (id)
     ON UPDATE CASCADE ON DELETE CASCADE,
   CONSTRAINT fk_p1_page_about_media FOREIGN KEY (image_media_id) REFERENCES media (id)
     ON UPDATE CASCADE ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS page_reviews (
+  site_id         VARCHAR(64)   NOT NULL,
+  eyebrow         VARCHAR(128)  NOT NULL,
+  heading         VARCHAR(255)  NOT NULL,
+  PRIMARY KEY (site_id),
+  CONSTRAINT fk_p1_page_reviews_site FOREIGN KEY (site_id) REFERENCES sites (id)
+    ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS about_paragraphs (
@@ -363,35 +370,6 @@ CREATE TABLE IF NOT EXISTS page_batch_shop (
   CONSTRAINT fk_p1_page_batch_shop_site FOREIGN KEY (site_id) REFERENCES sites (id)
     ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- Footer + header nav: NOT in DB — keep in site-content.json / Angular static chrome
-
-CREATE TABLE IF NOT EXISTS leads (
-  id            BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  site_id       VARCHAR(64)     NOT NULL,
-  type          ENUM('buy','custom','contact') NOT NULL,
-  status        ENUM('new','contacted','converted','closed') NOT NULL DEFAULT 'new',
-  batch_id      VARCHAR(64)     NULL,
-  product_id    VARCHAR(64)     NULL,
-  customer_name VARCHAR(255)    NULL,
-  phone         VARCHAR(32)     NULL,
-  email         VARCHAR(255)    NULL,
-  message       TEXT            NULL,
-  meta_json     JSON            NULL,
-  source_path   VARCHAR(255)    NULL,
-  created_at    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  updated_at    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  PRIMARY KEY (id),
-  KEY idx_p1_leads_site (site_id, status, created_at),
-  CONSTRAINT fk_p1_leads_site FOREIGN KEY (site_id) REFERENCES sites (id)
-    ON UPDATE CASCADE ON DELETE CASCADE,
-  CONSTRAINT fk_p1_leads_batch FOREIGN KEY (batch_id) REFERENCES batches (id)
-    ON UPDATE CASCADE ON DELETE SET NULL,
-  CONSTRAINT fk_p1_leads_product FOREIGN KEY (product_id) REFERENCES products (id)
-    ON UPDATE CASCADE ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-SET FOREIGN_KEY_CHECKS = 1;
 
 -- ---------------------------------------------------------------------------
 -- Tables created (Phase 1): 21

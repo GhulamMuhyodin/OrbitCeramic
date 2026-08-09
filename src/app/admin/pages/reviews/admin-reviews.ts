@@ -1,6 +1,6 @@
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { firstValueFrom } from 'rxjs';
+import { firstValueFrom, switchMap } from 'rxjs';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
@@ -75,6 +75,13 @@ export class AdminReviewsPage {
       return;
     }
     this.draftReview.set({ ...draft, ...patch });
+  }
+
+  protected patchAbout(
+    field: 'eyebrow' | 'heading' | 'image' | 'imageAlt' | 'imageMediaId',
+    value: string,
+  ): void {
+    this.adminDb.updateAbout({ [field]: value });
   }
 
   protected async onUploadReviewImage(event: Event): Promise<void> {
@@ -199,8 +206,10 @@ export class AdminReviewsPage {
   }
 
   protected save(): void {
-    this.adminDb.saveReviews().subscribe({
-      next: () => this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Reviews saved to database', life: 3000 }),
+    this.adminDb.saveReviews().pipe(
+      switchMap(() => this.adminDb.saveAbout()),
+    ).subscribe({
+      next: () => this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Reviews and review heading saved to database', life: 3000 }),
       error: (err) =>
         this.messageService.add({ severity: 'error', summary: 'Save failed', detail: err?.error?.error ?? err?.message ?? 'Save failed', life: 5000 }),
     });

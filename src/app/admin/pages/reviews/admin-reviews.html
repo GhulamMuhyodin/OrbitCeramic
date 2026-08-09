@@ -16,6 +16,17 @@
           <p-button type="button" label="Add review" (onClick)="addReview()" />
         </div>
 
+        <div class="mb-4 grid gap-4 sm:grid-cols-2">
+          <div class="admin-float-field">
+            <label class="mb-1 block text-sm font-medium text-stone-700">Reviews eyebrow</label>
+            <input pInputText class="w-full" [ngModel]="d.pageCopy.reviews?.eyebrow" (ngModelChange)="patchReviewsHeading('eyebrow', $event)" />
+          </div>
+          <div class="admin-float-field">
+            <label class="mb-1 block text-sm font-medium text-stone-700">Reviews heading</label>
+            <input pInputText class="w-full" [ngModel]="d.pageCopy.reviews?.heading" (ngModelChange)="patchReviewsHeading('heading', $event)" />
+          </div>
+        </div>
+
         @for (review of reviews(); track review.id) {
           <div
             class="mb-2 flex items-center justify-between gap-3 rounded-xl border border-stone-200 bg-white p-3"
