@@ -116,7 +116,9 @@ export class Batch implements OnDestroy {
 
   protected readonly countdown = computed((): CountdownParts => {
     const launch = Date.parse(this.content().launchAt);
-    const totalMs = Math.max(0, launch - this.now());
+    const totalMs = Number.isFinite(launch)
+      ? Math.max(0, launch - this.now())
+      : 0;
     const totalSeconds = Math.floor(totalMs / 1000);
     const days = Math.floor(totalSeconds / 86_400);
     const hours = Math.floor((totalSeconds % 86_400) / 3_600);

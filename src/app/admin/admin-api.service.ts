@@ -74,6 +74,8 @@ export class AdminApiService {
     id?: string;
     brand: string;
     activeBatchId?: string | null;
+    image?: string;
+    imageMediaId?: string;
   }): Observable<SiteRow> {
     return this.http.put<SiteRow>(`${this.base}/admin/site`, body);
   }
@@ -111,6 +113,30 @@ export class AdminApiService {
   deleteBatch(id: string): Observable<{ deleted: boolean }> {
     return this.http.delete<{ deleted: boolean }>(
       `${this.base}/admin/batches/${encodeURIComponent(id)}`,
+    );
+  }
+
+  saveBatch(
+    batchId: string,
+    body:
+      | FormData
+      | {
+          batch: Partial<BatchRow>;
+          products?: Array<Partial<ProductRow> & { batchId?: string }>;
+          journey?: { video?: Partial<JourneyVideoRow> | null; images?: JourneyImageRow[] };
+          highlights?: Array<{
+            id?: string;
+            mediaId?: string;
+            url?: string;
+            alt?: string;
+            sortOrder?: number;
+            fileKey?: string;
+          }>;
+        },
+  ): Observable<BatchRow> {
+    return this.http.put<BatchRow>(
+      `${this.base}/admin/batches/${encodeURIComponent(batchId)}/transaction`,
+      body,
     );
   }
 
@@ -205,7 +231,7 @@ export class AdminApiService {
       .pipe(map((r) => r.items ?? []));
   }
 
-  uploadMedia(file: File, siteId = API_CONFIG.defaultSiteId): Observable<MediaUploadResult> {
+  uploadMedia(file: File, siteId: string = API_CONFIG.defaultSiteId): Observable<MediaUploadResult> {
     const form = new FormData();
     form.append('file', file);
     form.append('siteId', siteId);

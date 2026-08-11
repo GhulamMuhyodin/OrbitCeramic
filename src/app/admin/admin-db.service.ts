@@ -148,8 +148,8 @@ export class AdminDbService {
     URL.revokeObjectURL(url);
   }
 
-  uploadFile(file: File): Observable<MediaUploadResult> {
-    return this.api.uploadMedia(file, API_CONFIG.defaultSiteId);
+  uploadFile(file: File, siteId: string = API_CONFIG.defaultSiteId): Observable<MediaUploadResult> {
+    return this.api.uploadMedia(file, siteId);
   }
 
   saveSiteAndContact(): Observable<unknown> {
@@ -163,6 +163,8 @@ export class AdminDbService {
         id: db.site.id || API_CONFIG.defaultSiteId,
         brand: db.site.brand,
         activeBatchId: db.site.activeBatchId || (null as unknown as string),
+        image: db.site.image,
+        imageMediaId: db.site.imageMediaId,
       }),
       contact: this.api.putContact({
         id: db.contact.id,
@@ -215,14 +217,6 @@ export class AdminDbService {
       celebrationLede: batch.celebrationLede,
     };
 
-    const batch$ = this.knownBatchIds.has(batchId)
-      ? this.api.updateBatch(batchId, batchBody)
-      : this.api.createBatch(batchBody).pipe(
-          tap((b) => {
-            this.knownBatchIds.add(b.id);
-          }),
-        );
-
     const journeyVideo = db.journeyVideos.find((v) => v.batchId === batchId);
     const journeyImages = (db.journeyImages ?? []).filter((i) => i.batchId === batchId);
     const highlights = (db.heroHighlightImages ?? []).filter((h) => h.batchId === batchId);
@@ -261,29 +255,48 @@ export class AdminDbService {
         sortOrder: h.sortOrder,
       }));
 
-    const hasJourney =
-      !!journeyPayload.video || journeyPayload.images.length > 0;
+    const payload = {
+      batch: batchBody,
+      products: batch.products.map((p) => ({
+        ...p,
+        batchId,
+        images: p.images.map((img) => ({
+          id: img.id,
+          url: img.url,
+          sortOrder: img.sortOrder,
+          mediaId: img.mediaId,
+        })),
+      })),
+      journey: journeyPayload,
+      highlights: highlightItems,
+    };
 
-    return batch$.pipe(
-      switchMap(() => {
-        const productOps = batch.products.map((p) => this.persistProduct(batchId, p));
-        return productOps.length ? forkJoin(productOps) : of([]);
-      }),
-      switchMap(() =>
-        hasJourney ? this.api.putJourney(batchId, journeyPayload) : of(null),
-      ),
-      switchMap(() =>
-        highlightItems.length || this.knownBatchIds.has(batchId)
-          ? this.api.putHeroHighlights(batchId, highlightItems)
-          : of(null),
-      ),
-      switchMap(() => {
-        if (db.site.activeBatchId === batchId) {
-          return this.api.putActiveBatch(batchId);
-        }
-        return of(null);
-      }),
+    return this.api.saveBatch(batchId, payload).pipe(
       tap(() => {
+        this.knownBatchIds.add(batchId);
+        batch.products.forEach((p) => {
+          this.knownProductIds.add(p.id);
+        });
+        this.dirty.set(false);
+        this.saving.set(false);
+      }),
+      catchError((err) => {
+        this.saving.set(false);
+        return throwError(() => err);
+      }),
+    );
+  }
+
+  saveBatchMultipart(batchId: string, formData: FormData): Observable<BatchRow> {
+    this.saving.set(true);
+    return this.api.saveBatch(batchId, formData).pipe(
+      tap(() => {
+        this.knownBatchIds.add(batchId);
+        const db = this.db();
+        const batch = db?.batches.find((b) => b.id === batchId);
+        if (batch) {
+          batch.products.forEach((p) => this.knownProductIds.add(p.id));
+        }
         this.dirty.set(false);
         this.saving.set(false);
       }),
@@ -894,6 +907,8 @@ export class AdminDbService {
       site: {
         id: bootstrap.site.id,
         brand: bootstrap.site.brand,
+        image: bootstrap.site.image ?? '',
+        imageMediaId: bootstrap.site.imageMediaId ?? undefined,
         activeBatchId: bootstrap.site.activeBatchId ?? '',
       },
       contact,

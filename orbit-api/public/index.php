@@ -166,6 +166,7 @@ $router->add('GET', '/api/v1/admin/batches', static fn () => $admin->listBatches
 $router->add('POST', '/api/v1/admin/batches', static fn () => $admin->createBatch());
 $router->add('GET', '/api/v1/admin/batches/:id', static fn (array $p) => $admin->getBatch($p));
 $router->add('PUT', '/api/v1/admin/batches/:id', static fn (array $p) => $admin->updateBatch($p));
+$router->add('PUT', '/api/v1/admin/batches/:id/transaction', static fn (array $p) => $admin->saveBatchTransaction($p));
 $router->add('DELETE', '/api/v1/admin/batches/:id', static fn (array $p) => $admin->deleteBatch($p));
 $router->add('PUT', '/api/v1/admin/batches/:id/journey', static fn (array $p) => $admin->putJourney($p));
 $router->add('PUT', '/api/v1/admin/batches/:id/hero-highlights', static fn (array $p) => $admin->putHighlights($p));

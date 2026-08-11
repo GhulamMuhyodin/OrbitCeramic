@@ -15,11 +15,6 @@ final class PageController
     ) {
     }
 
-    public function hero(): void
-    {
-        $this->respond($this->repo->getPageHero($this->siteId()), 'Hero page copy not found');
-    }
-
     public function about(): void
     {
         $this->respond($this->repo->getPageAbout($this->siteId()), 'About page not found');

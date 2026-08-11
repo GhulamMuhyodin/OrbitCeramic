@@ -6,6 +6,7 @@ namespace OrbitApi\Repositories;
 
 use PDO;
 use RuntimeException;
+use Throwable;
 
 /**
  * Admin write/upsert operations for Phase 1 CMS tables.
@@ -30,17 +31,32 @@ final class AdminRepository
         $active = $body['activeBatchId'] ?? null;
         $active = ($active === null || $active === '') ? null : (string) $active;
 
+        $image = trim((string) ($body['image'] ?? ''));
+        $imageMediaId = $this->nullMedia($body['imageMediaId'] ?? null);
+
         $exists = $this->content->siteExists($id);
         if ($exists) {
             $stmt = $this->pdo->prepare(
-                'UPDATE sites SET brand = :brand, active_batch_id = :active WHERE id = :id'
+                'UPDATE sites SET brand = :brand, active_batch_id = :active, image = :image, image_media_id = :mid WHERE id = :id'
             );
-            $stmt->execute([':brand' => $brand, ':active' => $active, ':id' => $id]);
+            $stmt->execute([
+                ':brand' => $brand,
+                ':active' => $active,
+                ':image' => $image,
+                ':mid' => $imageMediaId,
+                ':id' => $id,
+            ]);
         } else {
             $stmt = $this->pdo->prepare(
-                'INSERT INTO sites (id, brand, active_batch_id) VALUES (:id, :brand, :active)'
+                'INSERT INTO sites (id, brand, active_batch_id, image, image_media_id) VALUES (:id, :brand, :active, :image, :mid)'
             );
-            $stmt->execute([':id' => $id, ':brand' => $brand, ':active' => $active]);
+            $stmt->execute([
+                ':id' => $id,
+                ':brand' => $brand,
+                ':active' => $active,
+                ':image' => $image,
+                ':mid' => $imageMediaId,
+            ]);
         }
 
         $site = $this->content->getSite($id);
@@ -189,6 +205,188 @@ final class AdminRepository
         $this->pdo->prepare($sql)->execute($params);
 
         return $this->content->getBatch($siteId, $batchId, true) ?? [];
+    }
+
+    public function saveBatchTransaction(string $siteId, string $batchId, array $body): array
+    {
+        $this->pdo->beginTransaction();
+        try {
+            $result = $this->saveBatchTransactionInternal($siteId, $batchId, $body);
+            $this->pdo->commit();
+            return $result;
+        } catch (Throwable $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    public function saveBatchTransactionMultipart(string $siteId, string $batchId, array $body, array $uploadedMedia): array
+    {
+        if (!$this->content->siteExists($siteId)) {
+            throw new RuntimeException('Site not found', 404);
+        }
+
+        $this->pdo->beginTransaction();
+        try {
+            $mediaMap = [];
+            foreach ($uploadedMedia as $field => $fileData) {
+                if (!is_array($fileData)) {
+                    continue;
+                }
+                $mediaMap[$field] = $this->content->insertMedia([
+                    'id' => $fileData['id'],
+                    'site_id' => $siteId,
+                    'disk_path' => $fileData['diskPath'],
+                    'public_url' => $fileData['publicUrl'],
+                    'mime' => $fileData['mime'],
+                    'bytes' => $fileData['bytes'],
+                    'original_name' => $fileData['originalName'],
+                    'kind' => $fileData['kind'],
+                ]);
+            }
+
+            $body = $this->resolveMultipartPayload($body, $mediaMap);
+            $result = $this->saveBatchTransactionInternal($siteId, $batchId, $body);
+            $this->pdo->commit();
+            return $result;
+        } catch (Throwable $e) {
+            $this->pdo->rollBack();
+            throw $e;
+        }
+    }
+
+    private function saveBatchTransactionInternal(string $siteId, string $batchId, array $body): array
+    {
+        if (!$this->content->siteExists($siteId)) {
+            throw new RuntimeException('Site not found', 404);
+        }
+
+        $batchData = $body['batch'] ?? [];
+        $batchData['id'] = $batchId;
+
+        $products = is_array($body['products'] ?? null) ? $body['products'] : [];
+        $journey = $body['journey'] ?? null;
+        $highlights = is_array($body['highlights'] ?? null) ? $body['highlights'] : [];
+
+        if ($this->content->getBatch($siteId, $batchId, false)) {
+            $this->updateBatch($siteId, $batchId, $batchData);
+        } else {
+            $this->createBatch($siteId, $batchData);
+        }
+
+        foreach ($products as $product) {
+            if (!is_array($product)) {
+                continue;
+            }
+            $product['batchId'] = $batchId;
+            $productId = trim((string) ($product['id'] ?? ''));
+            if ($productId === '') {
+                throw new RuntimeException('Product id is required', 422);
+            }
+
+            if ($this->content->getProduct($productId)) {
+                $this->updateProduct($siteId, $productId, $product);
+            } else {
+                $this->createProduct($siteId, $product);
+            }
+        }
+
+        if (is_array($journey)) {
+            $this->putJourney($siteId, $batchId, $journey);
+        }
+
+        if ($highlights !== []) {
+            $this->putHeroHighlights($siteId, $batchId, ['items' => $highlights]);
+        }
+
+        return $this->content->getBatch($siteId, $batchId, true) ?? [];
+    }
+
+    private function resolveMultipartPayload(array $body, array $mediaMap): array
+    {
+        if (isset($body['products']) && is_array($body['products'])) {
+            foreach ($body['products'] as &$product) {
+                if (!is_array($product) || !isset($product['images']) || !is_array($product['images'])) {
+                    continue;
+                }
+                foreach ($product['images'] as &$image) {
+                    if (!is_array($image)) {
+                        continue;
+                    }
+                    $image = $this->resolveFileReference($image, $mediaMap);
+                }
+                unset($image);
+            }
+            unset($product);
+        }
+
+        if (isset($body['journey']) && is_array($body['journey'])) {
+            if (isset($body['journey']['video']) && is_array($body['journey']['video'])) {
+                $body['journey']['video'] = $this->resolveUploadReference(
+                    $body['journey']['video'],
+                    $mediaMap,
+                    'posterFileKey',
+                    'posterMediaId',
+                    'posterImage',
+                );
+                $body['journey']['video'] = $this->resolveUploadReference(
+                    $body['journey']['video'],
+                    $mediaMap,
+                    'videoFileKey',
+                    'videoMediaId',
+                    'videoUrl',
+                );
+            }
+            if (isset($body['journey']['images']) && is_array($body['journey']['images'])) {
+                foreach ($body['journey']['images'] as &$image) {
+                    if (!is_array($image)) {
+                        continue;
+                    }
+                    $image = $this->resolveFileReference($image, $mediaMap);
+                }
+                unset($image);
+            }
+        }
+
+        if (isset($body['highlights']) && is_array($body['highlights'])) {
+            foreach ($body['highlights'] as &$highlight) {
+                if (!is_array($highlight)) {
+                    continue;
+                }
+                $highlight = $this->resolveFileReference($highlight, $mediaMap);
+            }
+            unset($highlight);
+        }
+
+        return $body;
+    }
+
+    private function resolveFileReference(array $item, array $mediaMap): array
+    {
+        if (!empty($item['fileKey']) && is_string($item['fileKey'])) {
+            $key = $item['fileKey'];
+            if (!isset($mediaMap[$key]) || !is_array($mediaMap[$key])) {
+                throw new RuntimeException('Missing uploaded file for ' . $key, 422);
+            }
+            $item['mediaId'] = $mediaMap[$key]['id'];
+            $item['url'] = $mediaMap[$key]['publicUrl'];
+            unset($item['fileKey']);
+        }
+        return $item;
+    }
+
+    private function resolveUploadReference(array $item, array $mediaMap, string $fileKeyField, string $mediaIdField, string $urlField): array
+    {
+        if (!empty($item[$fileKeyField]) && is_string($item[$fileKeyField])) {
+            $key = $item[$fileKeyField];
+            if (!isset($mediaMap[$key]) || !is_array($mediaMap[$key])) {
+                throw new RuntimeException('Missing uploaded file for ' . $key, 422);
+            }
+            $item[$mediaIdField] = $mediaMap[$key]['id'];
+            $item[$urlField] = $mediaMap[$key]['publicUrl'];
+            unset($item[$fileKeyField]);
+        }
+        return $item;
     }
 
     public function deleteBatch(string $siteId, string $batchId): void
@@ -419,31 +617,6 @@ final class AdminRepository
         return ['items' => $this->content->listHeroHighlights($batchId)];
     }
 
-    public function putPageHero(string $siteId, array $body): array
-    {
-        $this->assertSite($siteId);
-        $this->pdo->prepare(
-            'INSERT INTO page_hero
-             (site_id, image, image_media_id, brand, brand_primary, brand_secondary, title, lede, cta_label, cta_href)
-             VALUES (:site,:image,:mid,:brand,:bp,:bs,:title,:lede,:cta,:href)
-             ON DUPLICATE KEY UPDATE
-               image=VALUES(image), image_media_id=VALUES(image_media_id), brand=VALUES(brand),
-               brand_primary=VALUES(brand_primary), brand_secondary=VALUES(brand_secondary),
-               title=VALUES(title), lede=VALUES(lede), cta_label=VALUES(cta_label), cta_href=VALUES(cta_href)'
-        )->execute([
-            ':site' => $siteId,
-            ':image' => (string) ($body['image'] ?? ''),
-            ':mid' => $this->nullMedia($body['imageMediaId'] ?? null),
-            ':brand' => (string) ($body['brand'] ?? ''),
-            ':bp' => (string) ($body['brandPrimary'] ?? ''),
-            ':bs' => (string) ($body['brandSecondary'] ?? ''),
-            ':title' => (string) ($body['title'] ?? ''),
-            ':lede' => (string) ($body['lede'] ?? ''),
-            ':cta' => (string) ($body['ctaLabel'] ?? ''),
-            ':href' => (string) ($body['ctaHref'] ?? ''),
-        ]);
-        return $this->content->getPageHero($siteId) ?? [];
-    }
 
     public function putPageAbout(string $siteId, array $body): array
     {

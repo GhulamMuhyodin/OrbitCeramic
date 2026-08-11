@@ -160,6 +160,7 @@ or `Authorization: Bearer <same-key>`.
 | `GET/POST` | `/api/v1/admin/reviews` | List / create review |
 | `PUT/DELETE` | `/api/v1/admin/reviews/:id` | Update / delete review |
 | `POST` | `/api/v1/admin/media` | Upload file → `media` row |
+| `PUT` | `/api/v1/admin/batches/:id/transaction` | Save batch + products + journey + highlights in one transaction |
 | `GET` | `/api/v1/admin/leads` | Lead list |
 
 ### Recommended insert order (admin UI)

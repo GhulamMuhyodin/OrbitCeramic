@@ -125,7 +125,7 @@ Journey / hero media can be nested under batch responses **or**:
 | # | Method | Path | Serves |
 |---|--------|------|--------|
 | 41 | `POST` | `/admin/auth/login` | Admin JWT |
-| 42 | `GET/PUT` | `/admin/batches` | List / upsert batch schedule & copy |
+| 42 | `GET/PUT` | `/admin/batches` | List / update batch schedule & copy |
 | 43 | `GET/PUT` | `/admin/products` | List / upsert products + stock |
 | 44 | `PUT` | `/admin/sites/active-batch` | Set `active_batch_id` |
 | 45 | `GET/PUT` | `/admin/page/:section` | Edit page copy sections |

@@ -15,19 +15,6 @@ export interface ContactInfo {
   lineText: string;
 }
 
-export interface HeroContent {
-  image: string;
-  brand: string;
-  /** Wordmark line 1 (e.g. Orbit). */
-  brandPrimary: string;
-  /** Wordmark line 2 (e.g. Ceramic). */
-  brandSecondary: string;
-  title: string;
-  lede: string;
-  ctaLabel: string;
-  ctaHref: string;
-}
-
 export interface AboutReview {
   id: string;
   quote: string;
@@ -117,6 +104,8 @@ export interface FooterContent {
 export interface SiteRow {
   id: string;
   brand: string;
+  image: string;
+  imageMediaId?: string;
   activeBatchId: string;
 }
 
@@ -208,6 +197,17 @@ export interface HeroHighlightImageRow {
   alt: string;
   sortOrder: number;
   mediaId?: string;
+}
+
+export interface HeroContent {
+  image: string;
+  brand: string;
+  brandPrimary: string;
+  brandSecondary: string;
+  title: string;
+  lede: string;
+  ctaLabel: string;
+  ctaHref: string;
 }
 
 export interface PageCopyTables {
@@ -405,7 +405,7 @@ export function assembleSiteContent(db: SiteContentDb): SiteContent {
 
   const heroHighlights = assembleHeroHighlights(active, batches, heroHighlightRows);
   const heroImage = resolveHeroBackdropImage(
-    db.pageCopy.hero.image,
+    db.site.image || db.pageCopy.hero.image,
     active,
     batches,
     heroHighlightRows,

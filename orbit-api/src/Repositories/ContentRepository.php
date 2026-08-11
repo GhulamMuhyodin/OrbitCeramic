@@ -23,18 +23,23 @@ final class ContentRepository
 
     public function getSite(string $siteId): ?array
     {
-        $stmt = $this->pdo->prepare('SELECT id, brand, active_batch_id FROM sites WHERE id = ? LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT id, brand, image, image_media_id, active_batch_id FROM sites WHERE id = ? LIMIT 1');
         $stmt->execute([$siteId]);
         $row = $stmt->fetch();
         if (!$row) {
             return null;
         }
 
-        return [
+        $site = [
             'id' => $row['id'],
             'brand' => $row['brand'],
+            'image' => $row['image'] ?? '',
             'activeBatchId' => $row['active_batch_id'],
         ];
+        if ($row['image_media_id']) {
+            $site['imageMediaId'] = $row['image_media_id'];
+        }
+        return $site;
     }
 
     public function getContact(string $siteId): ?array
@@ -59,27 +64,6 @@ final class ContentRepository
             'lineText' => $row['line_text'],
         ];
         return $out;
-    }
-
-    public function getPageHero(string $siteId): ?array
-    {
-        $stmt = $this->pdo->prepare('SELECT * FROM page_hero WHERE site_id = ? LIMIT 1');
-        $stmt->execute([$siteId]);
-        $row = $stmt->fetch();
-        if (!$row) {
-            return null;
-        }
-
-        return [
-            'image' => $row['image'],
-            'brand' => $row['brand'],
-            'brandPrimary' => $row['brand_primary'],
-            'brandSecondary' => $row['brand_secondary'],
-            'title' => $row['title'],
-            'lede' => $row['lede'],
-            'ctaLabel' => $row['cta_label'],
-            'ctaHref' => $row['cta_href'],
-        ];
     }
 
     public function getPageAbout(string $siteId): ?array
@@ -504,16 +488,12 @@ final class ContentRepository
         }
 
         $contact = $this->getContact($siteId);
-        $hero = $this->getPageHero($siteId);
         $about = $this->getPageAbout($siteId);
         $collections = $this->getPageCollections($siteId);
         $journey = $this->getPageJourney($siteId);
         $batchShop = $this->getPageBatchShop($siteId);
 
         $pageCopy = [];
-        if ($hero) {
-            $pageCopy['hero'] = $hero;
-        }
         if ($about) {
             $pageCopy['about'] = $about;
         }

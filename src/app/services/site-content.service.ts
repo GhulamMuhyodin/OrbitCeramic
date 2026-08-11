@@ -94,6 +94,8 @@ export class SiteContentService {
       site: {
         id: bootstrap.site.id,
         brand: bootstrap.site.brand,
+        image: bootstrap.site.image ?? '',
+        imageMediaId: bootstrap.site.imageMediaId ?? undefined,
         activeBatchId: bootstrap.site.activeBatchId ?? '',
       },
       contact: bootstrap.contact ?? {

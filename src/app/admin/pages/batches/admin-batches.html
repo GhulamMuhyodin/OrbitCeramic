@@ -45,9 +45,6 @@
             <td class="px-4 py-3">
               <div class="flex flex-wrap gap-2">
                 <a class="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700" [routerLink]="['/admin/batches', b.id]">Edit</a>
-                @if (b.id !== d.site.activeBatchId) {
-                  <button class="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700" type="button" (click)="setActive(b.id)">Show on website</button>
-                }
                 <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-700" type="button" (click)="deleteBatch(b.id, b.label)">Delete</button>
               </div>
             </td>
@@ -69,9 +66,6 @@
         </div>
           <div class="mt-1 flex flex-wrap gap-1">
           <a class="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700" [routerLink]="['/admin/batches', b.id]">Edit</a>
-          @if (b.id !== d.site.activeBatchId) {
-            <button class="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700" type="button" (click)="setActive(b.id)">Show on website</button>
-          }
           <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-700" type="button" (click)="deleteBatch(b.id, b.label)">Delete</button>
         </div>
       </article>

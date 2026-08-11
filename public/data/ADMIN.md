@@ -12,13 +12,12 @@ Open **Batches → Add batch / Edit**. One screen owns:
 2. Products (upload images → API media)  
 3. Journey (stills + one video)  
 4. Hero highlight images  
-5. **Save** → writes MySQL via `/api/v1/admin/*`
+5. **Save** → writes MySQL via `/api/v1/admin/*`, including `PUT /api/v1/admin/batches/:id/transaction` for atomic save flow
 
 ## Other pages
 
 | Route | Purpose |
 |-------|---------|
-| `/admin` | Dashboard |
 | `/admin/site` | Brand, active batch, WhatsApp (nav is JSON-only) |
 | `/admin/batches` | Batch list |
 | `/admin/batches/:id` | Full batch editor |

@@ -154,6 +154,134 @@ final class AdminController
         ));
     }
 
+    public function saveBatchTransaction(array $params): void
+    {
+        $this->run(function () use ($params) {
+            $siteId = $this->siteId();
+            $batchId = (string) $params['id'];
+
+            if ($this->isMultipartRequest()) {
+                $payload = $this->parseMultipartPayload();
+                $uploadedFiles = $this->moveUploadedFiles();
+                try {
+                    Response::json(
+                        $this->admin->saveBatchTransactionMultipart($siteId, $batchId, $payload, $uploadedFiles),
+                    );
+                } catch (\Throwable $e) {
+                    foreach ($uploadedFiles as $upload) {
+                        if (!empty($upload['diskPath']) && file_exists($upload['diskPath'])) {
+                            @unlink($upload['diskPath']);
+                        }
+                    }
+                    throw $e;
+                }
+                return;
+            }
+
+            Response::json(
+                $this->admin->saveBatchTransaction($siteId, $batchId, orbit_json_body()),
+            );
+        });
+    }
+
+    private function isMultipartRequest(): bool
+    {
+        return isset($_SERVER['CONTENT_TYPE']) && str_contains((string) $_SERVER['CONTENT_TYPE'], 'multipart/form-data');
+    }
+
+    private function parseMultipartPayload(): array
+    {
+        if (!isset($_POST['payload']) || !is_string($_POST['payload'])) {
+            throw new RuntimeException('Missing payload JSON for multipart batch save', 422);
+        }
+
+        $payload = json_decode($_POST['payload'], true);
+        if (!is_array($payload)) {
+            throw new RuntimeException('Invalid multipart payload JSON', 422);
+        }
+
+        return $payload;
+    }
+
+    private function moveUploadedFiles(): array
+    {
+        if (!is_array($_FILES)) {
+            return [];
+        }
+
+        $uploads = [];
+        foreach ($_FILES as $field => $file) {
+            if (!is_array($file)) {
+                continue;
+            }
+            if (($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK) {
+                throw new RuntimeException('Upload failed for field ' . $field . ' (error code ' . (int) ($file['error'] ?? 0) . ')', 400);
+            }
+
+            $max = (int) ($this->config['max_upload_bytes'] ?? 20971520);
+            $size = (int) ($file['size'] ?? 0);
+            if ($size <= 0 || $size > $max) {
+                throw new RuntimeException('File too large or empty for field: ' . $field, 413);
+            }
+
+            $tmp = (string) ($file['tmp_name'] ?? '');
+            if ($tmp === '' || !is_uploaded_file($tmp)) {
+                throw new RuntimeException('Invalid uploaded file for field: ' . $field, 422);
+            }
+
+            $original = (string) ($file['name'] ?? 'upload.bin');
+            $finfo = new \finfo(FILEINFO_MIME_TYPE);
+            $mime = $finfo->file($tmp) ?: 'application/octet-stream';
+
+            $kind = 'other';
+            if (str_starts_with($mime, 'image/')) {
+                $kind = 'image';
+            } elseif (str_starts_with($mime, 'video/')) {
+                $kind = 'video';
+            }
+
+            $allowed = [
+                'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+                'video/mp4', 'video/webm', 'video/quicktime',
+            ];
+            if (!in_array($mime, $allowed, true)) {
+                throw new RuntimeException('Unsupported mime type: ' . $mime, 415);
+            }
+
+            $ext = pathinfo($original, PATHINFO_EXTENSION);
+            $ext = $ext !== '' ? preg_replace('/[^a-zA-Z0-9]/', '', $ext) : ($kind === 'image' ? 'jpg' : 'bin');
+            $id = orbit_new_id('media');
+            $relativeName = $id . '.' . strtolower((string) $ext);
+
+            $uploadsDir = $this->config['uploads_dir'];
+            if (!is_dir($uploadsDir) && !mkdir($uploadsDir, 0755, true) && !is_dir($uploadsDir)) {
+                throw new RuntimeException('Uploads directory not writable', 500);
+            }
+
+            $diskPath = rtrim($uploadsDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $relativeName;
+            if (!move_uploaded_file($tmp, $diskPath)) {
+                throw new RuntimeException('Could not store uploaded file for field: ' . $field, 500);
+            }
+
+            $publicUrl = rtrim((string) $this->config['public_base_url'], '/')
+                . rtrim((string) $this->config['uploads_url_path'], '/')
+                . '/' . $relativeName;
+
+            $uploads[$field] = [
+                'id' => $id,
+                'siteId' => (string) ($_POST['siteId'] ?? $this->config['default_site_id']),
+                'diskPath' => $diskPath,
+                'publicUrl' => $publicUrl,
+                'mime' => $mime,
+                'bytes' => $size,
+                'originalName' => $original,
+                'kind' => $kind,
+            ];
+        }
+
+        return $uploads;
+    }
+
     public function deleteBatch(array $params): void
     {
         $this->run(function () use ($params) {
@@ -231,7 +359,6 @@ final class AdminController
         $section = (string) ($params['section'] ?? '');
         $siteId = $this->siteId();
         $data = match ($section) {
-            'hero' => $this->content->getPageHero($siteId),
             'about' => $this->content->getPageAbout($siteId),
             'collections' => $this->content->getPageCollections($siteId),
             'journey' => $this->content->getPageJourney($siteId),

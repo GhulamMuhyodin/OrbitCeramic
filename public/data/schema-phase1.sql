@@ -21,6 +21,8 @@ CREATE TABLE IF NOT EXISTS sites (
   id              VARCHAR(64)  NOT NULL,
   brand           VARCHAR(255) NOT NULL,
   active_batch_id VARCHAR(64)  NULL COMMENT 'Current countdown / shop batch',
+  image           VARCHAR(1024) NOT NULL,
+  image_media_id  VARCHAR(64)   NULL,
   created_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
   updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id)
@@ -237,25 +239,6 @@ CREATE TABLE IF NOT EXISTS hero_highlight_images (
 -- Page copy
 -- ---------------------------------------------------------------------------
 
-CREATE TABLE IF NOT EXISTS page_hero (
-  site_id         VARCHAR(64)   NOT NULL,
-  image           VARCHAR(1024) NOT NULL,
-  image_media_id  VARCHAR(64)   NULL,
-  brand           VARCHAR(255)  NOT NULL,
-  brand_primary   VARCHAR(128)  NOT NULL,
-  brand_secondary VARCHAR(128)  NOT NULL,
-  title           VARCHAR(512)  NOT NULL,
-  lede            TEXT          NOT NULL,
-  cta_label       VARCHAR(128)  NOT NULL,
-  cta_href        VARCHAR(512)  NOT NULL,
-  PRIMARY KEY (site_id),
-  KEY idx_p1_page_hero_media (image_media_id),
-  CONSTRAINT fk_p1_page_hero_site FOREIGN KEY (site_id) REFERENCES sites (id)
-    ON UPDATE CASCADE ON DELETE CASCADE,
-  CONSTRAINT fk_p1_page_hero_media FOREIGN KEY (image_media_id) REFERENCES media (id)
-    ON UPDATE CASCADE ON DELETE SET NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
 CREATE TABLE IF NOT EXISTS page_about (
   site_id         VARCHAR(64)   NOT NULL,
   eyebrow         VARCHAR(128)  NOT NULL,
@@ -365,7 +348,7 @@ CREATE TABLE IF NOT EXISTS page_batch_shop (
 -- sites, admin_users, admin_sessions, contacts, media,
 -- batches, products, product_colors, product_images,
 -- journey_videos (1 per batch), journey_images, hero_highlight_images,
--- page_hero, page_about, about_paragraphs, about_reviews,
+-- page_about, about_paragraphs, about_reviews,
 -- page_collections, page_journey, page_batch_shop, leads
 -- NOT in DB: nav_links, page_footer, footer_explore_links, footer_social_links
 -- ---------------------------------------------------------------------------

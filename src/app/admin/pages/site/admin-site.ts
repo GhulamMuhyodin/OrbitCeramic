@@ -1,5 +1,6 @@
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { firstValueFrom } from 'rxjs';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
@@ -31,6 +32,8 @@ export class AdminSitePage {
   protected readonly db = this.adminDb.db;
   protected readonly dirty = this.adminDb.dirty;
   protected readonly formError = signal<string | null>(null);
+  protected readonly uploading = signal(false);
+  protected readonly defaultSiteImage = '/images/logo.jpeg';
   protected readonly phoneHint = phoneHint();
 
   protected readonly siteForm = new FormGroup({
@@ -46,7 +49,7 @@ export class AdminSitePage {
     }),
     instagram: new FormControl('', { nonNullable: true }),
     instagramHandle: new FormControl('', { nonNullable: true }),
-    lineText: new FormControl('', { nonNullable: true }),
+    lineText: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
   });
 
   protected readonly brandControl = this.siteForm.get('brand') as FormControl<string>;
@@ -119,6 +122,36 @@ export class AdminSitePage {
   private createPhoneValidator() {
     return (control: AbstractControl) =>
       isValidPhone(control.value) ? null : { invalidPhone: true };
+  }
+
+  protected onRemoveSiteImage(): void {
+    this.adminDb.updateSite({ image: '', imageMediaId: undefined });
+  }
+
+  protected async onUploadSiteImage(event: Event): Promise<void> {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (!file) {
+      return;
+    }
+    if (!file.type.startsWith('image/')) {
+      this.messageService.add({ severity: 'warn', summary: 'Invalid file', detail: 'Please select an image file.', life: 4000 });
+      input.value = '';
+      return;
+    }
+
+    const siteId = this.db()?.site.id;
+    this.uploading.set(true);
+    try {
+      const media = await firstValueFrom(this.adminDb.uploadFile(file, siteId));
+      this.adminDb.updateSite({ image: media.publicUrl, imageMediaId: media.id });
+      this.messageService.add({ severity: 'success', summary: 'Uploaded', detail: 'Site image uploaded', life: 3000 });
+    } catch (err) {
+      this.messageService.add({ severity: 'error', summary: 'Upload failed', detail: 'Upload failed', life: 5000 });
+    } finally {
+      this.uploading.set(false);
+      input.value = '';
+    }
   }
 
   protected save(): void {

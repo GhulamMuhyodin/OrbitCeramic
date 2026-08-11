@@ -79,7 +79,7 @@ The admin system is separated under `src/app/admin/`.
 This section includes:
 
 - admin routing and layout
-- dashboard and management pages
+- management pages
 - batch and product management screens
 - leads and page-copy editing tools
 - API connection logic for admin operations

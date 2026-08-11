@@ -2,7 +2,7 @@ import { DecimalPipe } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
@@ -40,6 +40,7 @@ import { AdminDbService } from '../../admin-db.service';
 export class AdminBatchDetailPage {
   private readonly adminDb = inject(AdminDbService);
   private readonly route = inject(ActivatedRoute);
+  private readonly router = inject(Router);
   private readonly messageService = inject(MessageService);
 
   protected readonly db = this.adminDb.db;
@@ -48,6 +49,11 @@ export class AdminBatchDetailPage {
   protected readonly uploading = signal(false);
   protected readonly formError = signal<string | null>(null);
   protected readonly launchMode = signal<'live' | 'scheduled'>('scheduled');
+  protected readonly pendingProductFiles = signal<Record<string, { id: string; file: File }[]>>({});
+  protected readonly pendingJourneyFiles = signal<{ id: string; batchId: string; file: File }[]>([]);
+  protected readonly pendingHighlightFiles = signal<{ id: string; batchId: string; file: File }[]>([]);
+  protected pendingJourneyPosterFile: File | null = null;
+  protected pendingJourneyVideoFile: File | null = null;
 
   private readonly batchId = toSignal(
     this.route.paramMap.pipe(map((p) => p.get('batchId') ?? '')),
@@ -225,7 +231,7 @@ export class AdminBatchDetailPage {
     return null;
   }
 
-  protected save(): void {
+  protected async save(): Promise<void> {
     const id = this.batchId();
     if (!id) {
       return;
@@ -237,16 +243,21 @@ export class AdminBatchDetailPage {
       return;
     }
     this.formError.set(null);
-    this.adminDb.saveBatch(id).subscribe({
-      next: () => {
-        const tip = this.hasBatchImages()
-          ? 'Batch saved to database'
-          : 'Batch saved — add batch images (section 4) before making it active';
-        this.notify('success', 'Saved', tip, 4000);
-      },
-      error: (e) =>
-        this.notify('error', 'Save failed', e?.error?.error ?? e?.message ?? 'Save failed', 6000),
-    });
+    this.uploading.set(true);
+    try {
+      const formData = this.buildBatchSaveFormData();
+      await firstValueFrom(this.adminDb.saveBatchMultipart(id, formData));
+      const tip = this.hasBatchImages()
+        ? 'Batch saved to database'
+        : 'Batch saved — add batch images (section 4) before making it active';
+      this.notify('success', 'Saved', tip, 4000);
+      void this.router.navigate(['/admin/batches']);
+    } catch (e) {
+      const message = e && typeof e === 'object' && 'message' in e ? String((e as { message: string }).message) : 'Save failed';
+      this.notify('error', 'Save failed', message, 6000);
+    } finally {
+      this.uploading.set(false);
+    }
   }
 
   protected patchBatch(patch: Partial<BatchRow>): void {
@@ -255,6 +266,135 @@ export class AdminBatchDetailPage {
       return;
     }
     this.adminDb.upsertBatch({ ...b, ...patch });
+  }
+
+  private patchProductImage(productId: string, imageId: string, patch: Partial<ProductImageEmbedded>): void {
+    const batch = this.batch();
+    if (!batch) {
+      return;
+    }
+    const product = batch.products.find((p) => p.id === productId);
+    if (!product) {
+      return;
+    }
+    const images = product.images.map((img) => (img.id === imageId ? { ...img, ...patch } : img));
+    this.adminDb.upsertProduct(batch.id, { ...product, images });
+  }
+
+  private revokePreviewUrl(url: string): void {
+    if (url.startsWith('blob:')) {
+      URL.revokeObjectURL(url);
+    }
+  }
+
+  private buildBatchSaveFormData(): FormData {
+    const id = this.batchId();
+    const db = this.db();
+    const batch = id && db ? db.batches.find((b) => b.id === id) : null;
+    if (!id || !db || !batch) {
+      throw new Error('Batch data is not available for save');
+    }
+
+    type PendingImagePayload = ProductImageEmbedded & { fileKey?: string };
+    type PendingJourneyImagePayload = JourneyImageRow & { fileKey?: string };
+    type PendingHighlightPayload = HeroHighlightImageRow & { fileKey?: string };
+
+    const journeyVideo = db.journeyVideos.find((v) => v.batchId === id) ?? null;
+    const journeyImages = (db.journeyImages ?? []).filter((im) => im.batchId === id);
+    const highlights = (db.heroHighlightImages ?? []).filter((h) => h.batchId === id);
+
+    const buildProductImages = (product: ProductRow): PendingImagePayload[] =>
+      product.images.map((img) => {
+        const pending = (this.pendingProductFiles()[product.id] ?? []).find((item) => item.id === img.id);
+        return pending ? { ...img, fileKey: `product_image_${product.id}_${img.id}` } : img;
+      });
+
+    const payload = {
+      batch: {
+        id: batch.id,
+        label: batch.label,
+        launchAt: batch.launchAt,
+        launchDisplay: batch.launchDisplay,
+        soldOut: batch.soldOut,
+        sortOrder: batch.sortOrder,
+        heroWindowDays: batch.heroWindowDays ?? 10,
+        countdownEyebrow: batch.countdownEyebrow,
+        countdownHeading: batch.countdownHeading,
+        countdownLede: batch.countdownLede,
+        celebrationHeading: batch.celebrationHeading,
+        celebrationLede: batch.celebrationLede,
+      },
+      products: batch.products.map((product) => ({
+        ...product,
+        batchId: id,
+        images: buildProductImages(product),
+      })),
+      journey: {
+        video: journeyVideo
+          ? {
+              id: journeyVideo.id,
+              title: journeyVideo.title,
+              lede: journeyVideo.lede,
+              posterImage: journeyVideo.posterImage,
+              videoUrl: journeyVideo.videoUrl,
+              posterMediaId: journeyVideo.posterMediaId,
+              videoMediaId: journeyVideo.videoMediaId,
+              ...(this.pendingJourneyPosterFile ? { posterFileKey: 'journey_poster_file' } : {}),
+              ...(this.pendingJourneyVideoFile ? { videoFileKey: 'journey_video_file' } : {}),
+            }
+          : null,
+        images: journeyImages.map((image) => {
+          const pending = this.pendingJourneyFiles().find((item) => item.id === image.id);
+          return pending ? { ...image, fileKey: `journey_image_${image.id}` } : image;
+        }),
+      },
+      highlights: highlights.map((highlight) => {
+        const pending = this.pendingHighlightFiles().find((item) => item.id === highlight.id);
+        return pending ? { ...highlight, fileKey: `highlight_image_${highlight.id}` } : highlight;
+      }),
+    };
+
+    const formData = new FormData();
+    formData.append('payload', JSON.stringify(payload));
+
+    for (const product of batch.products) {
+      const productPayload = payload.products.find((p: any) => p.id === product.id) as {
+        images: PendingImagePayload[];
+      } | null;
+      if (!productPayload) {
+        continue;
+      }
+      for (const img of productPayload.images) {
+        if (img.fileKey) {
+          const pending = (this.pendingProductFiles()[product.id] ?? []).find((item) => item.id === img.id);
+          if (pending) {
+            formData.append(img.fileKey, pending.file, pending.file.name);
+          }
+        }
+      }
+    }
+
+    for (const pending of this.pendingJourneyFiles()) {
+      formData.append(`journey_image_${pending.id}`, pending.file, pending.file.name);
+    }
+
+    if (this.pendingJourneyPosterFile) {
+      formData.append('journey_poster_file', this.pendingJourneyPosterFile, this.pendingJourneyPosterFile.name);
+    }
+
+    if (this.pendingJourneyVideoFile) {
+      formData.append('journey_video_file', this.pendingJourneyVideoFile, this.pendingJourneyVideoFile.name);
+    }
+
+    for (const pending of this.pendingHighlightFiles()) {
+      formData.append(`highlight_image_${pending.id}`, pending.file, pending.file.name);
+    }
+
+    return formData;
+  }
+
+  protected isPreviewUrl(url: string): boolean {
+    return url.startsWith('blob:');
   }
 
   protected addProduct(): void {
@@ -345,46 +485,49 @@ export class AdminBatchDetailPage {
     if (!files?.length || !p) {
       return;
     }
-    this.uploading.set(true);
-    try {
-      const start = p.images.length;
-      const uploaded: ProductImageEmbedded[] = [];
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (!file.type.startsWith('image/')) {
-          continue;
-        }
-        const media = await firstValueFrom(this.adminDb.uploadFile(file));
-        uploaded.push({
-          id: `img-${Date.now().toString(36)}-${i}`,
-          url: media.publicUrl,
-          mediaId: media.id,
-          sortOrder: start + uploaded.length + 1,
-        });
+    const start = p.images.length;
+    const pendingItems = this.pendingProductFiles()[p.id] ?? [];
+    const updatedImages: ProductImageEmbedded[] = [];
+    const pendingEntries = [] as { id: string; file: File }[];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!file.type.startsWith('image/')) {
+        continue;
       }
-      if (uploaded.length) {
-        this.patchProduct({ images: [...p.images, ...uploaded] });
-        this.notify('success', 'Uploaded', `Uploaded ${uploaded.length} product image(s)`, 2500);
-      }
-    } catch (err: unknown) {
-      const msg =
-        err && typeof err === 'object' && 'message' in err
-          ? String((err as { message: string }).message)
-          : 'Upload failed';
-      this.notify('error', 'Upload failed', msg, 5000);
-    } finally {
-      this.uploading.set(false);
-      input.value = '';
+      const imageId = `img-${Date.now().toString(36)}-${start + i}-${Math.random().toString(36).slice(2, 7)}`;
+      pendingEntries.push({ id: imageId, file });
+      updatedImages.push({
+        id: imageId,
+        url: URL.createObjectURL(file),
+        sortOrder: start + updatedImages.length + 1,
+      });
     }
+    if (updatedImages.length) {
+      this.pendingProductFiles.set({
+        ...this.pendingProductFiles(),
+        [p.id]: [...pendingItems, ...pendingEntries],
+      });
+      this.patchProduct({ images: [...p.images, ...updatedImages] });
+      this.notify('info', 'Staged', `Product image(s) staged for save`, 2500);
+    }
+    input.value = '';
   }
 
   protected removeProductImage(index: number): void {
+    const b = this.batch();
     const p = this.product();
-    if (!p) {
+    if (!b || !p) {
       return;
     }
+    const imageToRemove = p.images[index];
     const images = p.images.filter((_, i) => i !== index).map((im, i) => ({ ...im, sortOrder: i + 1 }));
-    this.patchProduct({ images });
+    this.adminDb.upsertProduct(b.id, { ...p, images });
+    if (imageToRemove?.id) {
+      this.removePendingProductFile(p.id, imageToRemove.id);
+      if (imageToRemove.url.startsWith('blob:')) {
+        this.revokePreviewUrl(imageToRemove.url);
+      }
+    }
   }
 
   protected patchJourneyVideo(patch: Partial<JourneyVideoRow>): void {
@@ -423,15 +566,9 @@ export class AdminBatchDetailPage {
       return;
     }
     this.ensureJourneyVideo();
-    try {
-      const media = await firstValueFrom(this.adminDb.uploadFile(file));
-      this.patchJourneyVideo({
-        posterImage: media.publicUrl,
-        posterMediaId: media.id,
-      });
-    } catch {
-      this.notify('error', 'Poster upload failed', 'Poster upload failed', 4000);
-    }
+    this.pendingJourneyPosterFile = file;
+    this.patchJourneyVideo({ posterImage: URL.createObjectURL(file), posterMediaId: undefined });
+    this.notify('info', 'Staged', 'Journey poster staged for save', 2500);
   }
 
   protected async onUploadJourneyVideoFile(event: Event): Promise<void> {
@@ -442,16 +579,9 @@ export class AdminBatchDetailPage {
       return;
     }
     this.ensureJourneyVideo();
-    try {
-      const media = await firstValueFrom(this.adminDb.uploadFile(file));
-      this.patchJourneyVideo({
-        videoUrl: media.publicUrl,
-        videoMediaId: media.id,
-      });
-      this.notify('success', 'Uploaded', 'Video uploaded — click Save', 2500);
-    } catch {
-      this.notify('error', 'Video upload failed', 'Video upload failed', 4000);
-    }
+    this.pendingJourneyVideoFile = file;
+    this.patchJourneyVideo({ videoUrl: URL.createObjectURL(file), videoMediaId: undefined });
+    this.notify('info', 'Staged', 'Journey video staged for save', 2500);
   }
 
   protected async onUploadJourneyImages(event: Event): Promise<void> {
@@ -461,34 +591,31 @@ export class AdminBatchDetailPage {
     if (!files?.length || !batchId) {
       return;
     }
-    this.uploading.set(true);
-    try {
-      const start = this.journeyImages().length;
-      let n = 0;
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (!file.type.startsWith('image/')) {
-          continue;
-        }
-        const media = await firstValueFrom(this.adminDb.uploadFile(file));
-        this.adminDb.addJourneyImage({
-          batchId,
-          url: media.publicUrl,
-          mediaId: media.id,
-          alt: file.name,
-          sortOrder: start + n + 1,
-        });
-        n++;
+    const start = this.journeyImages().length;
+    let n = 0;
+    const pending = this.pendingJourneyFiles();
+    const updated = [...pending];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!file.type.startsWith('image/')) {
+        continue;
       }
-      if (n) {
-        this.notify('success', 'Uploaded', `Uploaded ${n} journey image(s)`, 2500);
-      }
-    } catch {
-      this.notify('error', 'Upload failed', 'Journey image upload failed', 4000);
-    } finally {
-      this.uploading.set(false);
-      input.value = '';
+      const imageId = `ji-${Date.now().toString(36)}-${start + n}-${Math.random().toString(36).slice(2, 7)}`;
+      updated.push({ id: imageId, batchId, file });
+      this.adminDb.addJourneyImage({
+        batchId,
+        id: imageId,
+        url: URL.createObjectURL(file),
+        alt: file.name,
+        sortOrder: start + n + 1,
+      });
+      n++;
     }
+    if (n) {
+      this.pendingJourneyFiles.set(updated);
+      this.notify('info', 'Staged', `Journey image(s) staged for save`, 2500);
+    }
+    input.value = '';
   }
 
   protected updateJourneyImageAlt(id: string, alt: string): void {
@@ -496,7 +623,12 @@ export class AdminBatchDetailPage {
   }
 
   protected removeJourneyImage(id: string): void {
+    const current = this.journeyImages().find((img) => img.id === id);
+    if (current?.url.startsWith('blob:')) {
+      this.revokePreviewUrl(current.url);
+    }
     this.adminDb.removeJourneyImage(id);
+    this.removePendingJourneyFile(id);
   }
 
   protected async onUploadHighlights(event: Event): Promise<void> {
@@ -506,35 +638,32 @@ export class AdminBatchDetailPage {
     if (!files?.length || !batchId) {
       return;
     }
-    this.uploading.set(true);
-    try {
-      const start = this.highlights().length;
-      let n = 0;
-      for (let i = 0; i < files.length; i++) {
-        const file = files[i];
-        if (!file.type.startsWith('image/')) {
-          continue;
-        }
-        const media = await firstValueFrom(this.adminDb.uploadFile(file));
-        this.adminDb.addHeroHighlight({
-          batchId,
-          url: media.publicUrl,
-          mediaId: media.id,
-          alt: file.name,
-          sortOrder: start + n + 1,
-        });
-        n++;
+    const start = this.highlights().length;
+    let n = 0;
+    const pending = this.pendingHighlightFiles();
+    const updated = [...pending];
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      if (!file.type.startsWith('image/')) {
+        continue;
       }
-      if (n) {
-        this.formError.set(null);
-        this.notify('success', 'Uploaded', `Uploaded ${n} batch image(s)`, 2500);
-      }
-    } catch {
-      this.notify('error', 'Upload failed', 'Highlight upload failed', 4000);
-    } finally {
-      this.uploading.set(false);
-      input.value = '';
+      const imageId = `hh-${Date.now().toString(36)}-${start + n}-${Math.random().toString(36).slice(2, 7)}`;
+      updated.push({ id: imageId, batchId, file });
+      this.adminDb.addHeroHighlight({
+        batchId,
+        id: imageId,
+        url: URL.createObjectURL(file),
+        alt: file.name,
+        sortOrder: start + n + 1,
+      });
+      n++;
     }
+    if (n) {
+      this.pendingHighlightFiles.set(updated);
+      this.formError.set(null);
+      this.notify('info', 'Staged', `Batch image(s) staged for save`, 2500);
+    }
+    input.value = '';
   }
 
   protected updateHighlightAlt(id: string, alt: string): void {
@@ -542,7 +671,32 @@ export class AdminBatchDetailPage {
   }
 
   protected removeHighlight(id: string): void {
+    const current = this.highlights().find((img) => img.id === id);
+    if (current?.url.startsWith('blob:')) {
+      this.revokePreviewUrl(current.url);
+    }
     this.adminDb.removeHeroHighlight(id);
+    this.removePendingHighlightFile(id);
+  }
+
+  private removePendingProductFile(productId: string, imageId: string): void {
+    const pending = this.pendingProductFiles();
+    if (!pending[productId]) {
+      return;
+    }
+    const remaining = pending[productId].filter((item) => item.id !== imageId);
+    this.pendingProductFiles.set({
+      ...pending,
+      [productId]: remaining,
+    });
+  }
+
+  private removePendingJourneyFile(imageId: string): void {
+    this.pendingJourneyFiles.set(this.pendingJourneyFiles().filter((item) => item.id !== imageId));
+  }
+
+  private removePendingHighlightFile(imageId: string): void {
+    this.pendingHighlightFiles.set(this.pendingHighlightFiles().filter((item) => item.id !== imageId));
   }
 
   protected setActive(): void {

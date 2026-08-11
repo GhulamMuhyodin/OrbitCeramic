@@ -13,7 +13,7 @@
 | App feature | Covered? | Where |
 |-------------|----------|--------|
 | Brand, active batch | Yes | DB `sites` |
-| Contact / WhatsApp / visit | Yes | DB `contacts`, `contact_visit_lines` |
+| Contact / WhatsApp / visit | Yes | DB `contacts` (`line_text`), `contact_visit_lines` |
 | Header nav | Yes (static) | `site-content.json` `navLinks` — **not** MySQL |
 | Batch countdown + celebration copy | Yes | DB `batches` |
 | Hero window days + highlights | Yes | DB `batches.hero_window_days`, `hero_highlight_images` |
@@ -50,7 +50,7 @@ sites ─┬─ media                  navLinks                 carts ─ cart_i
        │           ├─ journey_images → media
        │           └─ hero_highlights → media
        ├─ page_about (+ paragraphs, reviews)
-       └─ page_hero / collections / journey / shop
+       └─ collections / journey / shop
                                  leads (optional Phase 1)
 ```
 

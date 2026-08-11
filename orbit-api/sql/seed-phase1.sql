@@ -12,7 +12,6 @@ DELETE FROM page_batch_shop;
 DELETE FROM page_journey;
 DELETE FROM page_collections;
 DELETE FROM page_about;
-DELETE FROM page_hero;
 DELETE FROM hero_highlight_images;
 DELETE FROM journey_images;
 DELETE FROM journey_videos;
@@ -35,7 +34,7 @@ SET FOREIGN_KEY_CHECKS = 1;
 INSERT INTO sites (id, brand, active_batch_id) VALUES
   ('site-orbit', 'Orbit Ceramic', NULL);
 
-INSERT INTO contacts (id, site_id, whatsapp, email, instagram, instagram_handle, website) VALUES
+INSERT INTO contacts (id, site_id, whatsapp, email, instagram, instagram_handle, line_text) VALUES
   ('contact-main', 'site-orbit', '923227987366', 'theorbitceramic@gmail.com',
    'https://instagram.com/orbitceramic', '@orbitceramic', NULL);
 
