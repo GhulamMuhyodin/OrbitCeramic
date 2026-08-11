@@ -19,11 +19,11 @@
         <div class="mb-4 grid gap-4 sm:grid-cols-2">
           <div class="admin-float-field">
             <label class="mb-1 block text-sm font-medium text-stone-700">Reviews eyebrow</label>
-            <input pInputText class="w-full" [ngModel]="d.pageCopy.reviews?.eyebrow" (ngModelChange)="patchReviewsHeading('eyebrow', $event)" />
+            <input pInputText class="w-full" [ngModel]="d.pageCopy.about.reviewsEyebrow" (ngModelChange)="patchAbout('reviewsEyebrow', $event)" />
           </div>
           <div class="admin-float-field">
             <label class="mb-1 block text-sm font-medium text-stone-700">Reviews heading</label>
-            <input pInputText class="w-full" [ngModel]="d.pageCopy.reviews?.heading" (ngModelChange)="patchReviewsHeading('heading', $event)" />
+            <input pInputText class="w-full" [ngModel]="d.pageCopy.about.reviewsHeading" (ngModelChange)="patchAbout('reviewsHeading', $event)" />
           </div>
         </div>
 
