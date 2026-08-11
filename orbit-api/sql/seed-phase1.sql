@@ -39,12 +39,6 @@ INSERT INTO contacts (id, site_id, whatsapp, email, instagram, instagram_handle,
   ('contact-main', 'site-orbit', '923227987366', 'theorbitceramic@gmail.com',
    'https://instagram.com/orbitceramic', '@orbitceramic', NULL);
 
-INSERT INTO contact_visit_lines (contact_id, line_text, sort_order) VALUES
-  ('contact-main', 'Anarkali', 1),
-  ('contact-main', 'Lahore', 2);
-
-
-
 INSERT INTO page_about (
   site_id, eyebrow, heading, image, image_media_id, image_alt
 ) VALUES (

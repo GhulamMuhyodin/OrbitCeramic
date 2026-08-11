@@ -20,14 +20,14 @@
           <span>The selected website batch controls the public homepage countdown and shop content.</span>
         </div>
         <div class="mt-2 grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
-          <div class="admin-float-field">
+          <div class="admin-float-field" [class.admin-field-error]="brandControl.invalid && brandControl.touched">
             <label class="admin-field-label">Brand name</label>
-            <input pInputText class="w-full" [ngModel]="d.site.brand" (ngModelChange)="patchSite('brand', $event)" />
-            <small class="admin-field-help">Shown in the site header and browser experience.</small>
+            <input pInputText class="w-full" [formControl]="brandControl" />
+            <small class="admin-field-help">{{ getFieldError(brandControl) || 'Shown in the site header and browser experience.' }}</small>
           </div>
           <div class="admin-float-field">
             <label class="admin-field-label">Website batch</label>
-            <p-select [options]="d.batches" optionLabel="label" optionValue="id" [ngModel]="d.site.activeBatchId" (ngModelChange)="patchSite('activeBatchId', $event)" styleClass="w-full" [showClear]="true" />
+            <p-select [options]="d.batches" optionLabel="label" optionValue="id" [formControl]="siteForm.controls.activeBatchId" styleClass="w-full" [showClear]="true" />
             <small class="admin-field-help">The batch customers see first on the public site.</small>
           </div>
         </div>
@@ -39,34 +39,34 @@
           <span>These details power WhatsApp orders, customer questions, and the footer contact links.</span>
         </div>
         <div class="mt-2 grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
-          <div class="admin-float-field" [class.admin-field-error]="phoneInvalid()">
+          <div class="admin-float-field" [class.admin-field-error]="whatsappControl.invalid && whatsappControl.touched">
             <label>WhatsApp / phone</label>
-            <input pInputText type="tel" class="w-full" placeholder="923001234567" [ngModel]="d.contact.whatsapp" (ngModelChange)="patchContact('whatsapp', $event)" />
-            <small class="admin-field-help">{{ phoneInvalid() ? 'Use digits or +country code (8–15 digits)' : phoneHint }}</small>
+            <input pInputText type="tel" class="w-full" placeholder="923001234567" [formControl]="whatsappControl" />
+            <small class="admin-field-help">{{ getFieldError(whatsappControl) || phoneHint }}</small>
           </div>
 
-          <div class="admin-float-field" [class.admin-field-error]="emailInvalid()">
+          <div class="admin-float-field" [class.admin-field-error]="emailControl.invalid && emailControl.touched">
             <label>Email</label>
-            <input pInputText type="email" class="w-full" placeholder="hello@orbitceramic.com" [ngModel]="d.contact.email" (ngModelChange)="patchContact('email', $event)" />
-            <small class="admin-field-help">{{ emailInvalid() ? 'Enter a valid email address' : 'Used for customer inquiries' }}</small>
+            <input pInputText type="email" class="w-full" placeholder="hello@orbitceramic.com" [formControl]="emailControl" />
+            <small class="admin-field-help">{{ getFieldError(emailControl) || 'Used for customer inquiries' }}</small>
           </div>
 
           <div class="admin-float-field">
             <label>Instagram URL</label>
-            <input pInputText type="url" class="w-full" [ngModel]="d.contact.instagram" (ngModelChange)="patchContact('instagram', $event)" />
+            <input pInputText type="url" class="w-full" [formControl]="instagramControl" />
           </div>
 
           <div class="admin-float-field">
             <label>Instagram handle</label>
             <div class="flex items-center gap-2 rounded-md border border-stone-300 bg-white px-3">
               <span class="text-stone-500">@</span>
-              <input class="w-full border-0 bg-transparent py-2 outline-none" [ngModel]="d.contact.instagramHandle" (ngModelChange)="patchContact('instagramHandle', $event)" />
+              <input class="w-full border-0 bg-transparent py-2 outline-none" [formControl]="instagramHandleControl" />
             </div>
           </div>
 
           <div class="admin-float-field md:col-span-2">
-            <label>Website URL</label>
-            <input pInputText type="url" class="w-full" [ngModel]="d.contact.website || ''" (ngModelChange)="patchContact('website', $event)" />
+            <label>Line Text</label>
+            <input pInputText type="url" class="w-full" [formControl]="lineTextControl" />
           </div>
 
         </div>

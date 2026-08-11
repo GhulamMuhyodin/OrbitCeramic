@@ -1,5 +1,5 @@
-import { Component, computed, inject, signal } from '@angular/core';
-import { FormsModule } from '@angular/forms';
+import { Component, computed, effect, inject, signal } from '@angular/core';
+import { AbstractControl, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { MessageService } from 'primeng/api';
 import { ButtonModule } from 'primeng/button';
 import { CardModule } from 'primeng/card';
@@ -13,7 +13,7 @@ import { AdminDbService } from '../../admin-db.service';
 @Component({
   selector: 'app-admin-site',
   imports: [
-    FormsModule,
+    ReactiveFormsModule,
     CardModule,
     InputTextModule,
     SelectModule,
@@ -33,55 +33,102 @@ export class AdminSitePage {
   protected readonly formError = signal<string | null>(null);
   protected readonly phoneHint = phoneHint();
 
-  protected readonly visitText = computed(() => (this.db()?.contact.visitLines ?? []).join('\n'));
-
-  protected readonly emailInvalid = computed(() => {
-    const email = this.db()?.contact.email ?? '';
-    return email.trim().length > 0 && !isValidEmail(email);
+  protected readonly siteForm = new FormGroup({
+    brand: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
+    activeBatchId: new FormControl<string | null>(null),
+    whatsapp: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, this.createPhoneValidator()],
+    }),
+    email: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, this.createEmailValidator()],
+    }),
+    instagram: new FormControl('', { nonNullable: true }),
+    instagramHandle: new FormControl('', { nonNullable: true }),
+    lineText: new FormControl('', { nonNullable: true }),
   });
 
-  protected readonly phoneInvalid = computed(() => {
-    const phone = this.db()?.contact.whatsapp ?? '';
-    return phone.trim().length > 0 && !isValidPhone(phone);
-  });
+  protected readonly brandControl = this.siteForm.get('brand') as FormControl<string>;
+  protected readonly whatsappControl = this.siteForm.get('whatsapp') as FormControl<string>;
+  protected readonly emailControl = this.siteForm.get('email') as FormControl<string>;
+  protected readonly instagramControl = this.siteForm.get('instagram') as FormControl<string>;
+  protected readonly instagramHandleControl = this.siteForm.get('instagramHandle') as FormControl<string>;
+  protected readonly lineTextControl = this.siteForm.get('lineText') as FormControl<string>;
+  constructor() {
+    effect(() => {
+      const d = this.db();
+      if (!d) {
+        return;
+      }
+      this.siteForm.setValue(
+        {
+          brand: d.site.brand ?? '',
+          activeBatchId: d.site.activeBatchId ?? null,
+          whatsapp: d.contact.whatsapp ?? '',
+          email: d.contact.email ?? '',
+          instagram: d.contact.instagram ?? '',
+          instagramHandle: d.contact.instagramHandle ?? '',
+          lineText: d.contact.lineText ?? '',
+        },
+        { emitEvent: false },
+      );
+    });
 
-  protected patchSite(field: 'brand' | 'activeBatchId', value: string): void {
-    this.adminDb.updateSite({ [field]: value });
-    this.formError.set(null);
+    this.siteForm.valueChanges.subscribe((value) => {
+      const d = this.db();
+      if (!d) {
+        return;
+      }
+      this.adminDb.updateSite({
+        brand: value.brand ?? '',
+        activeBatchId: value.activeBatchId ?? undefined,
+      });
+      this.adminDb.updateContact({
+        whatsapp: value.whatsapp ?? '',
+        email: value.email ?? '',
+        instagram: value.instagram ?? '',
+        instagramHandle: value.instagramHandle ?? '',
+        lineText: value.lineText ?? '',
+      });
+      this.formError.set(null);
+    });
   }
 
-  protected patchContact(
-    field: 'whatsapp' | 'email' | 'instagram' | 'instagramHandle' | 'website',
-    value: string,
-  ): void {
-    this.adminDb.updateContact({ [field]: value });
-    this.formError.set(null);
+  protected getFieldError(control: AbstractControl): string | null {
+    if (!control.touched || !control.invalid) {
+      return null;
+    }
+    if (control.hasError('required')) {
+      return 'This field is required.';
+    }
+    if (control.hasError('invalidPhone')) {
+      return this.phoneHint;
+    }
+    if (control.hasError('invalidEmail')) {
+      return 'Enter a valid email address.';
+    }
+    return 'Invalid value.';
   }
 
-  protected onVisitLines(text: string): void {
-    this.adminDb.setVisitLines(text.split(/\r?\n/));
+  private createEmailValidator() {
+    return (control: AbstractControl) =>
+      isValidEmail(control.value) ? null : { invalidEmail: true };
+  }
+
+  private createPhoneValidator() {
+    return (control: AbstractControl) =>
+      isValidPhone(control.value) ? null : { invalidPhone: true };
   }
 
   protected save(): void {
-    const d = this.db();
-    if (!d) {
+    if (this.siteForm.invalid) {
+      this.siteForm.markAllAsTouched();
+      this.formError.set('Fix validation errors before saving.');
+      this.messageService.add({ severity: 'error', summary: 'Validation', detail: 'Fix validation errors before saving.', life: 5000 });
       return;
     }
-    if (!d.site.brand.trim()) {
-      this.formError.set('Brand name is required');
-      this.messageService.add({ severity: 'error', summary: 'Validation', detail: 'Brand name is required', life: 4000 });
-      return;
-    }
-    if (!isValidPhone(d.contact.whatsapp)) {
-      this.formError.set('Enter a valid WhatsApp / phone number');
-      this.messageService.add({ severity: 'error', summary: 'Validation', detail: this.phoneHint, life: 5000 });
-      return;
-    }
-    if (!isValidEmail(d.contact.email)) {
-      this.formError.set('Enter a valid email address');
-      this.messageService.add({ severity: 'error', summary: 'Validation', detail: 'Enter a valid email address', life: 4000 });
-      return;
-    }
+
     this.formError.set(null);
     this.adminDb.saveSiteAndContact().subscribe({
       next: () => this.messageService.add({ severity: 'success', summary: 'Saved', detail: 'Site & contact saved to database', life: 3000 }),

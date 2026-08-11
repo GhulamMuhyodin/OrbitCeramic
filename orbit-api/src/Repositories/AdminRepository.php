@@ -79,10 +79,7 @@ final class AdminRepository
         $email = trim((string) ($body['email'] ?? ''));
         $instagram = trim((string) ($body['instagram'] ?? ''));
         $handle = trim((string) ($body['instagramHandle'] ?? ''));
-        $website = isset($body['website']) ? trim((string) $body['website']) : null;
-        if ($website === '') {
-            $website = null;
-        }
+        $line = trim((string) ($body['lineText'] ?? ''));
 
         if ($whatsapp === '' || $email === '') {
             throw new RuntimeException('whatsapp and email are required', 422);
@@ -95,39 +92,22 @@ final class AdminRepository
         if ($rowId) {
             $id = (string) $rowId;
             $stmt = $this->pdo->prepare(
-                'UPDATE contacts SET whatsapp=:w, email=:e, instagram=:i, instagram_handle=:h, website=:web
+                'UPDATE contacts SET whatsapp=:w, email=:e, instagram=:i, instagram_handle=:h, line_text=:l
                  WHERE id=:id'
             );
             $stmt->execute([
                 ':w' => $whatsapp, ':e' => $email, ':i' => $instagram,
-                ':h' => $handle, ':web' => $website, ':id' => $id,
+                ':h' => $handle, ':id' => $id, ':l'=> $line
             ]);
         } else {
             $stmt = $this->pdo->prepare(
-                'INSERT INTO contacts (id, site_id, whatsapp, email, instagram, instagram_handle, website)
-                 VALUES (:id, :site, :w, :e, :i, :h, :web)'
+                'INSERT INTO contacts (id, site_id, whatsapp, email, instagram, instagram_handle, line_text)
+                 VALUES (:id, :site, :w, :e, :i, :h, :l)'
             );
             $stmt->execute([
                 ':id' => $id, ':site' => $siteId, ':w' => $whatsapp, ':e' => $email,
-                ':i' => $instagram, ':h' => $handle, ':web' => $website,
+                ':i' => $instagram, ':h' => $handle, ':l' => $line,
             ]);
-        }
-
-        $this->pdo->prepare('DELETE FROM contact_visit_lines WHERE contact_id = ?')->execute([$id]);
-        $lines = $body['visitLines'] ?? [];
-        if (is_array($lines)) {
-            $ins = $this->pdo->prepare(
-                'INSERT INTO contact_visit_lines (contact_id, line_text, sort_order) VALUES (?,?,?)'
-            );
-            $order = 0;
-            foreach ($lines as $line) {
-                $text = trim((string) $line);
-                if ($text === '') {
-                    continue;
-                }
-                $order++;
-                $ins->execute([$id, $text, $order]);
-            }
         }
 
         $contact = $this->content->getContact($siteId);
@@ -470,12 +450,11 @@ final class AdminRepository
         $this->assertSite($siteId);
         $this->pdo->prepare(
             'INSERT INTO page_about
-             (site_id, eyebrow, heading, image, image_media_id, image_alt, reviews_eyebrow, reviews_heading)
-             VALUES (:site,:eyebrow,:heading,:image,:mid,:alt,:re,:rh)
+             (site_id, eyebrow, heading, image, image_media_id, image_alt)
+             VALUES (:site,:eyebrow,:heading,:image,:mid,:alt)
              ON DUPLICATE KEY UPDATE
                eyebrow=VALUES(eyebrow), heading=VALUES(heading), image=VALUES(image),
-               image_media_id=VALUES(image_media_id), image_alt=VALUES(image_alt),
-               reviews_eyebrow=VALUES(reviews_eyebrow), reviews_heading=VALUES(reviews_heading)'
+               image_media_id=VALUES(image_media_id), image_alt=VALUES(image_alt)'
         )->execute([
             ':site' => $siteId,
             ':eyebrow' => (string) ($body['eyebrow'] ?? ''),
@@ -483,6 +462,16 @@ final class AdminRepository
             ':image' => (string) ($body['image'] ?? ''),
             ':mid' => $this->nullMedia($body['imageMediaId'] ?? null),
             ':alt' => (string) ($body['imageAlt'] ?? ''),
+        ]);
+
+        $this->pdo->prepare(
+            'INSERT INTO page_reviews
+             (site_id, eyebrow, heading)
+             VALUES (:site,:re,:rh)
+             ON DUPLICATE KEY UPDATE
+               eyebrow=VALUES(eyebrow), heading=VALUES(heading)'
+        )->execute([
+            ':site' => $siteId,
             ':re' => (string) ($body['reviewsEyebrow'] ?? ''),
             ':rh' => (string) ($body['reviewsHeading'] ?? ''),
         ]);
@@ -889,9 +878,14 @@ final class AdminRepository
         }
         $this->pdo->prepare(
             'INSERT INTO page_about
-             (site_id, eyebrow, heading, image, image_alt, reviews_eyebrow, reviews_heading)
-             VALUES (?,?,?,?,?,?,?)'
-        )->execute([$siteId, 'About', 'About', '', '', 'Reviews', 'Reviews']);
+             (site_id, eyebrow, heading, image, image_alt)
+             VALUES (?,?,?,?,?)'
+        )->execute([$siteId, 'About', 'About', '', '']);
+        $this->pdo->prepare(
+            'INSERT INTO page_reviews
+             (site_id, eyebrow, heading)
+             VALUES (?,?,?)'
+        )->execute([$siteId, 'Reviews', 'Reviews']);
     }
 
     private function assertSite(string $siteId): void

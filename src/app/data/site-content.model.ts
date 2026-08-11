@@ -12,8 +12,7 @@ export interface ContactInfo {
   email: string;
   instagram: string;
   instagramHandle: string;
-  visitLines: string[];
-  website?: string;
+  lineText: string;
 }
 
 export interface HeroContent {
@@ -100,7 +99,7 @@ export interface BatchShopCopy {
 
 export interface FooterSocialLink {
   label: string;
-  hrefKey: 'instagram' | 'email' | 'website';
+  hrefKey: 'instagram' | 'email' ;
 }
 
 export interface FooterContent {

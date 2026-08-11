@@ -170,8 +170,7 @@ export class AdminDbService {
         email: db.contact.email,
         instagram: db.contact.instagram,
         instagramHandle: db.contact.instagramHandle,
-        website: db.contact.website,
-        visitLines: db.contact.visitLines,
+        lineText: db.contact.lineText,
       }),
     }).pipe(
       tap(() => {
@@ -496,12 +495,6 @@ export class AdminDbService {
   updateContact(patch: Partial<SiteContentDb['contact']>): void {
     this.patchDb((db) => {
       db.contact = { ...db.contact, ...patch };
-    });
-  }
-
-  setVisitLines(lines: string[]): void {
-    this.patchDb((db) => {
-      db.contact.visitLines = lines.filter((l) => l.trim().length > 0);
     });
   }
 
@@ -890,7 +883,7 @@ export class AdminDbService {
       email: '',
       instagram: '',
       instagramHandle: '',
-      visitLines: [],
+      lineText: '',
     };
 
     const footer =

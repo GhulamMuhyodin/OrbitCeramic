@@ -103,7 +103,7 @@ export class SiteContentService {
         email: '',
         instagram: '',
         instagramHandle: '',
-        visitLines: [],
+        lineText: '',
       },
       navLinks: chrome.navLinks ?? [],
       batches: bootstrap.batches ?? [],

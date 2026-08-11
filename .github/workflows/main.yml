@@ -32,8 +32,8 @@ jobs:
               ;;
             uat)
               SITE=UAT
-              DOMAIN=https://uat.orbitceramic.studio
-              DIR=domains/uat.orbitceramic.studio/public_html/
+              DOMAIN=https://mediumvioletred-trout-528447.hostingersite.com
+              DIR=domains/mediumvioletred-trout-528447.hostingersite.com/public_html/
               ;;
             *)
               echo "Unsupported branch: ${{ github.ref_name }}"

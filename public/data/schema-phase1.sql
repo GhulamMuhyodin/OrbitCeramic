@@ -67,21 +67,10 @@ CREATE TABLE IF NOT EXISTS contacts (
   email            VARCHAR(255) NOT NULL,
   instagram        VARCHAR(512) NOT NULL,
   instagram_handle VARCHAR(128) NOT NULL,
-  website          VARCHAR(512) NULL,
+  line_text VARCHAR(255) NOT NULL,
   PRIMARY KEY (id),
   UNIQUE KEY uq_contacts_site (site_id),
   CONSTRAINT fk_p1_contacts_site FOREIGN KEY (site_id) REFERENCES sites (id)
-    ON UPDATE CASCADE ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS contact_visit_lines (
-  id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  contact_id VARCHAR(64)     NOT NULL,
-  line_text  VARCHAR(255)    NOT NULL,
-  sort_order INT             NOT NULL DEFAULT 0,
-  PRIMARY KEY (id),
-  KEY idx_p1_visit_lines (contact_id, sort_order),
-  CONSTRAINT fk_p1_visit_lines_contact FOREIGN KEY (contact_id) REFERENCES contacts (id)
     ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -373,7 +362,7 @@ CREATE TABLE IF NOT EXISTS page_batch_shop (
 
 -- ---------------------------------------------------------------------------
 -- Tables created (Phase 1): 21
--- sites, admin_users, admin_sessions, contacts, contact_visit_lines, media,
+-- sites, admin_users, admin_sessions, contacts, media,
 -- batches, products, product_colors, product_images,
 -- journey_videos (1 per batch), journey_images, hero_highlight_images,
 -- page_hero, page_about, about_paragraphs, about_reviews,

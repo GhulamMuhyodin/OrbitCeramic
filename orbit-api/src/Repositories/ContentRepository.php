@@ -40,7 +40,7 @@ final class ContentRepository
     public function getContact(string $siteId): ?array
     {
         $stmt = $this->pdo->prepare(
-            'SELECT id, site_id, whatsapp, email, instagram, instagram_handle, website
+            'SELECT id, site_id, whatsapp, email, instagram, instagram_handle, line_text
              FROM contacts WHERE site_id = ? LIMIT 1'
         );
         $stmt->execute([$siteId]);
@@ -49,15 +49,6 @@ final class ContentRepository
             return null;
         }
 
-        $linesStmt = $this->pdo->prepare(
-            'SELECT line_text FROM contact_visit_lines WHERE contact_id = ? ORDER BY sort_order ASC, id ASC'
-        );
-        $linesStmt->execute([$row['id']]);
-        $visitLines = array_map(
-            static fn (array $r): string => $r['line_text'],
-            $linesStmt->fetchAll()
-        );
-
         $out = [
             'id' => $row['id'],
             'siteId' => $row['site_id'],
@@ -65,11 +56,8 @@ final class ContentRepository
             'email' => $row['email'],
             'instagram' => $row['instagram'],
             'instagramHandle' => $row['instagram_handle'],
-            'visitLines' => $visitLines,
+            'lineText' => $row['line_text'],
         ];
-        if ($row['website'] !== null && $row['website'] !== '') {
-            $out['website'] = $row['website'];
-        }
         return $out;
     }
 
@@ -106,8 +94,6 @@ final class ContentRepository
                 'heading' => '',
                 'image' => '',
                 'image_alt' => '',
-                'reviews_eyebrow' => '',
-                'reviews_heading' => '',
                 'image_media_id' => null,
             ];
         }
@@ -144,7 +130,15 @@ final class ContentRepository
             $reviews[] = $item;
         }
 
-        if (!$hasAbout && count($paragraphs) === 0 && count($reviews) === 0) {
+        $reviewHeadingStmt = $this->pdo->prepare(
+            'SELECT eyebrow, heading FROM page_reviews WHERE site_id = ? LIMIT 1'
+        );
+        $reviewHeadingStmt->execute([$siteId]);
+        $reviewHeadingRow = $reviewHeadingStmt->fetch();
+        $reviewsEyebrow = is_array($reviewHeadingRow) ? (string) ($reviewHeadingRow['eyebrow'] ?? '') : '';
+        $reviewsHeading = is_array($reviewHeadingRow) ? (string) ($reviewHeadingRow['heading'] ?? '') : '';
+
+        if (!$hasAbout && count($paragraphs) === 0 && count($reviews) === 0 && $reviewsEyebrow === '' && $reviewsHeading === '') {
             return null;
         }
 
@@ -154,8 +148,8 @@ final class ContentRepository
             'paragraphs' => $paragraphs,
             'image' => $row['image'],
             'imageAlt' => $row['image_alt'],
-            'reviewsEyebrow' => $row['reviews_eyebrow'],
-            'reviewsHeading' => $row['reviews_heading'],
+            'reviewsEyebrow' => $reviewsEyebrow,
+            'reviewsHeading' => $reviewsHeading,
             'reviews' => $reviews,
         ];
         if ($row['image_media_id']) {
