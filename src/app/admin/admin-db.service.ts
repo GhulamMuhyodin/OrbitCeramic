@@ -234,27 +234,23 @@ export class AdminDbService {
             videoMediaId: journeyVideo.videoMediaId,
           }
         : null,
-      images: journeyImages
-        .filter((im) => !!im.mediaId && !!im.url)
-        .map((im) => ({
-          id: im.id,
-          batchId: im.batchId,
-          url: im.url,
-          alt: im.alt,
-          sortOrder: im.sortOrder,
-          mediaId: im.mediaId ?? '',
-        })),
+      images: journeyImages.map((im) => ({
+        id: im.id,
+        batchId: im.batchId,
+        url: im.url,
+        alt: im.alt,
+        sortOrder: im.sortOrder,
+        mediaId: im.mediaId ?? undefined,
+      })),
     };
 
-    const highlightItems = highlights
-      .filter((h) => !!h.mediaId && !!h.url)
-      .map((h) => ({
-        id: h.id,
-        mediaId: h.mediaId as string,
-        url: h.url,
-        alt: h.alt,
-        sortOrder: h.sortOrder,
-      }));
+    const highlightItems = highlights.map((h) => ({
+      id: h.id,
+      mediaId: h.mediaId,
+      url: h.url,
+      alt: h.alt,
+      sortOrder: h.sortOrder,
+    }));
 
     const payload = {
       batch: batchBody,

@@ -1,4 +1,4 @@
-import { DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { DOCUMENT, isPlatformBrowser, JsonPipe } from '@angular/common';
 import {
   Component,
   DestroyRef,
@@ -41,7 +41,7 @@ const CONFETTI_PIECES = Array.from({ length: 36 }, (_, i) => i + 1);
 
 @Component({
   selector: 'app-batch',
-  imports: [BatchCelebration, BatchLive],
+  imports: [BatchCelebration, BatchLive, JsonPipe],
   host: { class: 'block' },
   templateUrl: './batch.html',
   styleUrl: './batch.css',
@@ -66,7 +66,9 @@ export class Batch implements OnDestroy {
   protected readonly lightboxProduct = signal<ProductItem | null>(null);
   protected readonly confettiPieces = Array.from({ length: 36 }, (_, i) => i + 1);
 
-  protected readonly live = computed(() => isBatchLive(this.content().launchAt, this.now()));
+  protected readonly live = computed(
+    () => !this.content().soldOut && isBatchLive(this.content().launchAt, this.now()),
+  );
 
   protected readonly photoIndexFn = (productId: string) => this.photoIndex(productId);
   protected readonly setPhotoFn = (productId: string, index: number) => this.setPhoto(productId, index);
@@ -247,6 +249,7 @@ export class Batch implements OnDestroy {
       product.price,
       this.content().shop.currencySymbol,
       this.content().label,
+      product.images[0],
     );
   }
 

@@ -154,6 +154,18 @@ export class AdminBatchDetailPage {
     return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
 
+  protected formatLaunchDisplay(date: Date): string {
+    return date.toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+    });
+  }
+
+  protected syncLaunchDisplay(launchAt: string, date: Date): void {
+    const launchDisplay = this.formatLaunchDisplay(date);
+    this.patchBatch({ launchAt: launchAt, launchDisplay });
+  }
+
   protected onLaunchDate(date: Date | null): void {
     if (!date) {
       return;
@@ -165,7 +177,7 @@ export class AdminBatchDetailPage {
     } else {
       merged.setHours(18, 0, 0, 0);
     }
-    this.patchBatch({ launchAt: merged.toISOString() });
+    this.syncLaunchDisplay(merged.toISOString(), merged);
     this.formError.set(null);
     this.launchMode.set(this.scheduleStatus() === 'live' ? 'live' : 'scheduled');
   }
@@ -182,7 +194,7 @@ export class AdminBatchDetailPage {
     } else {
       parsed.setHours(18, 0, 0, 0);
     }
-    this.patchBatch({ launchAt: parsed.toISOString() });
+    this.syncLaunchDisplay(parsed.toISOString(), parsed);
     this.formError.set(null);
     this.launchMode.set(this.scheduleStatus() === 'live' ? 'live' : 'scheduled');
   }
@@ -195,7 +207,7 @@ export class AdminBatchDetailPage {
     const existing = this.batch()?.launchAt ? new Date(this.batch()!.launchAt) : new Date();
     const base = Number.isNaN(existing.getTime()) ? new Date() : new Date(existing);
     base.setHours(hh, mm, 0, 0);
-    this.patchBatch({ launchAt: base.toISOString() });
+    this.syncLaunchDisplay(base.toISOString(), base);
     this.formError.set(null);
     this.launchMode.set(this.scheduleStatus() === 'live' ? 'live' : 'scheduled');
   }

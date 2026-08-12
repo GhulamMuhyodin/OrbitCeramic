@@ -557,16 +557,16 @@ final class AdminRepository
                 if (!is_array($img)) {
                     continue;
                 }
-                $mediaId = (string) ($img['mediaId'] ?? '');
-                $url = (string) ($img['url'] ?? '');
-                if ($mediaId === '' || $url === '') {
-                    throw new RuntimeException('journey images require mediaId and url', 422);
+                $mediaId = isset($img['mediaId']) ? trim((string) $img['mediaId']) : null;
+                $url = trim((string) ($img['url'] ?? ''));
+                if ($url === '') {
+                    throw new RuntimeException('journey images require url', 422);
                 }
                 $order++;
                 $ins->execute([
                     (string) ($img['id'] ?? orbit_new_id('ji')),
                     $batchId,
-                    $mediaId,
+                    $mediaId === '' ? null : $mediaId,
                     $url,
                     (string) ($img['alt'] ?? ''),
                     (int) ($img['sortOrder'] ?? $order),
@@ -598,16 +598,16 @@ final class AdminRepository
             if (!is_array($img)) {
                 continue;
             }
-            $mediaId = (string) ($img['mediaId'] ?? '');
-            $url = (string) ($img['url'] ?? '');
-            if ($mediaId === '' || $url === '') {
-                throw new RuntimeException('highlight images require mediaId and url', 422);
+            $mediaId = isset($img['mediaId']) ? trim((string) $img['mediaId']) : null;
+            $url = trim((string) ($img['url'] ?? ''));
+            if ($url === '') {
+                throw new RuntimeException('highlight images require url', 422);
             }
             $order++;
             $ins->execute([
                 (string) ($img['id'] ?? orbit_new_id('hh')),
                 $batchId,
-                $mediaId,
+                $mediaId === '' ? null : $mediaId,
                 $url,
                 (string) ($img['alt'] ?? ''),
                 (int) ($img['sortOrder'] ?? $order),

@@ -77,11 +77,13 @@ export class AdminSitePage {
         },
         { emitEvent: false },
       );
-      // If a batch is currently live, force-select it and disable changing the website batch.
-      const live = d.batches.find((b) => isBatchLive(b.launchAt));
+      // If a batch is currently live, force-select the newest live batch and disable changing the website batch.
+      const live = [...d.batches]
+        .filter((b) => isBatchLive(b.launchAt))
+        .sort((a, b) => Date.parse(b.launchAt) - Date.parse(a.launchAt))[0];
       const ctrl = this.siteForm.get('activeBatchId');
       if (live) {
-        // set the live batch as selected and disable the control
+        // set the newest live batch as selected and disable the control
         ctrl?.setValue(live.id, { emitEvent: false });
         ctrl?.disable({ emitEvent: false });
         // ensure admin DB reflects the active batch as the live batch

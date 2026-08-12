@@ -377,6 +377,10 @@ export function assembleSiteContent(db: SiteContentDb): SiteContent {
 
   const journeyImages = bySort(db.journeyImages ?? []);
   const heroHighlightRows = bySort(db.heroHighlightImages ?? []);
+  const now = Date.now();
+  const scheduled = latestScheduledBatch(batches, now);
+  const hasLiveOrSoldOut = batches.some((b) => b.soldOut || isBatchLive(b.launchAt, now));
+  const batchToShow = scheduled && hasLiveOrSoldOut ? scheduled : active;
 
   const journeyCards: JourneyBatchCard[] = batches
     .map((batch) => {
@@ -413,14 +417,14 @@ export function assembleSiteContent(db: SiteContentDb): SiteContent {
     hero: {
       ...db.pageCopy.hero,
       image: heroImage,
-      ctaLabel: active.label ? `See ${active.label}` : 'See batch',
+      ctaLabel: batchToShow.label ? `See ${batchToShow.label}` : 'See batch',
       ctaHref: '/batch',
     },
     heroHighlights,
     about: db.pageCopy.about,
     collections: db.pageCopy.collections,
     journey: db.pageCopy.journey,
-    batch: active,
+    batch: batchToShow,
     batches,
     journeyCards,
     footer: db.pageCopy.footer,
@@ -458,10 +462,37 @@ function batchInHeroWindow(batch: BatchContent, now = Date.now()): boolean {
   return isWithinHeroLaunchWindow(batch.launchAt, batch.heroWindowDays, now);
 }
 
+export function isBatchScheduled(launchAt: string, now = Date.now()): boolean {
+  const launch = Date.parse(launchAt);
+  return Number.isFinite(launch) && launch > now;
+}
+
+function latestScheduledBatch(batches: BatchContent[], now = Date.now()): BatchContent | undefined {
+  return [...batches]
+    .filter((b) => !b.soldOut && isBatchScheduled(b.launchAt, now))
+    .sort((a, b) => Date.parse(a.launchAt) - Date.parse(b.launchAt))[0];
+}
+
+function latestScheduledBatchInWindow(batches: BatchContent[], now = Date.now()): BatchContent | undefined {
+  return [...batches]
+    .filter((b) => !b.soldOut && isBatchScheduled(b.launchAt, now) && batchInHeroWindow(b, now))
+    .sort((a, b) => Date.parse(a.launchAt) - Date.parse(b.launchAt))[0];
+}
+
+function latestLiveBatch(batches: BatchContent[], now = Date.now()): BatchContent | undefined {
+  return [...batches]
+    .filter((b) => !b.soldOut && isBatchLive(b.launchAt, now) && batchInHeroWindow(b, now))
+    .sort((a, b) => Date.parse(b.launchAt) - Date.parse(a.launchAt))[0];
+}
+
 /**
  * Prefer first heroHighlightImages row for an in-window batch;
  * otherwise keep the static hero image from pageCopy.
  */
+function isHeroImageEligible(batch: BatchContent, now = Date.now()): boolean {
+  return !batch.soldOut && batchInHeroWindow(batch, now);
+}
+
 function resolveHeroBackdropImage(
   defaultImage: string,
   active: BatchContent,
@@ -469,24 +500,30 @@ function resolveHeroBackdropImage(
   heroHighlightRows: HeroHighlightImageRow[],
   now = Date.now(),
 ): string {
-  if (batchInHeroWindow(active, now)) {
+  const scheduled = latestScheduledBatch(batches, now);
+  if (scheduled) {
+    const scheduledImage = batchHeroImages(scheduled.id, heroHighlightRows)[0]?.url;
+    if (scheduledImage) {
+      return scheduledImage;
+    }
+  }
+
+  if (isHeroImageEligible(active, now)) {
     const activeImage = batchHeroImages(active.id, heroHighlightRows)[0]?.url;
     if (activeImage) {
       return activeImage;
     }
   }
 
-  const recent = [...batches]
-    .filter(
-      (b) =>
-        b.id !== active.id && isBatchLive(b.launchAt, now) && batchInHeroWindow(b, now),
-    )
-    .sort((a, b) => Date.parse(b.launchAt) - Date.parse(a.launchAt))[0];
+  const recent = latestLiveBatch(batches, now);
+  if (recent && recent.id !== active.id && recent.id !== scheduled?.id) {
+    const recentImage = batchHeroImages(recent.id, heroHighlightRows)[0]?.url;
+    if (recentImage) {
+      return recentImage;
+    }
+  }
 
-  const recentImage = recent
-    ? batchHeroImages(recent.id, heroHighlightRows)[0]?.url
-    : undefined;
-  return recentImage ?? defaultImage;
+  return defaultImage;
 }
 
 function assembleHeroHighlights(
@@ -496,8 +533,23 @@ function assembleHeroHighlights(
   now = Date.now(),
 ): HeroHighlightBatch[] {
   const rows: HeroHighlightBatch[] = [];
+  const scheduled = latestScheduledBatchInWindow(batches, now);
+  const activeIsScheduled = scheduled?.id === active.id;
 
-  if (batchInHeroWindow(active, now)) {
+  if (scheduled) {
+    const scheduledImages = batchHeroImages(scheduled.id, heroHighlightRows);
+    if (scheduledImages.length > 0) {
+      rows.push({
+        batchId: scheduled.id,
+        label: scheduled.label,
+        status: 'scheduled',
+        images: scheduledImages,
+        href: '/batch',
+      });
+    }
+  }
+
+  if (!activeIsScheduled && isHeroImageEligible(active, now)) {
     const activeImages = batchHeroImages(active.id, heroHighlightRows);
     if (activeImages.length > 0) {
       rows.push({
@@ -510,14 +562,8 @@ function assembleHeroHighlights(
     }
   }
 
-  const recent = [...batches]
-    .filter(
-      (b) =>
-        b.id !== active.id && isBatchLive(b.launchAt, now) && batchInHeroWindow(b, now),
-    )
-    .sort((a, b) => Date.parse(b.launchAt) - Date.parse(a.launchAt))[0];
-
-  if (recent) {
+  const recent = latestLiveBatch(batches, now);
+  if (recent && recent.id !== active.id && recent.id !== scheduled?.id) {
     const recentImages = batchHeroImages(recent.id, heroHighlightRows);
     if (recentImages.length > 0) {
       rows.push({
@@ -540,10 +586,14 @@ export function whatsappBuyUrl(
   price: number,
   currencySymbol: string,
   batchLabel?: string,
+  productImageUrl?: string,
 ): string {
   const formatted = price.toLocaleString('en-PK');
   const batch = batchLabel ? ` [${batchLabel}]` : '';
-  const message = `Hi ${brand}! I'd like to buy: ${productName}${batch} (${currencySymbol} ${formatted}).`;
+  const imageText = productImageUrl ? `\n\nImage: ${productImageUrl}` : '';
+  const message =
+    `Hi ${brand}! I'd like to buy: ${productName}${batch} (${currencySymbol} ${formatted}).` +
+    imageText;
   return `https://wa.me/${whatsapp}?text=${encodeURIComponent(message)}`;
 }
 
