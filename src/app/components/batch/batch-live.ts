@@ -8,6 +8,7 @@ import { BatchContent, ProductItem } from '../../data/site-content.model';
   standalone: true,
   imports: [CommonModule, RouterLink],
   templateUrl: './batch-live.html',
+  styleUrl: './batch.css',
 })
 export class BatchLive {
   readonly content = input.required<BatchContent>();

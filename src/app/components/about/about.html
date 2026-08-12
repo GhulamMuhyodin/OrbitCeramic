@@ -30,7 +30,6 @@
       <img
         class="aspect-4/5 w-full max-w-full object-cover"
         [src]="content().image"
-        [alt]="content().imageAlt"
         width="1200"
         height="1500"
         loading="lazy"
@@ -49,13 +48,13 @@
         <p
           class="mb-2 text-[clamp(0.7rem,1.6vw,0.75rem)] font-medium tracking-[0.14em] text-stone-500 uppercase"
         >
-          {{ content().reviewsEyebrow }}
+         Client voices
         </p>
         <h2
           class="font-display m-0 text-[clamp(1.45rem,3.2vw,2.15rem)] font-medium tracking-[-0.02em] text-stone-900"
           id="reviews-heading"
         >
-          {{ content().reviewsHeading }}
+          What collectors say
         </h2>
       </div>
 
@@ -68,13 +67,11 @@
               >
                 <figure
                   class="m-0 flex size-[clamp(4.75rem,14vw,6.5rem)] shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-300 text-stone-700"
-                  [attr.aria-label]="reviewImageAlt(review)"
                 >
                   @if (hasReviewPhoto(review)) {
                     <img
                       class="size-full object-cover"
                       [src]="reviewImage(review)"
-                      [alt]="reviewImageAlt(review)"
                       width="220"
                       height="220"
                       loading="lazy"

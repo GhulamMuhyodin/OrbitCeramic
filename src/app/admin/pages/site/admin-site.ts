@@ -9,6 +9,7 @@ import { SelectModule } from 'primeng/select';
 import { TextareaModule } from 'primeng/textarea';
 import { ToastModule } from 'primeng/toast';
 import { isValidEmail, isValidPhone, phoneHint } from '../../admin-validators';
+import { isBatchLive } from '../../../data/site-content.model';
 import { AdminDbService } from '../../admin-db.service';
 
 @Component({
@@ -76,6 +77,23 @@ export class AdminSitePage {
         },
         { emitEvent: false },
       );
+      // If a batch is currently live, force-select it and disable changing the website batch.
+      const live = d.batches.find((b) => isBatchLive(b.launchAt));
+      const ctrl = this.siteForm.get('activeBatchId');
+      if (live) {
+        // set the live batch as selected and disable the control
+        ctrl?.setValue(live.id, { emitEvent: false });
+        ctrl?.disable({ emitEvent: false });
+        // ensure admin DB reflects the active batch as the live batch
+        if (d.site.activeBatchId !== live.id) {
+          this.adminDb.updateSite({ activeBatchId: live.id });
+          // persist immediately
+          this.adminDb.saveActiveBatch().subscribe({});
+        }
+      } else {
+        // no live batch: ensure control is enabled
+        ctrl?.enable({ emitEvent: false });
+      }
     });
 
     this.siteForm.valueChanges.subscribe((value) => {

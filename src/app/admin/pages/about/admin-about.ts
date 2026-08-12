@@ -35,10 +35,22 @@ export class AdminAboutPage {
   );
 
   protected patchAbout(
-    field: 'eyebrow' | 'heading' | 'image' | 'imageAlt' | 'imageMediaId' | 'reviewsEyebrow' | 'reviewsHeading',
-    value: string,
+    field:
+      | 'eyebrow'
+      | 'heading'
+      | 'image'
+      | 'imageAlt'
+      | 'imageMediaId'
+      | 'reviewsEyebrow'
+      | 'reviewsHeading'
+      | 'showOnWebsite',
+    value: string | boolean,
   ): void {
     this.adminDb.updateAbout({ [field]: value });
+  }
+
+  protected toggleShowOnWebsite(value: boolean): void {
+    this.adminDb.updateAbout({ showOnWebsite: value });
   }
 
   protected onRemoveAboutImage(): void {

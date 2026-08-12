@@ -42,7 +42,7 @@
                     <img
                       class="aspect-[4/3] w-full object-cover"
                       [src]="d.pageCopy.about.image"
-                      [alt]="d.pageCopy.about.imageAlt || 'About image preview'"
+                      [alt]="'About image preview'"
                     />
                   </figure>
                   <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
@@ -58,10 +58,6 @@
                 </div>
               }
             </div>
-          </div>
-          <div class="admin-float-field md:col-span-2">
-            <label class="mb-1 block text-sm font-medium text-stone-700">Image alt</label>
-            <input pInputText class="w-full" [ngModel]="d.pageCopy.about.imageAlt" (ngModelChange)="patchAbout('imageAlt', $event)" />
           </div>
         </div>
       </p-card>

@@ -3,6 +3,7 @@ import { Injectable, inject } from '@angular/core';
 import { Observable, map } from 'rxjs';
 import { API_CONFIG } from '../config/api.config';
 import {
+  AboutContent,
   AboutReview,
   BatchRow,
   ContactInfo,
@@ -217,6 +218,8 @@ export class AdminApiService {
       body,
     );
   }
+
+  // removed: putReviewMetadata endpoint deleted server-side
 
   deleteReview(id: string): Observable<{ deleted: boolean }> {
     return this.http.delete<{ deleted: boolean }>(

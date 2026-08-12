@@ -83,10 +83,12 @@ export class SiteContentService {
       reviewsEyebrow: '',
       reviewsHeading: '',
       reviews: [],
+      showOnWebsite: true,
     };
     const about: SiteContentDb['pageCopy']['about'] = {
       ...aboutRaw,
       reviews: aboutRaw.reviews ?? [],
+      showOnWebsite: aboutRaw.showOnWebsite ?? true,
     };
 
     return {

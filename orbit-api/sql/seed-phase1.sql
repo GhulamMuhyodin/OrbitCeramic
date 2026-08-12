@@ -5,9 +5,7 @@
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
 
-DELETE FROM leads;
-DELETE FROM about_reviews;
-DELETE FROM about_paragraphs;
+DELETE FROM reviews;
 DELETE FROM page_batch_shop;
 DELETE FROM page_journey;
 DELETE FROM page_collections;
@@ -20,7 +18,6 @@ DELETE FROM product_colors;
 DELETE FROM products;
 UPDATE sites SET active_batch_id = NULL;
 DELETE FROM batches;
-DELETE FROM contact_visit_lines;
 DELETE FROM contacts;
 DELETE FROM media;
 DELETE FROM sites;
@@ -36,14 +33,15 @@ INSERT INTO sites (id, brand, active_batch_id) VALUES
 
 INSERT INTO contacts (id, site_id, whatsapp, email, instagram, instagram_handle, line_text) VALUES
   ('contact-main', 'site-orbit', '923227987366', 'theorbitceramic@gmail.com',
-   'https://instagram.com/orbitceramic', '@orbitceramic', NULL);
+   'https://instagram.com/orbitceramic', '@orbitceramic', 'Anarkli, Lahore');
 
 INSERT INTO page_about (
-  site_id, eyebrow, heading, image, image_media_id, image_alt
+  site_id, eyebrow, heading, image, image_media_id, body, show_on_website
 ) VALUES (
   'site-orbit', 'The maker', 'Mr. Ghulam Jilani',
-  '/images/about/about-01.jpg', 'media-about-01',
-  'Handmade ceramic vessels arranged in a loft studio'
+  '', '',
+  'I am a ceramic artist and clay craftsman with a deep passion for transforming raw clay into timeless works of art. My work is inspired by traditional pottery, antique forms, natural textures, and the quiet beauty found in handmade objects. Every piece I create is shaped by hand, allowing each bowl, vase, platter, mug, and decorative sculpture to carry its own unique character and story.\n\nI specialize in handcrafted ceramic bowls, antique-inspired pottery, decorative clay art, custom ceramic pieces, and artisan home décor. My goal is to create heirloom-quality ceramics that celebrate the beauty of imperfection, the richness of traditional craftsmanship, and the lasting connection between the artist, the material, and the people who use my work.',
+  1
 );
 
 INSERT INTO page_reviews (
@@ -51,11 +49,6 @@ INSERT INTO page_reviews (
 ) VALUES (
   'site-orbit', 'Client voices', 'What collectors say'
 );
-
-INSERT INTO about_paragraphs (site_id, body, sort_order) VALUES
-  ('site-orbit', 'I am a ceramic artist and clay craftsman with a deep passion for transforming raw clay into timeless works of art. My work is inspired by traditional pottery, antique forms, natural textures, and the quiet beauty found in handmade objects. Every piece I create is shaped by hand, allowing each bowl, vase, platter, mug, and decorative sculpture to carry its own unique character and story.', 1),
-  ('site-orbit', 'I specialize in handcrafted ceramic bowls, antique-inspired pottery, decorative clay art, custom ceramic pieces, and artisan home décor. My goal is to create heirloom-quality ceramics that celebrate the beauty of imperfection, the richness of traditional craftsmanship, and the lasting connection between the artist, the material, and the people who use my work.', 2);
-
 
 INSERT INTO page_collections (
   site_id, eyebrow, heading, lede, out_of_stock_label, custom_note, custom_cta_label,

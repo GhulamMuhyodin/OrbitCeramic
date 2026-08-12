@@ -22,13 +22,10 @@ export interface AboutReview {
   detail: string;
   /** Star rating from 1 to 5. */
   rating: number;
-  /** Optional photo; when empty, gender avatar is used. */
+  /** Optional photo; when empty, avatar is used. */
   image?: string;
-  imageAlt?: string;
   /** Optional backend media reference for the image. */
   imageMediaId?: string;
-  /** Used for default avatar when image is missing. */
-  gender: 'woman' | 'man';
   /** UI sort order for review list rendering. */
   sortOrder?: number;
 }
@@ -39,10 +36,8 @@ export interface AboutContent {
   paragraphs: string[];
   image: string;
   imageMediaId?: string;
-  imageAlt: string;
-  reviewsEyebrow: string;
-  reviewsHeading: string;
   reviews: AboutReview[];
+  showOnWebsite: boolean;
 }
 
 export interface ReviewsContent {

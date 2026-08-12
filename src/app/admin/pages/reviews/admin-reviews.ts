@@ -78,7 +78,7 @@ export class AdminReviewsPage {
   }
 
   protected patchAbout(
-    field: 'eyebrow' | 'heading' | 'image' | 'imageAlt' | 'imageMediaId' | 'reviewsEyebrow' | 'reviewsHeading',
+    field: 'eyebrow' | 'heading' | 'image' |  'imageMediaId' ,
     value: string,
   ): void {
     this.adminDb.updateAbout({ [field]: value });

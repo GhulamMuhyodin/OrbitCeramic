@@ -8,7 +8,7 @@
 -- Target: MySQL 8 / MariaDB 10.5+ (Hostinger)
 -- Charset: utf8mb4
 --
--- Import this file for Phase 1. Later phases: public/data/schema.sql (full)
+-- Import this file for Phase 1.
 
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
@@ -246,6 +246,8 @@ CREATE TABLE IF NOT EXISTS page_about (
   image           VARCHAR(1024) NOT NULL,
   image_media_id  VARCHAR(64)   NULL,
   image_alt       VARCHAR(512)  NOT NULL,
+  body            TEXT          NOT NULL,
+  show_on_website TINYINT(1)    NOT NULL DEFAULT 1,
   PRIMARY KEY (site_id),
   KEY idx_p1_page_about_media (image_media_id),
   CONSTRAINT fk_p1_page_about_site FOREIGN KEY (site_id) REFERENCES sites (id)
@@ -263,18 +265,7 @@ CREATE TABLE IF NOT EXISTS page_reviews (
     ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
-CREATE TABLE IF NOT EXISTS about_paragraphs (
-  id         BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-  site_id    VARCHAR(64)     NOT NULL,
-  body       TEXT            NOT NULL,
-  sort_order INT             NOT NULL DEFAULT 0,
-  PRIMARY KEY (id),
-  KEY idx_p1_about_paragraphs (site_id, sort_order),
-  CONSTRAINT fk_p1_about_paragraphs_site FOREIGN KEY (site_id) REFERENCES page_about (site_id)
-    ON UPDATE CASCADE ON DELETE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE IF NOT EXISTS about_reviews (
+CREATE TABLE IF NOT EXISTS reviews (
   id             VARCHAR(64)         NOT NULL,
   site_id        VARCHAR(64)         NOT NULL,
   quote          TEXT                NOT NULL,
@@ -283,18 +274,16 @@ CREATE TABLE IF NOT EXISTS about_reviews (
   rating         TINYINT UNSIGNED    NOT NULL,
   image          VARCHAR(1024)       NULL,
   image_media_id VARCHAR(64)         NULL,
-  image_alt      VARCHAR(512)        NULL,
-  gender         ENUM('woman','man') NOT NULL,
   is_published   TINYINT(1)          NOT NULL DEFAULT 1,
   sort_order     INT                 NOT NULL DEFAULT 0,
   PRIMARY KEY (id),
-  KEY idx_p1_about_reviews (site_id, sort_order),
-  KEY idx_p1_about_reviews_media (image_media_id),
-  CONSTRAINT fk_p1_about_reviews_site FOREIGN KEY (site_id) REFERENCES page_about (site_id)
+  KEY idx_p1_reviews (site_id, sort_order),
+  KEY idx_p1_reviews_media (image_media_id),
+  CONSTRAINT fk_p1_reviews_site FOREIGN KEY (site_id) REFERENCES page_about (site_id)
     ON UPDATE CASCADE ON DELETE CASCADE,
-  CONSTRAINT fk_p1_about_reviews_media FOREIGN KEY (image_media_id) REFERENCES media (id)
+  CONSTRAINT fk_p1_reviews_media FOREIGN KEY (image_media_id) REFERENCES media (id)
     ON UPDATE CASCADE ON DELETE SET NULL,
-  CONSTRAINT chk_p1_about_reviews_rating CHECK (rating BETWEEN 1 AND 5)
+  CONSTRAINT chk_p1_reviews_rating CHECK (rating BETWEEN 1 AND 5)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS page_collections (
@@ -348,7 +337,7 @@ CREATE TABLE IF NOT EXISTS page_batch_shop (
 -- sites, admin_users, admin_sessions, contacts, media,
 -- batches, products, product_colors, product_images,
 -- journey_videos (1 per batch), journey_images, hero_highlight_images,
--- page_about, about_paragraphs, about_reviews,
+-- page_about, reviews,
 -- page_collections, page_journey, page_batch_shop, leads
 -- NOT in DB: nav_links, page_footer, footer_explore_links, footer_social_links
 -- ---------------------------------------------------------------------------

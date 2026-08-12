@@ -621,51 +621,36 @@ final class AdminRepository
     public function putPageAbout(string $siteId, array $body): array
     {
         $this->assertSite($siteId);
+        $paragraphs = [];
+        if (array_key_exists('paragraphs', $body) && is_array($body['paragraphs'])) {
+            foreach ($body['paragraphs'] as $p) {
+                $text = trim((string) $p);
+                if ($text === '') {
+                    continue;
+                }
+                $paragraphs[] = $text;
+            }
+        }
+        $bodyText = implode("\n\n", $paragraphs);
         $this->pdo->prepare(
             'INSERT INTO page_about
-             (site_id, eyebrow, heading, image, image_media_id, image_alt)
-             VALUES (:site,:eyebrow,:heading,:image,:mid,:alt)
+             (site_id, eyebrow, heading, image, image_media_id, body, show_on_website)
+             VALUES (:site,:eyebrow,:heading,:image,:mid,:body,:show)
              ON DUPLICATE KEY UPDATE
                eyebrow=VALUES(eyebrow), heading=VALUES(heading), image=VALUES(image),
-               image_media_id=VALUES(image_media_id), image_alt=VALUES(image_alt)'
+               image_media_id=VALUES(image_media_id),
+               body=VALUES(body), show_on_website=VALUES(show_on_website)'
         )->execute([
             ':site' => $siteId,
             ':eyebrow' => (string) ($body['eyebrow'] ?? ''),
             ':heading' => (string) ($body['heading'] ?? ''),
             ':image' => (string) ($body['image'] ?? ''),
             ':mid' => $this->nullMedia($body['imageMediaId'] ?? null),
-            ':alt' => (string) ($body['imageAlt'] ?? ''),
+            ':body' => $bodyText,
+            ':show' => $this->boolToInt($body['showOnWebsite'] ?? true),
         ]);
 
-        $this->pdo->prepare(
-            'INSERT INTO page_reviews
-             (site_id, eyebrow, heading)
-             VALUES (:site,:re,:rh)
-             ON DUPLICATE KEY UPDATE
-               eyebrow=VALUES(eyebrow), heading=VALUES(heading)'
-        )->execute([
-            ':site' => $siteId,
-            ':re' => (string) ($body['reviewsEyebrow'] ?? ''),
-            ':rh' => (string) ($body['reviewsHeading'] ?? ''),
-        ]);
-
-        if (array_key_exists('paragraphs', $body) && is_array($body['paragraphs'])) {
-            $this->pdo->prepare('DELETE FROM about_paragraphs WHERE site_id = ?')->execute([$siteId]);
-            $ins = $this->pdo->prepare(
-                'INSERT INTO about_paragraphs (site_id, body, sort_order) VALUES (?,?,?)'
-            );
-            $order = 0;
-            foreach ($body['paragraphs'] as $p) {
-                $text = trim((string) $p);
-                if ($text === '') {
-                    continue;
-                }
-                $order++;
-                $ins->execute([$siteId, $text, $order]);
-            }
-        }
-
-        return $this->content->getPageAbout($siteId) ?? [];
+        return $this->content->getPageAbout($siteId, false) ?? [];
     }
 
     public function putPageCollections(string $siteId, array $body): array
@@ -751,7 +736,7 @@ final class AdminRepository
     /** @return list<array<string,mixed>> */
     public function listReviews(string $siteId, bool $publishedOnly = false): array
     {
-        $sql = 'SELECT * FROM about_reviews WHERE site_id = ?';
+        $sql = 'SELECT * FROM reviews WHERE site_id = ?';
         if ($publishedOnly) {
             $sql .= ' AND is_published = 1';
         }
@@ -776,15 +761,11 @@ final class AdminRepository
         if ($rating < 1 || $rating > 5) {
             throw new RuntimeException('rating must be 1–5', 422);
         }
-        $gender = (string) ($body['gender'] ?? 'woman');
-        if (!in_array($gender, ['woman', 'man'], true)) {
-            throw new RuntimeException('gender must be woman or man', 422);
-        }
-
+       
         $this->pdo->prepare(
-            'INSERT INTO about_reviews
-             (id, site_id, quote, name, detail, rating, image, image_media_id, image_alt, gender, is_published, sort_order)
-             VALUES (:id,:site,:quote,:name,:detail,:rating,:image,:mid,:alt,:gender,:pub,:sort)'
+            'INSERT INTO reviews
+             (id, site_id, quote, name, detail, rating, image, image_media_id,is_published, sort_order)
+             VALUES (:id,:site,:quote,:name,:detail,:rating,:image,:mid,:pub,:sort)'
         )->execute([
             ':id' => $id,
             ':site' => $siteId,
@@ -794,8 +775,6 @@ final class AdminRepository
             ':rating' => $rating,
             ':image' => $this->emptyToNull($body['image'] ?? null),
             ':mid' => $this->nullMedia($body['imageMediaId'] ?? null),
-            ':alt' => $this->emptyToNull($body['imageAlt'] ?? null),
-            ':gender' => $gender,
             ':pub' => array_key_exists('isPublished', $body) ? ($body['isPublished'] ? 1 : 0) : 1,
             ':sort' => (int) ($body['sortOrder'] ?? 0),
         ]);
@@ -810,16 +789,12 @@ final class AdminRepository
         if ($rating < 1 || $rating > 5) {
             throw new RuntimeException('rating must be 1–5', 422);
         }
-        $gender = (string) ($body['gender'] ?? $current['gender']);
-        if (!in_array($gender, ['woman', 'man'], true)) {
-            throw new RuntimeException('gender must be woman or man', 422);
-        }
-
+        
         $this->pdo->prepare(
-            'UPDATE about_reviews SET
+            'UPDATE reviews SET
                 quote=:quote, name=:name, detail=:detail, rating=:rating,
-                image=:image, image_media_id=:mid, image_alt=:alt,
-                gender=:gender, is_published=:pub, sort_order=:sort
+                image=:image, image_media_id=:mid,
+                is_published=:pub, sort_order=:sort
              WHERE id=:id AND site_id=:site'
         )->execute([
             ':quote' => (string) ($body['quote'] ?? $current['quote']),
@@ -828,8 +803,6 @@ final class AdminRepository
             ':rating' => $rating,
             ':image' => $this->emptyToNull($body['image'] ?? ($current['image'] ?? null)),
             ':mid' => $this->nullMedia($body['imageMediaId'] ?? ($current['imageMediaId'] ?? null)),
-            ':alt' => $this->emptyToNull($body['imageAlt'] ?? ($current['imageAlt'] ?? null)),
-            ':gender' => $gender,
             ':pub' => array_key_exists('isPublished', $body)
                 ? ($body['isPublished'] ? 1 : 0)
                 : (int) ($current['isPublished'] ?? 1),
@@ -844,7 +817,7 @@ final class AdminRepository
     public function deleteReview(string $siteId, string $reviewId): void
     {
         $this->getReview($siteId, $reviewId);
-        $this->pdo->prepare('DELETE FROM about_reviews WHERE id = ? AND site_id = ?')
+        $this->pdo->prepare('DELETE FROM reviews WHERE id = ? AND site_id = ?')
             ->execute([$reviewId, $siteId]);
     }
 
@@ -889,7 +862,7 @@ final class AdminRepository
 
     private function getReview(string $siteId, string $reviewId): array
     {
-        $stmt = $this->pdo->prepare('SELECT * FROM about_reviews WHERE id = ? AND site_id = ? LIMIT 1');
+        $stmt = $this->pdo->prepare('SELECT * FROM reviews WHERE id = ? AND site_id = ? LIMIT 1');
         $stmt->execute([$reviewId, $siteId]);
         $row = $stmt->fetch();
         if (!$row) {
@@ -901,22 +874,18 @@ final class AdminRepository
     private function mapReview(array $rev): array
     {
         $item = [
-            'id' => $rev['id'],
-            'quote' => $rev['quote'],
-            'name' => $rev['name'],
-            'detail' => $rev['detail'],
-            'rating' => (int) $rev['rating'],
-            'gender' => $rev['gender'],
-            'isPublished' => orbit_bool($rev['is_published']),
-            'sortOrder' => (int) $rev['sort_order'],
+            'id' => $rev['id'] ?? '',
+            'quote' => isset($rev['quote']) ? (string) $rev['quote'] : '',
+            'name' => isset($rev['name']) ? (string) $rev['name'] : '',
+            'detail' => isset($rev['detail']) ? (string) $rev['detail'] : '',
+            'rating' => isset($rev['rating']) ? (int) $rev['rating'] : 0,
+            'isPublished' => orbit_bool($rev['is_published'] ?? 1),
+            'sortOrder' => isset($rev['sort_order']) ? (int) $rev['sort_order'] : 0,
         ];
-        if ($rev['image']) {
+        if (!empty($rev['image'] ?? null)) {
             $item['image'] = $rev['image'];
         }
-        if ($rev['image_alt']) {
-            $item['imageAlt'] = $rev['image_alt'];
-        }
-        if ($rev['image_media_id']) {
+        if (!empty($rev['image_media_id'] ?? null)) {
             $item['imageMediaId'] = $rev['image_media_id'];
         }
         return $item;
@@ -970,42 +939,39 @@ final class AdminRepository
         $this->pdo->prepare(
             'INSERT INTO products
              (id, batch_id, name, price, description, summary, dimensions, alt, sold_out, sort_order)
-             VALUES (?,?,?,?,?,?,?,?,?,?)'
+             VALUES (:id,:batch,:name,:price,:description,:summary,:dimensions,:alt,:sold,:sort)'
         )->execute([
-            $id,
-            $batchId,
-            $name,
-            (float) $body['price'],
-            (string) ($body['description'] ?? ''),
-            (string) ($body['summary'] ?? ''),
-            (string) ($body['dimensions'] ?? ''),
-            (string) ($body['alt'] ?? ''),
-            !empty($body['soldOut']) ? 1 : 0,
-            (int) ($body['sortOrder'] ?? 0),
+            ':id' => $id,
+            ':batch' => $batchId,
+            ':name' => $name,
+            ':price' => (float) ($body['price'] ?? 0),
+            ':description' => (string) ($body['description'] ?? ''),
+            ':summary' => (string) ($body['summary'] ?? ''),
+            ':dimensions' => (string) ($body['dimensions'] ?? ''),
+            ':alt' => (string) ($body['alt'] ?? ''),
+            ':sold' => !empty($body['soldOut']) ? 1 : 0,
+            ':sort' => (int) ($body['sortOrder'] ?? 0),
         ]);
     }
-
     private function replaceProductColors(string $productId, mixed $colors): void
     {
         $this->pdo->prepare('DELETE FROM product_colors WHERE product_id = ?')->execute([$productId]);
         if (!is_array($colors)) {
             return;
         }
-        $ins = $this->pdo->prepare(
-            'INSERT INTO product_colors (product_id, name, hex, sort_order) VALUES (?,?,?,?)'
-        );
+        $ins = $this->pdo->prepare('INSERT INTO product_colors (product_id, name, hex, sort_order) VALUES (?,?,?,?)');
         $order = 0;
         foreach ($colors as $c) {
             if (!is_array($c)) {
                 continue;
             }
+            $name = trim((string) ($c['name'] ?? ''));
+            $hex = trim((string) ($c['hex'] ?? ''));
+            if ($name === '' || $hex === '') {
+                continue;
+            }
             $order++;
-            $ins->execute([
-                $productId,
-                (string) ($c['name'] ?? ''),
-                (string) ($c['hex'] ?? '#000000'),
-                (int) ($c['sortOrder'] ?? $order),
-            ]);
+            $ins->execute([$productId, $name, $hex, (int) ($c['sortOrder'] ?? $order)]);
         }
     }
 
@@ -1015,9 +981,7 @@ final class AdminRepository
         if (!is_array($images)) {
             return;
         }
-        $ins = $this->pdo->prepare(
-            'INSERT INTO product_images (product_id, media_id, url, sort_order) VALUES (?,?,?,?)'
-        );
+        $ins = $this->pdo->prepare('INSERT INTO product_images (product_id, media_id, url, sort_order) VALUES (?,?,?,?)');
         $order = 0;
         foreach ($images as $img) {
             if (!is_array($img)) {
@@ -1026,18 +990,13 @@ final class AdminRepository
             $mediaId = (string) ($img['mediaId'] ?? '');
             $url = (string) ($img['url'] ?? '');
             if ($mediaId === '' || $url === '') {
-                throw new RuntimeException('Each product image needs mediaId and url (upload via POST /admin/media first)', 422);
+                continue;
             }
             if (!$this->mediaExists($mediaId)) {
                 throw new RuntimeException("Unknown mediaId: $mediaId", 422);
             }
             $order++;
-            $ins->execute([
-                $productId,
-                $mediaId,
-                $url,
-                (int) ($img['sortOrder'] ?? $order),
-            ]);
+            $ins->execute([$productId, $mediaId, $url, (int) ($img['sortOrder'] ?? $order)]);
         }
     }
 
@@ -1084,6 +1043,11 @@ final class AdminRepository
             return null;
         }
         return (string) $id;
+    }
+
+    private function boolToInt(mixed $value): int
+    {
+        return $value ? 1 : 0;
     }
 
     private function emptyToNull(mixed $v): ?string

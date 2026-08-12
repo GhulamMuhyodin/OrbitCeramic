@@ -11,6 +11,7 @@ import {
   throwError,
 } from 'rxjs';
 import {
+  AboutContent,
   AboutReview,
   BatchRow,
   ContactInfo,
@@ -381,8 +382,8 @@ export class AdminDbService {
         heading: about.heading,
         image: about.image,
         imageMediaId: about.imageMediaId,
-        imageAlt: about.imageAlt,
         paragraphs: about.paragraphs,
+        showOnWebsite: about.showOnWebsite,
       })
       .pipe(
         tap(() => {
@@ -402,8 +403,9 @@ export class AdminDbService {
       return throwError(() => new Error('Not loaded'));
     }
     this.saving.set(true);
-    const ops = db.pageCopy.about.reviews.map((r) => this.persistReview(r));
-    return (ops.length ? forkJoin(ops) : of([])).pipe(
+    const reviewOps = db.pageCopy.about.reviews.map((r) => this.persistReview(r));
+    const saveReviews$ = reviewOps.length ? forkJoin(reviewOps) : of([] as AboutReview[]);
+    return saveReviews$.pipe(
       tap(() => {
         this.dirty.set(false);
         this.saving.set(false);
@@ -436,9 +438,7 @@ export class AdminDbService {
       name: review.name,
       detail: review.detail,
       rating: review.rating,
-      gender: review.gender,
       image: review.image || undefined,
-      imageAlt: review.imageAlt || undefined,
       imageMediaId: review.imageMediaId || undefined,
       isPublished: true,
       sortOrder: review.sortOrder ?? 0,
@@ -463,6 +463,8 @@ export class AdminDbService {
       }),
     );
   }
+
+  // removed: review metadata is no longer saved via a dedicated endpoint
 
   savePageSection(
     section: 'hero' | 'collections' | 'journey' | 'batch-shop',
@@ -813,9 +815,7 @@ export class AdminDbService {
       name: '',
       detail: '',
       rating: 5,
-      gender: 'woman',
       image: '',
-      imageAlt: '',
       sortOrder: nextOrder,
     };
   }
@@ -869,10 +869,12 @@ export class AdminDbService {
       reviewsEyebrow: '',
       reviewsHeading: '',
       reviews: [],
+      showOnWebsite: true,
     };
     const about: SiteContentDb['pageCopy']['about'] = {
       ...aboutRaw,
       reviews: aboutRaw.reviews ?? [],
+      showOnWebsite: aboutRaw.showOnWebsite ?? true,
     };
 
     const mappedReviews: AboutReview[] =
@@ -883,9 +885,7 @@ export class AdminDbService {
             name: r.name,
             detail: r.detail,
             rating: r.rating,
-            gender: r.gender,
             image: r.image ?? '',
-            imageAlt: r.imageAlt ?? '',
           }))
         : about.reviews;
 

@@ -161,8 +161,9 @@ final class AdminController
             $batchId = (string) $params['id'];
 
             if ($this->isMultipartRequest()) {
-                $payload = $this->parseMultipartPayload();
-                $uploadedFiles = $this->moveUploadedFiles();
+                $multipart = $this->parseMultipartRequest();
+                $payload = $this->parseMultipartPayload($multipart['post']);
+                $uploadedFiles = $this->moveUploadedFiles($multipart['files'], $siteId);
                 try {
                     Response::json(
                         $this->admin->saveBatchTransactionMultipart($siteId, $batchId, $payload, $uploadedFiles),
@@ -189,13 +190,98 @@ final class AdminController
         return isset($_SERVER['CONTENT_TYPE']) && str_contains((string) $_SERVER['CONTENT_TYPE'], 'multipart/form-data');
     }
 
-    private function parseMultipartPayload(): array
+    private function parseMultipartRequest(): array
     {
-        if (!isset($_POST['payload']) || !is_string($_POST['payload'])) {
+        $contentType = $_SERVER['CONTENT_TYPE'] ?? '';
+        if (!str_contains((string) $contentType, 'multipart/form-data')) {
+            return ['post' => [], 'files' => []];
+        }
+
+        if (!preg_match('/boundary=([^;]+)/', (string) $contentType, $matches)) {
+            throw new RuntimeException('Missing multipart boundary', 422);
+        }
+
+        $boundary = '--' . trim($matches[1], "\"' ");
+        $raw = file_get_contents('php://input');
+        if ($raw === false || $raw === '') {
+            return ['post' => [], 'files' => []];
+        }
+
+        $parts = explode($boundary, $raw);
+        $post = [];
+        $files = [];
+        foreach ($parts as $part) {
+            $part = ltrim($part, "\r\n");
+            if ($part === '' || $part === '--' || $part === "--\r\n" || $part === "--\n") {
+                continue;
+            }
+            if (str_ends_with($part, "\r\n")) {
+                $part = substr($part, 0, -2);
+            } elseif (str_ends_with($part, "\n")) {
+                $part = substr($part, 0, -1);
+            }
+
+            $section = preg_split('/\r?\n\r?\n/', $part, 2);
+            if (!is_array($section) || count($section) !== 2) {
+                continue;
+            }
+
+            [$headerText, $body] = $section;
+            $headers = preg_split('/\r?\n/', $headerText);
+            $name = null;
+            $filename = null;
+            $mime = 'text/plain';
+            foreach ($headers as $header) {
+                $header = trim($header);
+                if ($header === '') {
+                    continue;
+                }
+                if (str_starts_with(strtolower($header), 'content-disposition:')) {
+                    if (preg_match('/name="([^"]+)"/', $header, $m)) {
+                        $name = $m[1];
+                    }
+                    if (preg_match('/filename="([^"]*)"/', $header, $m)) {
+                        $filename = $m[1];
+                    }
+                } elseif (str_starts_with(strtolower($header), 'content-type:')) {
+                    $mime = trim(substr($header, strlen('Content-Type:')));
+                }
+            }
+
+            if ($name === null) {
+                continue;
+            }
+
+            if ($filename !== null && $filename !== '') {
+                $tmpPath = tempnam(sys_get_temp_dir(), 'upload_');
+                if ($tmpPath === false) {
+                    throw new RuntimeException('Could not create temp file for upload', 500);
+                }
+                file_put_contents($tmpPath, $body);
+                $files[$name] = [
+                    'name' => $filename,
+                    'type' => $mime,
+                    'tmp_name' => $tmpPath,
+                    'error' => UPLOAD_ERR_OK,
+                    'size' => strlen($body),
+                ];
+                continue;
+            }
+
+            $post[$name] = $body;
+        }
+
+        return ['post' => $post, 'files' => $files];
+    }
+
+    private function parseMultipartPayload(array $post = null): array
+    {
+        $post ??= $_POST;
+        if (!isset($post['payload']) || !is_string($post['payload'])) {
             throw new RuntimeException('Missing payload JSON for multipart batch save', 422);
         }
 
-        $payload = json_decode($_POST['payload'], true);
+        $payload = json_decode($post['payload'], true);
         if (!is_array($payload)) {
             throw new RuntimeException('Invalid multipart payload JSON', 422);
         }
@@ -203,14 +289,67 @@ final class AdminController
         return $payload;
     }
 
-    private function moveUploadedFiles(): array
+    private function parseReviewRequest(): array
     {
-        if (!is_array($_FILES)) {
+        if (!$this->isMultipartRequest()) {
+            return orbit_json_body();
+        }
+
+        $multipart = $this->parseMultipartRequest();
+        $payload = $this->parseMultipartPayload($multipart['post']);
+        $uploadedFiles = $this->moveUploadedFiles($multipart['files'], $this->siteId());
+
+        if (empty($uploadedFiles)) {
+            return $payload;
+        }
+
+        $mediaMap = [];
+        foreach ($uploadedFiles as $field => $upload) {
+            try {
+                $mediaMap[$field] = $this->content->insertMedia([
+                    'id' => $upload['id'],
+                    'site_id' => $this->siteId(),
+                    'disk_path' => $upload['diskPath'],
+                    'public_url' => $upload['publicUrl'],
+                    'mime' => $upload['mime'],
+                    'bytes' => $upload['bytes'],
+                    'original_name' => $upload['originalName'],
+                    'kind' => $upload['kind'],
+                ]);
+            } catch (Throwable $e) {
+                if (!empty($upload['diskPath']) && file_exists($upload['diskPath'])) {
+                    @unlink($upload['diskPath']);
+                }
+                throw $e;
+            }
+        }
+
+        if (isset($mediaMap['image'])) {
+            $payload['image'] = $mediaMap['image']['publicUrl'];
+            $payload['imageMediaId'] = $mediaMap['image']['id'];
+        } elseif (isset($mediaMap['file'])) {
+            $payload['image'] = $mediaMap['file']['publicUrl'];
+            $payload['imageMediaId'] = $mediaMap['file']['id'];
+        } else {
+            $first = reset($mediaMap);
+            if (is_array($first)) {
+                $payload['image'] = $first['publicUrl'];
+                $payload['imageMediaId'] = $first['id'];
+            }
+        }
+
+        return $payload;
+    }
+
+    private function moveUploadedFiles(array $files = null, string $siteId = null): array
+    {
+        $files ??= is_array($_FILES) ? $_FILES : [];
+        if (!is_array($files)) {
             return [];
         }
 
         $uploads = [];
-        foreach ($_FILES as $field => $file) {
+        foreach ($files as $field => $file) {
             if (!is_array($file)) {
                 continue;
             }
@@ -225,7 +364,7 @@ final class AdminController
             }
 
             $tmp = (string) ($file['tmp_name'] ?? '');
-            if ($tmp === '' || !is_uploaded_file($tmp)) {
+            if ($tmp === '' || (!is_uploaded_file($tmp) && !is_file($tmp))) {
                 throw new RuntimeException('Invalid uploaded file for field: ' . $field, 422);
             }
 
@@ -259,7 +398,15 @@ final class AdminController
             }
 
             $diskPath = rtrim($uploadsDir, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . $relativeName;
-            if (!move_uploaded_file($tmp, $diskPath)) {
+            if (is_uploaded_file($tmp)) {
+                $success = move_uploaded_file($tmp, $diskPath);
+            } else {
+                $success = rename($tmp, $diskPath);
+                if (!$success) {
+                    $success = copy($tmp, $diskPath) && unlink($tmp);
+                }
+            }
+            if (!$success) {
                 throw new RuntimeException('Could not store uploaded file for field: ' . $field, 500);
             }
 
@@ -269,7 +416,7 @@ final class AdminController
 
             $uploads[$field] = [
                 'id' => $id,
-                'siteId' => (string) ($_POST['siteId'] ?? $this->config['default_site_id']),
+                'siteId' => $siteId ?? (string) ($_POST['siteId'] ?? $this->config['default_site_id']),
                 'diskPath' => $diskPath,
                 'publicUrl' => $publicUrl,
                 'mime' => $mime,
@@ -359,7 +506,7 @@ final class AdminController
         $section = (string) ($params['section'] ?? '');
         $siteId = $this->siteId();
         $data = match ($section) {
-            'about' => $this->content->getPageAbout($siteId),
+            'about' => $this->content->getPageAbout($siteId, false),
             'collections' => $this->content->getPageCollections($siteId),
             'journey' => $this->content->getPageJourney($siteId),
             'batch-shop' => $this->content->getPageBatchShop($siteId),
@@ -379,7 +526,6 @@ final class AdminController
             $siteId = $this->siteId();
             $body = orbit_json_body();
             $data = match ($section) {
-                'hero' => $this->admin->putPageHero($siteId, $body),
                 'about' => $this->admin->putPageAbout($siteId, $body),
                 'collections' => $this->admin->putPageCollections($siteId, $body),
                 'journey' => $this->admin->putPageJourney($siteId, $body),
@@ -401,7 +547,7 @@ final class AdminController
     public function createReview(): void
     {
         $this->run(fn () => Response::json(
-            $this->admin->createReview($this->siteId(), orbit_json_body()),
+            $this->admin->createReview($this->siteId(), $this->parseReviewRequest()),
             201
         ));
     }
@@ -409,9 +555,11 @@ final class AdminController
     public function updateReview(array $params): void
     {
         $this->run(fn () => Response::json(
-            $this->admin->updateReview($this->siteId(), (string) $params['id'], orbit_json_body())
+            $this->admin->updateReview($this->siteId(), (string) $params['id'], $this->parseReviewRequest())
         ));
     }
+
+    
 
     public function deleteReview(array $params): void
     {

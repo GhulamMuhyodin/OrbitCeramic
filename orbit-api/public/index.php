@@ -128,7 +128,6 @@ $router->add('POST', '/api/v1/leads', static fn () => $leads->create());
 // Public content (granular)
 $router->add('GET', '/api/v1/site', static fn () => $site->show());
 $router->add('GET', '/api/v1/contact', static fn () => $contact->show());
-$router->add('GET', '/api/v1/page/hero', static fn () => $page->hero());
 $router->add('GET', '/api/v1/page/about', static fn () => $page->about());
 $router->add('GET', '/api/v1/page/collections', static fn () => $page->collections());
 $router->add('GET', '/api/v1/page/journey', static fn () => $page->journey());
@@ -182,6 +181,7 @@ $router->add('PUT', '/api/v1/admin/page/:section', static fn (array $p) => $admi
 
 $router->add('GET', '/api/v1/admin/reviews', static fn () => $admin->listReviews());
 $router->add('POST', '/api/v1/admin/reviews', static fn () => $admin->createReview());
+// metadata endpoint removed: reviews metadata is now managed via the About page
 $router->add('PUT', '/api/v1/admin/reviews/:id', static fn (array $p) => $admin->updateReview($p));
 $router->add('DELETE', '/api/v1/admin/reviews/:id', static fn (array $p) => $admin->deleteReview($p));
 

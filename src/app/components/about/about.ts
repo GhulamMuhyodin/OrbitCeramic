@@ -72,22 +72,13 @@ export class About {
   }
 
   protected reviewAvatarIconSvg(review: AboutReview): string {
-    return review.gender === 'woman' ? WOMAN_ICON_SVG : MAN_ICON_SVG;
+    return  MAN_ICON_SVG;
   }
 
   protected reviewImage(review: AboutReview): string {
     return review.image?.trim() ?? '';
   }
 
-  protected reviewImageAlt(review: AboutReview): string {
-    const photo = review.image?.trim();
-    if (photo && review.imageAlt?.trim()) {
-      return review.imageAlt;
-    }
-    return review.gender === 'woman'
-      ? `${review.name} — woman avatar`
-      : `${review.name} — man avatar`;
-  }
 
   protected reviewRating(review: AboutReview): number {
     const value = Number(review.rating);

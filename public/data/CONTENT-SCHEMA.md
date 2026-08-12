@@ -22,7 +22,7 @@
 | File uploads | Yes | DB `media` (disk_path + public_url) |
 | Page copy (hero, about, collections, journey, shop) | Yes | DB `page_*` (+ about children) |
 | Footer | Yes (static) | `site-content.json` — **not** MySQL |
-| About reviews | Yes | DB `about_reviews` |
+| About reviews | Yes | DB `reviews` |
 | Live / celebration / hero window rules | Derived in app from `launch_at` | — |
 | Guest cart | Phase 2 | `carts`, `cart_items` |
 

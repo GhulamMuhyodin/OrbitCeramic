@@ -66,7 +66,7 @@ final class ContentRepository
         return $out;
     }
 
-    public function getPageAbout(string $siteId): ?array
+    public function getPageAbout(string $siteId, bool $includeReviewMetadata = true): ?array
     {
         $stmt = $this->pdo->prepare('SELECT * FROM page_about WHERE site_id = ? LIMIT 1');
         $stmt->execute([$siteId]);
@@ -79,18 +79,26 @@ final class ContentRepository
                 'image' => '',
                 'image_alt' => '',
                 'image_media_id' => null,
+                'body'=> '',
             ];
         }
 
-        $pStmt = $this->pdo->prepare(
-            'SELECT body FROM about_paragraphs WHERE site_id = ? ORDER BY sort_order ASC, id ASC'
-        );
-        $pStmt->execute([$siteId]);
-        $paragraphs = array_map(static fn (array $r): string => $r['body'], $pStmt->fetchAll());
+        $paragraphs = [];
+        if (isset($row['body']) && $row['body'] !== null) {
+            $rawBody = trim((string) $row['body']);
+            if ($rawBody !== '') {
+                foreach (preg_split('/\r?\n\r?\n/', $rawBody) as $paragraph) {
+                    $paragraph = trim($paragraph);
+                    if ($paragraph !== '') {
+                        $paragraphs[] = $paragraph;
+                    }
+                }
+            }
+        }
 
         $rStmt = $this->pdo->prepare(
-            'SELECT id, quote, name, detail, rating, image, image_alt, gender
-             FROM about_reviews
+            'SELECT id, quote, name, detail, rating, image, image_media_id
+             FROM reviews
              WHERE site_id = ? AND is_published = 1
              ORDER BY sort_order ASC, id ASC'
         );
@@ -103,26 +111,16 @@ final class ContentRepository
                 'name' => $rev['name'],
                 'detail' => $rev['detail'],
                 'rating' => (int) $rev['rating'],
-                'gender' => $rev['gender'],
             ];
-            if ($rev['image'] !== null && $rev['image'] !== '') {
+            if (!empty($rev['image'] ?? null)) {
                 $item['image'] = $rev['image'];
             }
-            if ($rev['image_alt'] !== null && $rev['image_alt'] !== '') {
-                $item['imageAlt'] = $rev['image_alt'];
+            if (!empty($rev['image_media_id'] ?? null)) {
+                $item['imageMediaId'] = $rev['image_media_id'];
             }
             $reviews[] = $item;
         }
-
-        $reviewHeadingStmt = $this->pdo->prepare(
-            'SELECT eyebrow, heading FROM page_reviews WHERE site_id = ? LIMIT 1'
-        );
-        $reviewHeadingStmt->execute([$siteId]);
-        $reviewHeadingRow = $reviewHeadingStmt->fetch();
-        $reviewsEyebrow = is_array($reviewHeadingRow) ? (string) ($reviewHeadingRow['eyebrow'] ?? '') : '';
-        $reviewsHeading = is_array($reviewHeadingRow) ? (string) ($reviewHeadingRow['heading'] ?? '') : '';
-
-        if (!$hasAbout && count($paragraphs) === 0 && count($reviews) === 0 && $reviewsEyebrow === '' && $reviewsHeading === '') {
+        if (!$hasAbout && $includeReviewMetadata && count($paragraphs) === 0 && count($reviews) === 0 && $reviewsEyebrow === '' && $reviewsHeading === '') {
             return null;
         }
 
@@ -131,10 +129,8 @@ final class ContentRepository
             'heading' => $row['heading'],
             'paragraphs' => $paragraphs,
             'image' => $row['image'],
-            'imageAlt' => $row['image_alt'],
-            'reviewsEyebrow' => $reviewsEyebrow,
-            'reviewsHeading' => $reviewsHeading,
-            'reviews' => $reviews,
+            'showOnWebsite' => orbit_bool($row['show_on_website'] ?? 1),
+            'reviews' => $includeReviewMetadata ? $reviews : [],
         ];
         if ($row['image_media_id']) {
             $output['imageMediaId'] = $row['image_media_id'];
@@ -629,14 +625,14 @@ final class ContentRepository
 
         return [
             'id' => $productId,
-            'name' => $row['name'],
-            'price' => (float) $row['price'],
-            'description' => $row['description'],
-            'summary' => $row['summary'],
-            'dimensions' => $row['dimensions'],
-            'alt' => $row['alt'],
-            'sortOrder' => (int) $row['sort_order'],
-            'soldOut' => orbit_bool($row['sold_out']),
+            'name' => $row['name'] ?? '',
+            'price' => (float) ($row['price'] ?? 0),
+            'description' => $row['description'] ?? '',
+            'summary' => $row['summary'] ?? '',
+            'dimensions' => $row['dimensions'] ?? '',
+            'alt' => $row['alt'] ?? '',
+            'sortOrder' => (int) ($row['sort_order'] ?? 0),
+            'soldOut' => orbit_bool($row['sold_out'] ?? 0),
             'colors' => $colors,
             'images' => $images,
         ];

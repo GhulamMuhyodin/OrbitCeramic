@@ -20,8 +20,7 @@ sites
      ├─ journey_images → media     ← many stills
      └─ hero_highlight_images → media
  └─ page_about
-     ├─ about_paragraphs
-     └─ about_reviews
+     └─ reviews
 ```
 
 **Static (not MySQL):** `navLinks`, footer copy / explore / social links in JSON.
@@ -47,7 +46,7 @@ Deleting a **batch** cascades products, colors, product_images, journey rows, an
 Import **[`schema-phase1.sql`](./schema-phase1.sql)** (**19** tables).  
 
 ### Included
-`sites`, `contacts` (`line_text`), **`media`**, `batches`, `products`, `product_colors`, `product_images`, `journey_videos` (1 per batch), `journey_images`, `hero_highlight_images`,  `page_about`, `about_paragraphs`, `about_reviews`, `page_collections`, `page_journey`, `page_batch_shop`, optional `leads`.
+`sites`, `contacts` (`line_text`), **`media`**, `batches`, `products`, `product_colors`, `product_images`, `journey_videos` (1 per batch), `journey_images`, `hero_highlight_images`,  `page_about`, `about_paragraphs`, `reviews`, `page_collections`, `page_journey`, `page_batch_shop`, optional `leads`.
 
 ### Not in Phase 1 DB
 - **Chrome:** `nav_links`, `page_footer`, `footer_explore_links`, `footer_social_links` (live in JSON)
