@@ -1,7 +1,9 @@
 # Orbit Ceramic — API catalog
 
 Base path (suggested): `/api/v1`  
-Auth: public endpoints are open; admin endpoints require Bearer token (`admin_users`).
+Auth: public endpoints are open; admin endpoints require **Bearer session token** after `POST /admin/auth/login` with `{ username, password }`. Legacy `X-Api-Key` applies only to public `POST /media`.
+
+> **Implementation note:** `GET /page/hero` is listed below for parity planning but is **not** registered in `orbit-api/public/index.php` — hero copy uses JSON defaults. See [`../../CONTEXT.md`](../../CONTEXT.md).
 
 **Total endpoints designed: ~48** (nav/footer are static JSON — no DB APIs)
 
@@ -124,7 +126,7 @@ Journey / hero media can be nested under batch responses **or**:
 
 | # | Method | Path | Serves |
 |---|--------|------|--------|
-| 41 | `POST` | `/admin/auth/login` | Admin JWT |
+| 41 | `POST` | `/admin/auth/login` | Admin session token (`username` + `password`) |
 | 42 | `GET/PUT` | `/admin/batches` | List / update batch schedule & copy |
 | 43 | `GET/PUT` | `/admin/products` | List / upsert products + stock |
 | 44 | `PUT` | `/admin/sites/active-batch` | Set `active_batch_id` |

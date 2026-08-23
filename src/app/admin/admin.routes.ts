@@ -45,6 +45,12 @@ export const adminRoutes: Routes = [
         title: 'About — Admin',
       },
       {
+        path: 'countdown',
+        loadComponent: () =>
+          import('./pages/countdown/admin-countdown').then((m) => m.AdminCountdownPage),
+        title: 'Countdown & celebration — Admin',
+      },
+      {
         path: 'reviews',
         loadComponent: () =>
           import('./pages/reviews/admin-reviews').then((m) => m.AdminReviewsPage),

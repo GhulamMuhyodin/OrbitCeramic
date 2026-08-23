@@ -1,10 +1,14 @@
 # Site content + commerce schema
 
-**Phase 1 SQL:** [`schema-phase1.sql`](./schema-phase1.sql)  
-**Full SQL (all phases):** [`schema.sql`](./schema.sql)  
+**Migrations (source of truth):** [`../../orbit-api/database/migrations/`](../../orbit-api/database/migrations/) — run `php bin/database migrate`  
+**Migration guide:** [`../../orbit-api/database/README.md`](../../orbit-api/database/README.md)  
+**Deploy (CI):** [`../../orbit-api/database/DEPLOY.md`](../../orbit-api/database/DEPLOY.md)  
+**Full SQL (all phases, planning):** [`schema.sql`](./schema.sql)  
 **APIs:** [`API-CATALOG.md`](./API-CATALOG.md)  
 **Phase 1 guide:** [`PHASE-1-DB.md`](./PHASE-1-DB.md)  
-**Current runtime:** the Phase 1 bootstrap API owns sites, batches, products, media, journey records, and page copy. `site-content.json` is static chrome only: nav links and footer copy used by the client alongside bootstrap.
+**Project context:** [`../../CONTEXT.md`](../../CONTEXT.md)  
+
+**Current runtime:** the Phase 1 bootstrap API owns sites, batches, products, media, journey records, leads, and page copy (about, collections, journey, batch-shop). Schema evolves only via new `V0xx__` migration files. `site-content.json` is static chrome: nav, footer, and hero copy defaults merged by Angular.
 
 ---
 
@@ -60,12 +64,12 @@ sites ─┬─ media                  navLinks                 carts ─ cart_i
 
 ## Phased rollout
 
-1. **Phase 1 (now)** — DB catalog + about/reviews + `GET /bootstrap`; client merges static nav/footer; WhatsApp buy; **no cart**.  
-2. **Phase 2** — Guest cart.  
+1. **Phase 1 (now)** — DB catalog + about/reviews + `GET /bootstrap`; client merges static nav/footer; WhatsApp buy; **no cart**. Schema via **`php bin/database migrate`**.  
+2. **Phase 2** — Guest cart (add as new `V0xx` migrations — do not edit V001).  
 3. **Phase 3** — Place order + COD / stock.  
-4. **Phase 4** — Accounts, payment gateways, admin CMS.
+4. **Phase 4** — Accounts, payment gateways.
 
-Details: [`PHASE-1-DB.md`](./PHASE-1-DB.md)
+Details: [`PHASE-1-DB.md`](./PHASE-1-DB.md) · Migrations: [`../../orbit-api/database/README.md`](../../orbit-api/database/README.md)
 
 ---
 

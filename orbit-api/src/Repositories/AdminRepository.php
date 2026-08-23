@@ -160,6 +160,10 @@ final class AdminRepository
         if (!$this->content->getBatch($siteId, $batchId, false)) {
             throw new RuntimeException('Batch not found', 404);
         }
+        // Sold-out may be toggled while LIVE; all other edits stay locked.
+        if (!$this->isSoldOutOnlyPayload($body, ['id'])) {
+            $this->assertBatchEditable($batchId);
+        }
 
         $fields = [];
         $params = [':id' => $batchId, ':site' => $siteId];
@@ -170,11 +174,6 @@ final class AdminRepository
             'soldOut' => 'sold_out',
             'sortOrder' => 'sort_order',
             'heroWindowDays' => 'hero_window_days',
-            'countdownEyebrow' => 'countdown_eyebrow',
-            'countdownHeading' => 'countdown_heading',
-            'countdownLede' => 'countdown_lede',
-            'celebrationHeading' => 'celebration_heading',
-            'celebrationLede' => 'celebration_lede',
         ];
 
         foreach ($map as $camel => $col) {
@@ -266,14 +265,18 @@ final class AdminRepository
 
         $products = is_array($body['products'] ?? null) ? $body['products'] : [];
         $journey = $body['journey'] ?? null;
-        $highlights = is_array($body['highlights'] ?? null) ? $body['highlights'] : [];
+        $hasHighlights = array_key_exists('highlights', $body);
+        $highlights = $hasHighlights && is_array($body['highlights']) ? $body['highlights'] : [];
 
-        if ($this->content->getBatch($siteId, $batchId, false)) {
+        $exists = (bool) $this->content->getBatch($siteId, $batchId, false);
+        if ($exists) {
+            $this->assertBatchEditable($batchId);
             $this->updateBatch($siteId, $batchId, $batchData);
         } else {
             $this->createBatch($siteId, $batchData);
         }
 
+        $keptProductIds = [];
         foreach ($products as $product) {
             if (!is_array($product)) {
                 continue;
@@ -283,20 +286,22 @@ final class AdminRepository
             if ($productId === '') {
                 throw new RuntimeException('Product id is required', 422);
             }
+            $keptProductIds[] = $productId;
 
             if ($this->content->getProduct($productId)) {
-                $this->updateProduct($siteId, $productId, $product);
+                $this->updateProduct($siteId, $productId, $product, false);
             } else {
-                $this->createProduct($siteId, $product);
+                $this->createProduct($siteId, $product, false);
             }
         }
+        $this->deleteProductsNotInList($batchId, $keptProductIds);
 
         if (is_array($journey)) {
-            $this->putJourney($siteId, $batchId, $journey);
+            $this->putJourney($siteId, $batchId, $journey, false);
         }
 
-        if ($highlights !== []) {
-            $this->putHeroHighlights($siteId, $batchId, ['items' => $highlights]);
+        if ($hasHighlights) {
+            $this->putHeroHighlights($siteId, $batchId, ['items' => $highlights], false);
         }
 
         return $this->content->getBatch($siteId, $batchId, true) ?? [];
@@ -394,16 +399,20 @@ final class AdminRepository
         if (!$this->content->getBatch($siteId, $batchId, false)) {
             throw new RuntimeException('Batch not found', 404);
         }
+        $this->assertBatchEditable($batchId);
         $this->pdo->prepare('UPDATE sites SET active_batch_id = NULL WHERE active_batch_id = ? AND id = ?')
             ->execute([$batchId, $siteId]);
         $this->pdo->prepare('DELETE FROM batches WHERE id = ? AND site_id = ?')->execute([$batchId, $siteId]);
     }
 
-    public function createProduct(string $siteId, array $body): array
+    public function createProduct(string $siteId, array $body, bool $assertEditable = true): array
     {
         $batchId = (string) ($body['batchId'] ?? '');
         if ($batchId === '' || !$this->content->getBatch($siteId, $batchId, false)) {
             throw new RuntimeException('Valid batchId is required', 422);
+        }
+        if ($assertEditable) {
+            $this->assertBatchEditable($batchId);
         }
 
         $id = trim((string) ($body['id'] ?? ''));
@@ -428,7 +437,7 @@ final class AdminRepository
         return $product;
     }
 
-    public function updateProduct(string $siteId, string $productId, array $body): array
+    public function updateProduct(string $siteId, string $productId, array $body, bool $assertEditable = true): array
     {
         $product = $this->content->getProduct($productId);
         if (!$product) {
@@ -446,6 +455,10 @@ final class AdminRepository
                 throw new RuntimeException('Target batch not found', 422);
             }
             $batchId = $newBatch;
+        }
+
+        if ($assertEditable && !$this->isSoldOutOnlyPayload($body, ['id', 'batchId'])) {
+            $this->assertBatchEditable($batchId);
         }
 
         $stmt = $this->pdo->prepare(
@@ -496,14 +509,20 @@ final class AdminRepository
         if (!$this->content->getBatch($siteId, $batchId, false)) {
             throw new RuntimeException('Product not in this site', 404);
         }
+        $this->assertBatchEditable($batchId);
+        $mediaIds = $this->productImageMediaIds($productId);
         $this->pdo->prepare('DELETE FROM products WHERE id = ?')->execute([$productId]);
+        $this->deleteOrphanMedia($mediaIds);
     }
 
     /** Replace journey video + stills for a batch. */
-    public function putJourney(string $siteId, string $batchId, array $body): array
+    public function putJourney(string $siteId, string $batchId, array $body, bool $assertEditable = true): array
     {
         if (!$this->content->getBatch($siteId, $batchId, false)) {
             throw new RuntimeException('Batch not found', 404);
+        }
+        if ($assertEditable) {
+            $this->assertBatchEditable($batchId);
         }
 
         $video = $body['video'] ?? null;
@@ -547,40 +566,51 @@ final class AdminRepository
         }
 
         if (array_key_exists('images', $body) && is_array($body['images'])) {
+            $previousMedia = $this->journeyImageMediaIds($batchId);
             $this->pdo->prepare('DELETE FROM journey_images WHERE batch_id = ?')->execute([$batchId]);
             $ins = $this->pdo->prepare(
                 'INSERT INTO journey_images (id, batch_id, media_id, url, alt, sort_order)
                  VALUES (?,?,?,?,?,?)'
             );
             $order = 0;
+            $keptMedia = [];
             foreach ($body['images'] as $img) {
                 if (!is_array($img)) {
                     continue;
                 }
-                $mediaId = isset($img['mediaId']) ? trim((string) $img['mediaId']) : null;
+                $mediaId = isset($img['mediaId']) ? trim((string) $img['mediaId']) : '';
                 $url = trim((string) ($img['url'] ?? ''));
-                if ($url === '') {
-                    throw new RuntimeException('journey images require url', 422);
+                if ($mediaId === '' || $url === '') {
+                    throw new RuntimeException('journey images require mediaId and url', 422);
+                }
+                if (!$this->mediaExists($mediaId)) {
+                    throw new RuntimeException("Unknown mediaId: $mediaId", 422);
                 }
                 $order++;
+                $keptMedia[] = $mediaId;
                 $ins->execute([
                     (string) ($img['id'] ?? orbit_new_id('ji')),
                     $batchId,
-                    $mediaId === '' ? null : $mediaId,
+                    $mediaId,
                     $url,
                     (string) ($img['alt'] ?? ''),
                     (int) ($img['sortOrder'] ?? $order),
                 ]);
             }
+            $removed = array_values(array_diff($previousMedia, $keptMedia));
+            $this->deleteOrphanMedia($removed);
         }
 
         return $this->content->getJourneyForBatch($batchId);
     }
 
-    public function putHeroHighlights(string $siteId, string $batchId, array $body): array
+    public function putHeroHighlights(string $siteId, string $batchId, array $body, bool $assertEditable = true): array
     {
         if (!$this->content->getBatch($siteId, $batchId, false)) {
             throw new RuntimeException('Batch not found', 404);
+        }
+        if ($assertEditable) {
+            $this->assertBatchEditable($batchId);
         }
 
         $items = $body['items'] ?? $body;
@@ -588,31 +618,39 @@ final class AdminRepository
             throw new RuntimeException('items array required', 422);
         }
 
+        $previousMedia = $this->highlightMediaIds($batchId);
         $this->pdo->prepare('DELETE FROM hero_highlight_images WHERE batch_id = ?')->execute([$batchId]);
         $ins = $this->pdo->prepare(
             'INSERT INTO hero_highlight_images (id, batch_id, media_id, url, alt, sort_order)
              VALUES (?,?,?,?,?,?)'
         );
         $order = 0;
+        $keptMedia = [];
         foreach ($items as $img) {
             if (!is_array($img)) {
                 continue;
             }
-            $mediaId = isset($img['mediaId']) ? trim((string) $img['mediaId']) : null;
+            $mediaId = isset($img['mediaId']) ? trim((string) $img['mediaId']) : '';
             $url = trim((string) ($img['url'] ?? ''));
-            if ($url === '') {
-                throw new RuntimeException('highlight images require url', 422);
+            if ($mediaId === '' || $url === '') {
+                throw new RuntimeException('highlight images require mediaId and url', 422);
+            }
+            if (!$this->mediaExists($mediaId)) {
+                throw new RuntimeException("Unknown mediaId: $mediaId", 422);
             }
             $order++;
+            $keptMedia[] = $mediaId;
             $ins->execute([
                 (string) ($img['id'] ?? orbit_new_id('hh')),
                 $batchId,
-                $mediaId === '' ? null : $mediaId,
+                $mediaId,
                 $url,
                 (string) ($img['alt'] ?? ''),
                 (int) ($img['sortOrder'] ?? $order),
             ]);
         }
+        $removed = array_values(array_diff($previousMedia, $keptMedia));
+        $this->deleteOrphanMedia($removed);
 
         return ['items' => $this->content->listHeroHighlights($batchId)];
     }
@@ -731,6 +769,28 @@ final class AdminRepository
             ':sym' => (string) ($body['currencySymbol'] ?? 'Rs'),
         ]);
         return $this->content->getPageBatchShop($siteId) ?? [];
+    }
+
+    public function putPageCountdown(string $siteId, array $body): array
+    {
+        $this->ensureCountdownRow($siteId);
+        $this->pdo->prepare(
+            'UPDATE page_countdown SET
+                countdown_eyebrow = :eyebrow,
+                countdown_heading = :heading,
+                countdown_lede = :lede,
+                celebration_heading = :cele_heading,
+                celebration_lede = :cele_lede
+             WHERE site_id = :site'
+        )->execute([
+            ':site' => $siteId,
+            ':eyebrow' => (string) ($body['countdownEyebrow'] ?? ''),
+            ':heading' => (string) ($body['countdownHeading'] ?? ''),
+            ':lede' => (string) ($body['countdownLede'] ?? ''),
+            ':cele_heading' => (string) ($body['celebrationHeading'] ?? ''),
+            ':cele_lede' => (string) ($body['celebrationLede'] ?? ''),
+        ]);
+        return $this->content->getPageCountdown($siteId);
     }
 
     /** @return list<array<string,mixed>> */
@@ -901,13 +961,9 @@ final class AdminRepository
 
         $this->pdo->prepare(
             'INSERT INTO batches (
-                id, site_id, label, launch_at, launch_display, sold_out, sort_order, hero_window_days,
-                countdown_eyebrow, countdown_heading, countdown_lede,
-                celebration_heading, celebration_lede
+                id, site_id, label, launch_at, launch_display, sold_out, sort_order, hero_window_days
              ) VALUES (
-                :id,:site,:label,:launch_at,:launch_display,:sold_out,:sort_order,:hero_window_days,
-                :countdown_eyebrow,:countdown_heading,:countdown_lede,
-                :celebration_heading,:celebration_lede
+                :id,:site,:label,:launch_at,:launch_display,:sold_out,:sort_order,:hero_window_days
              )'
         )->execute([
             ':id' => $id,
@@ -918,11 +974,6 @@ final class AdminRepository
             ':sold_out' => !empty($body['soldOut']) ? 1 : 0,
             ':sort_order' => (int) ($body['sortOrder'] ?? 0),
             ':hero_window_days' => (int) ($body['heroWindowDays'] ?? 10),
-            ':countdown_eyebrow' => (string) ($body['countdownEyebrow'] ?? ''),
-            ':countdown_heading' => (string) ($body['countdownHeading'] ?? ''),
-            ':countdown_lede' => (string) ($body['countdownLede'] ?? ''),
-            ':celebration_heading' => (string) ($body['celebrationHeading'] ?? ''),
-            ':celebration_lede' => (string) ($body['celebrationLede'] ?? ''),
         ]);
     }
 
@@ -977,12 +1028,15 @@ final class AdminRepository
 
     private function replaceProductImages(string $productId, mixed $images): void
     {
+        $previousMedia = $this->productImageMediaIds($productId);
         $this->pdo->prepare('DELETE FROM product_images WHERE product_id = ?')->execute([$productId]);
         if (!is_array($images)) {
+            $this->deleteOrphanMedia($previousMedia);
             return;
         }
         $ins = $this->pdo->prepare('INSERT INTO product_images (product_id, media_id, url, sort_order) VALUES (?,?,?,?)');
         $order = 0;
+        $keptMedia = [];
         foreach ($images as $img) {
             if (!is_array($img)) {
                 continue;
@@ -996,7 +1050,162 @@ final class AdminRepository
                 throw new RuntimeException("Unknown mediaId: $mediaId", 422);
             }
             $order++;
+            $keptMedia[] = $mediaId;
             $ins->execute([$productId, $mediaId, $url, (int) ($img['sortOrder'] ?? $order)]);
+        }
+        $removed = array_values(array_diff($previousMedia, $keptMedia));
+        $this->deleteOrphanMedia($removed);
+    }
+
+    /**
+     * @param list<string> $keepIds
+     */
+    private function deleteProductsNotInList(string $batchId, array $keepIds): void
+    {
+        $stmt = $this->pdo->prepare('SELECT id FROM products WHERE batch_id = ?');
+        $stmt->execute([$batchId]);
+        $existing = $stmt->fetchAll(\PDO::FETCH_COLUMN) ?: [];
+        $keepLookup = array_fill_keys($keepIds, true);
+        foreach ($existing as $productId) {
+            $productId = (string) $productId;
+            if (isset($keepLookup[$productId])) {
+                continue;
+            }
+            $mediaIds = $this->productImageMediaIds($productId);
+            $this->pdo->prepare('DELETE FROM products WHERE id = ?')->execute([$productId]);
+            $this->deleteOrphanMedia($mediaIds);
+        }
+    }
+
+    /**
+     * Matches Angular getBatchScheduleStatus: scheduled | live | complete.
+     * Live = launch has passed and is still within the 24h celebration window.
+     */
+    private function getBatchScheduleStatus(string $batchId): string
+    {
+        $stmt = $this->pdo->prepare('SELECT launch_at FROM batches WHERE id = ? LIMIT 1');
+        $stmt->execute([$batchId]);
+        $launchAt = $stmt->fetchColumn();
+        if ($launchAt === false || $launchAt === null || $launchAt === '') {
+            throw new RuntimeException('Batch not found', 404);
+        }
+
+        try {
+            $tz = new \DateTimeZone($this->timezone);
+            $launch = new \DateTimeImmutable((string) $launchAt, $tz);
+            $now = new \DateTimeImmutable('now', $tz);
+        } catch (\Throwable) {
+            $launch = new \DateTimeImmutable((string) $launchAt);
+            $now = new \DateTimeImmutable('now');
+        }
+
+        if ($now < $launch) {
+            return 'scheduled';
+        }
+        $celebrationEnd = $launch->modify('+1 day');
+        return $now < $celebrationEnd ? 'live' : 'complete';
+    }
+
+    private function assertBatchEditable(string $batchId): void
+    {
+        if ($this->getBatchScheduleStatus($batchId) === 'live') {
+            throw new RuntimeException(
+                'This batch is currently LIVE and cannot be modified.',
+                409
+            );
+        }
+    }
+
+    /**
+     * True when the payload only changes soldOut (plus ignored meta keys).
+     * Used so LIVE batches can still be marked sold out / available.
+     *
+     * @param list<string> $ignoreKeys
+     */
+    private function isSoldOutOnlyPayload(array $body, array $ignoreKeys = []): bool
+    {
+        $keys = array_values(array_diff(array_keys($body), $ignoreKeys));
+        sort($keys);
+        return $keys === ['soldOut'];
+    }
+
+    /**
+     * Public gate for controllers: no-op when the batch does not exist yet (create path).
+     */
+    public function rejectIfBatchLive(string $siteId, string $batchId): void
+    {
+        if (!$this->content->getBatch($siteId, $batchId, false)) {
+            return;
+        }
+        $this->assertBatchEditable($batchId);
+    }
+
+    /** @return list<string> */
+    private function productImageMediaIds(string $productId): array
+    {
+        $stmt = $this->pdo->prepare('SELECT media_id FROM product_images WHERE product_id = ?');
+        $stmt->execute([$productId]);
+        return array_values(array_filter(array_map('strval', $stmt->fetchAll(\PDO::FETCH_COLUMN) ?: [])));
+    }
+
+    /** @return list<string> */
+    private function journeyImageMediaIds(string $batchId): array
+    {
+        $stmt = $this->pdo->prepare('SELECT media_id FROM journey_images WHERE batch_id = ?');
+        $stmt->execute([$batchId]);
+        return array_values(array_filter(array_map('strval', $stmt->fetchAll(\PDO::FETCH_COLUMN) ?: [])));
+    }
+
+    /** @return list<string> */
+    private function highlightMediaIds(string $batchId): array
+    {
+        $stmt = $this->pdo->prepare('SELECT media_id FROM hero_highlight_images WHERE batch_id = ?');
+        $stmt->execute([$batchId]);
+        return array_values(array_filter(array_map('strval', $stmt->fetchAll(\PDO::FETCH_COLUMN) ?: [])));
+    }
+
+    private function mediaIsReferenced(string $mediaId): bool
+    {
+        $checks = [
+            'SELECT 1 FROM product_images WHERE media_id = ? LIMIT 1',
+            'SELECT 1 FROM journey_images WHERE media_id = ? LIMIT 1',
+            'SELECT 1 FROM hero_highlight_images WHERE media_id = ? LIMIT 1',
+            'SELECT 1 FROM journey_videos WHERE poster_media_id = ? OR video_media_id = ? LIMIT 1',
+            'SELECT 1 FROM sites WHERE image_media_id = ? LIMIT 1',
+            'SELECT 1 FROM page_about WHERE image_media_id = ? LIMIT 1',
+            'SELECT 1 FROM reviews WHERE image_media_id = ? LIMIT 1',
+        ];
+        foreach ($checks as $sql) {
+            $stmt = $this->pdo->prepare($sql);
+            if (substr_count($sql, '?') === 2) {
+                $stmt->execute([$mediaId, $mediaId]);
+            } else {
+                $stmt->execute([$mediaId]);
+            }
+            if ($stmt->fetchColumn()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @param list<string> $mediaIds
+     */
+    private function deleteOrphanMedia(array $mediaIds): void
+    {
+        foreach (array_unique($mediaIds) as $mediaId) {
+            $mediaId = trim((string) $mediaId);
+            if ($mediaId === '' || $this->mediaIsReferenced($mediaId)) {
+                continue;
+            }
+            $stmt = $this->pdo->prepare('SELECT disk_path FROM media WHERE id = ? LIMIT 1');
+            $stmt->execute([$mediaId]);
+            $diskPath = $stmt->fetchColumn();
+            $this->pdo->prepare('DELETE FROM media WHERE id = ?')->execute([$mediaId]);
+            if (is_string($diskPath) && $diskPath !== '' && is_file($diskPath)) {
+                @unlink($diskPath);
+            }
         }
     }
 
@@ -1018,6 +1227,29 @@ final class AdminRepository
              (site_id, eyebrow, heading)
              VALUES (?,?,?)'
         )->execute([$siteId, 'Reviews', 'Reviews']);
+    }
+
+    private function ensureCountdownRow(string $siteId): void
+    {
+        $this->assertSite($siteId);
+        $stmt = $this->pdo->prepare('SELECT site_id FROM page_countdown WHERE site_id = ?');
+        $stmt->execute([$siteId]);
+        if ($stmt->fetchColumn()) {
+            return;
+        }
+        $this->pdo->prepare(
+            'INSERT INTO page_countdown (
+                site_id, countdown_eyebrow, countdown_heading, countdown_lede,
+                celebration_heading, celebration_lede
+             ) VALUES (?,?,?,?,?,?)'
+        )->execute([
+            $siteId,
+            'Next drop',
+            'New batch launching soon',
+            '',
+            'This batch is live',
+            '',
+        ]);
     }
 
     private function assertSite(string $siteId): void

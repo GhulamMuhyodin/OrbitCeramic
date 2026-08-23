@@ -1,5 +1,5 @@
 import { DecimalPipe } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -52,6 +52,10 @@ export class AdminBatchDetailPage {
   protected readonly pendingProductFiles = signal<Record<string, { id: string; file: File }[]>>({});
   protected readonly pendingJourneyFiles = signal<{ id: string; batchId: string; file: File }[]>([]);
   protected readonly pendingHighlightFiles = signal<{ id: string; batchId: string; file: File }[]>([]);
+  /** Soft-delete markers — applied on Save, not immediately. */
+  protected readonly deletedProductImageIds = signal<Record<string, Record<string, true>>>({});
+  protected readonly deletedJourneyImageIds = signal<Record<string, true>>({});
+  protected readonly deletedHighlightIds = signal<Record<string, true>>({});
   protected pendingJourneyPosterFile: File | null = null;
   protected pendingJourneyVideoFile: File | null = null;
 
@@ -76,6 +80,24 @@ export class AdminBatchDetailPage {
       return null;
     }
     return b.products.find((p) => p.id === pid) ?? null;
+  });
+
+  /** Single-item list so @for can track by id and keep inputs stable while editing. */
+  protected readonly productEditorRows = computed(() => {
+    const p = this.product();
+    return p ? [p] : [];
+  });
+
+  private readonly autoSelectProduct = effect(() => {
+    const b = this.batch();
+    const selected = this.selectedProductId();
+    if (!b?.products.length) {
+      return;
+    }
+    if (selected && b.products.some((p) => p.id === selected)) {
+      return;
+    }
+    this.selectedProductId.set(b.products[0].id);
   });
 
   protected readonly journeyVideo = computed((): JourneyVideoRow | null => {
@@ -125,7 +147,18 @@ export class AdminBatchDetailPage {
     return b ? getBatchScheduleStatus(b.launchAt) : 'scheduled';
   });
 
-  protected readonly hasBatchImages = computed(() => this.highlights().length > 0);
+  /**
+   * Only persisted LIVE batches are locked.
+   * Unsaved drafts stay fully editable even if launch is set to “now” / today.
+   */
+  protected readonly isReadOnly = computed(
+    () => this.isPersisted() && this.scheduleStatus() === 'live',
+  );
+
+  protected readonly hasBatchImages = computed(() => {
+    const deleted = this.deletedHighlightIds();
+    return this.highlights().some((h) => !deleted[h.id]);
+  });
 
   private notify(severity: 'success' | 'error' | 'info' | 'warn', summary: string, detail: string, life = 3500): void {
     this.messageService.add({ severity, summary, detail, life });
@@ -226,7 +259,7 @@ export class AdminBatchDetailPage {
     if (!b.products.length) {
       return 'At least one product is required in this batch';
     }
-    if (this.isActive() && !this.highlights().length) {
+    if (this.isActive() && !this.hasBatchImages()) {
       return 'Active batch needs at least one highlight image';
     }
     for (const p of b.products) {
@@ -236,7 +269,9 @@ export class AdminBatchDetailPage {
       if (!isValidAmount(p.price)) {
         return `“${p.name || 'Product'}” needs a valid price (Rs 0 or more)`;
       }
-      if (!p.images.length) {
+      const deleted = this.deletedProductImageIds()[p.id] ?? {};
+      const visibleImages = p.images.filter((img) => !deleted[img.id]);
+      if (!visibleImages.length) {
         return `“${p.name || 'Product'}” needs at least one product image`;
       }
     }
@@ -246,6 +281,12 @@ export class AdminBatchDetailPage {
   protected async save(): Promise<void> {
     const id = this.batchId();
     if (!id) {
+      return;
+    }
+    if (this.isReadOnly()) {
+      const msg = 'This batch is currently LIVE and cannot be modified.';
+      this.formError.set(msg);
+      this.notify('warn', 'Read only', msg, 5000);
       return;
     }
     const err = this.validateBeforeSave();
@@ -259,13 +300,19 @@ export class AdminBatchDetailPage {
     try {
       const formData = this.buildBatchSaveFormData();
       await firstValueFrom(this.adminDb.saveBatchMultipart(id, formData));
+      this.clearPendingImageState();
       const tip = this.hasBatchImages()
         ? 'Batch saved to database'
         : 'Batch saved — add batch images (section 4) before making it active';
       this.notify('success', 'Saved', tip, 4000);
       void this.router.navigate(['/admin/batches']);
     } catch (e) {
-      const message = e && typeof e === 'object' && 'message' in e ? String((e as { message: string }).message) : 'Save failed';
+      const message =
+        e && typeof e === 'object' && 'error' in e && (e as { error?: { error?: string } }).error?.error
+          ? String((e as { error: { error: string } }).error.error)
+          : e && typeof e === 'object' && 'message' in e
+            ? String((e as { message: string }).message)
+            : 'Save failed';
       this.notify('error', 'Save failed', message, 6000);
     } finally {
       this.uploading.set(false);
@@ -273,11 +320,74 @@ export class AdminBatchDetailPage {
   }
 
   protected patchBatch(patch: Partial<BatchRow>): void {
+    if (this.isReadOnly()) {
+      return;
+    }
     const b = this.batch();
     if (!b) {
       return;
     }
     this.adminDb.upsertBatch({ ...b, ...patch });
+  }
+
+  protected onBatchSoldOutChange(soldOut: boolean): void {
+    if (this.isReadOnly()) {
+      const id = this.batchId();
+      const b = this.batch();
+      if (!id || !b) {
+        return;
+      }
+      const snapshot = structuredClone(b);
+      this.adminDb.upsertBatch({
+        ...b,
+        soldOut,
+        products: b.products.map((product) => ({ ...product, soldOut })),
+      });
+      this.adminDb.dirty.set(false);
+      this.adminDb.setBatchSoldOut(id, soldOut).subscribe({
+        next: () => this.notify('success', 'Saved', 'Sold-out status updated', 2500),
+        error: (err) => {
+          this.adminDb.upsertBatch(snapshot);
+          this.adminDb.dirty.set(false);
+          this.notify(
+            'error',
+            'Save failed',
+            err?.error?.error ?? err?.message ?? 'Unable to update sold-out status',
+            5000,
+          );
+        },
+      });
+      return;
+    }
+    this.patchBatch({ soldOut });
+  }
+
+  protected onProductSoldOutChange(soldOut: boolean): void {
+    if (this.isReadOnly()) {
+      const batchId = this.batchId();
+      const p = this.product();
+      if (!batchId || !p) {
+        return;
+      }
+      const snapshot = structuredClone(p);
+      this.adminDb.upsertProduct(batchId, { ...p, soldOut });
+      this.adminDb.dirty.set(false);
+      this.adminDb.setProductSoldOut(batchId, p.id, soldOut).subscribe({
+        next: () => this.notify('success', 'Saved', 'Product sold-out status updated', 2500),
+        error: (err) => {
+          this.adminDb.upsertProduct(batchId, snapshot);
+          this.adminDb.dirty.set(false);
+          this.notify(
+            'error',
+            'Save failed',
+            err?.error?.error ?? err?.message ?? 'Unable to update sold-out status',
+            5000,
+          );
+        },
+      });
+      return;
+    }
+    this.patchProduct({ soldOut });
   }
 
   private patchProductImage(productId: string, imageId: string, patch: Partial<ProductImageEmbedded>): void {
@@ -315,11 +425,15 @@ export class AdminBatchDetailPage {
     const journeyImages = (db.journeyImages ?? []).filter((im) => im.batchId === id);
     const highlights = (db.heroHighlightImages ?? []).filter((h) => h.batchId === id);
 
-    const buildProductImages = (product: ProductRow): PendingImagePayload[] =>
-      product.images.map((img) => {
-        const pending = (this.pendingProductFiles()[product.id] ?? []).find((item) => item.id === img.id);
-        return pending ? { ...img, fileKey: `product_image_${product.id}_${img.id}` } : img;
-      });
+    const buildProductImages = (product: ProductRow): PendingImagePayload[] => {
+      const deleted = this.deletedProductImageIds()[product.id] ?? {};
+      return product.images
+        .filter((img) => !deleted[img.id])
+        .map((img) => {
+          const pending = (this.pendingProductFiles()[product.id] ?? []).find((item) => item.id === img.id);
+          return pending ? { ...img, fileKey: `product_image_${product.id}_${img.id}` } : img;
+        });
+    };
 
     const payload = {
       batch: {
@@ -330,11 +444,6 @@ export class AdminBatchDetailPage {
         soldOut: batch.soldOut,
         sortOrder: batch.sortOrder,
         heroWindowDays: batch.heroWindowDays ?? 10,
-        countdownEyebrow: batch.countdownEyebrow,
-        countdownHeading: batch.countdownHeading,
-        countdownLede: batch.countdownLede,
-        celebrationHeading: batch.celebrationHeading,
-        celebrationLede: batch.celebrationLede,
       },
       products: batch.products.map((product) => ({
         ...product,
@@ -355,15 +464,19 @@ export class AdminBatchDetailPage {
               ...(this.pendingJourneyVideoFile ? { videoFileKey: 'journey_video_file' } : {}),
             }
           : null,
-        images: journeyImages.map((image) => {
-          const pending = this.pendingJourneyFiles().find((item) => item.id === image.id);
-          return pending ? { ...image, fileKey: `journey_image_${image.id}` } : image;
-        }),
+        images: journeyImages
+          .filter((image) => !this.deletedJourneyImageIds()[image.id])
+          .map((image) => {
+            const pending = this.pendingJourneyFiles().find((item) => item.id === image.id);
+            return pending ? { ...image, fileKey: `journey_image_${image.id}` } : image;
+          }),
       },
-      highlights: highlights.map((highlight) => {
-        const pending = this.pendingHighlightFiles().find((item) => item.id === highlight.id);
-        return pending ? { ...highlight, fileKey: `highlight_image_${highlight.id}` } : highlight;
-      }),
+      highlights: highlights
+        .filter((highlight) => !this.deletedHighlightIds()[highlight.id])
+        .map((highlight) => {
+          const pending = this.pendingHighlightFiles().find((item) => item.id === highlight.id);
+          return pending ? { ...highlight, fileKey: `highlight_image_${highlight.id}` } : highlight;
+        }),
     };
 
     const formData = new FormData();
@@ -410,6 +523,9 @@ export class AdminBatchDetailPage {
   }
 
   protected addProduct(): void {
+    if (this.isReadOnly()) {
+      return;
+    }
     const b = this.batch();
     if (!b) {
       return;
@@ -424,9 +540,16 @@ export class AdminBatchDetailPage {
   }
 
   protected patchProduct(patch: Partial<ProductRow>): void {
+    if (this.isReadOnly()) {
+      return;
+    }
     const b = this.batch();
-    const p = this.product();
-    if (!b || !p) {
+    const productId = this.selectedProductId();
+    if (!b || !productId) {
+      return;
+    }
+    const p = b.products.find((item) => item.id === productId);
+    if (!p) {
       return;
     }
     this.adminDb.upsertProduct(b.id, { ...p, ...patch });
@@ -439,6 +562,9 @@ export class AdminBatchDetailPage {
   }
 
   protected deleteProduct(): void {
+    if (this.isReadOnly()) {
+      return;
+    }
     const b = this.batch();
     const p = this.product();
     if (!b || !p || !confirm(`Delete product “${p.name}”?`)) {
@@ -491,6 +617,9 @@ export class AdminBatchDetailPage {
   }
 
   protected async onUploadProductImages(event: Event): Promise<void> {
+    if (this.isReadOnly()) {
+      return;
+    }
     const input = event.target as HTMLInputElement;
     const files = input.files;
     const p = this.product();
@@ -526,23 +655,37 @@ export class AdminBatchDetailPage {
   }
 
   protected removeProductImage(index: number): void {
+    if (this.isReadOnly()) {
+      return;
+    }
     const b = this.batch();
     const p = this.product();
     if (!b || !p) {
       return;
     }
     const imageToRemove = p.images[index];
-    const images = p.images.filter((_, i) => i !== index).map((im, i) => ({ ...im, sortOrder: i + 1 }));
-    this.adminDb.upsertProduct(b.id, { ...p, images });
-    if (imageToRemove?.id) {
-      this.removePendingProductFile(p.id, imageToRemove.id);
-      if (imageToRemove.url.startsWith('blob:')) {
-        this.revokePreviewUrl(imageToRemove.url);
-      }
+    if (!imageToRemove) {
+      return;
     }
+    if (this.isNewImage(imageToRemove)) {
+      const images = p.images.filter((_, i) => i !== index).map((im, i) => ({ ...im, sortOrder: i + 1 }));
+      this.adminDb.upsertProduct(b.id, { ...p, images });
+      this.removePendingProductFile(p.id, imageToRemove.id);
+      this.revokePreviewUrl(imageToRemove.url);
+      return;
+    }
+    if (this.isProductImageDeleted(p.id, imageToRemove.id)) {
+      this.restoreProductImage(p.id, imageToRemove.id);
+      return;
+    }
+    this.markProductImageDeleted(p.id, imageToRemove.id);
+    this.adminDb.markDirty();
   }
 
   protected patchJourneyVideo(patch: Partial<JourneyVideoRow>): void {
+    if (this.isReadOnly()) {
+      return;
+    }
     const id = this.batchId();
     if (!id) {
       return;
@@ -551,6 +694,9 @@ export class AdminBatchDetailPage {
   }
 
   protected ensureJourneyVideo(): void {
+    if (this.isReadOnly()) {
+      return;
+    }
     const id = this.batchId();
     if (!id || this.journeyVideo()) {
       return;
@@ -564,6 +710,9 @@ export class AdminBatchDetailPage {
   }
 
   protected clearJourneyVideo(): void {
+    if (this.isReadOnly()) {
+      return;
+    }
     const id = this.batchId();
     if (!id || !confirm('Remove this batch’s journey video?')) {
       return;
@@ -572,6 +721,9 @@ export class AdminBatchDetailPage {
   }
 
   protected async onUploadJourneyPoster(event: Event): Promise<void> {
+    if (this.isReadOnly()) {
+      return;
+    }
     const file = (event.target as HTMLInputElement).files?.[0];
     (event.target as HTMLInputElement).value = '';
     if (!file?.type.startsWith('image/')) {
@@ -584,6 +736,9 @@ export class AdminBatchDetailPage {
   }
 
   protected async onUploadJourneyVideoFile(event: Event): Promise<void> {
+    if (this.isReadOnly()) {
+      return;
+    }
     const file = (event.target as HTMLInputElement).files?.[0];
     (event.target as HTMLInputElement).value = '';
     if (!file || !file.type.startsWith('video/')) {
@@ -597,6 +752,9 @@ export class AdminBatchDetailPage {
   }
 
   protected async onUploadJourneyImages(event: Event): Promise<void> {
+    if (this.isReadOnly()) {
+      return;
+    }
     const input = event.target as HTMLInputElement;
     const files = input.files;
     const batchId = this.batchId();
@@ -631,19 +789,38 @@ export class AdminBatchDetailPage {
   }
 
   protected updateJourneyImageAlt(id: string, alt: string): void {
+    if (this.isReadOnly()) {
+      return;
+    }
     this.adminDb.updateJourneyImage(id, { alt });
   }
 
   protected removeJourneyImage(id: string): void {
-    const current = this.journeyImages().find((img) => img.id === id);
-    if (current?.url.startsWith('blob:')) {
-      this.revokePreviewUrl(current.url);
+    if (this.isReadOnly()) {
+      return;
     }
-    this.adminDb.removeJourneyImage(id);
-    this.removePendingJourneyFile(id);
+    const current = this.journeyImages().find((img) => img.id === id);
+    if (!current) {
+      return;
+    }
+    if (this.isNewImage(current)) {
+      this.revokePreviewUrl(current.url);
+      this.adminDb.removeJourneyImage(id);
+      this.removePendingJourneyFile(id);
+      return;
+    }
+    if (this.deletedJourneyImageIds()[id]) {
+      this.restoreJourneyImage(id);
+      return;
+    }
+    this.deletedJourneyImageIds.set({ ...this.deletedJourneyImageIds(), [id]: true });
+    this.adminDb.markDirty();
   }
 
   protected async onUploadHighlights(event: Event): Promise<void> {
+    if (this.isReadOnly()) {
+      return;
+    }
     const input = event.target as HTMLInputElement;
     const files = input.files;
     const batchId = this.batchId();
@@ -679,16 +856,32 @@ export class AdminBatchDetailPage {
   }
 
   protected updateHighlightAlt(id: string, alt: string): void {
+    if (this.isReadOnly()) {
+      return;
+    }
     this.adminDb.updateHeroHighlight(id, { alt });
   }
 
   protected removeHighlight(id: string): void {
-    const current = this.highlights().find((img) => img.id === id);
-    if (current?.url.startsWith('blob:')) {
-      this.revokePreviewUrl(current.url);
+    if (this.isReadOnly()) {
+      return;
     }
-    this.adminDb.removeHeroHighlight(id);
-    this.removePendingHighlightFile(id);
+    const current = this.highlights().find((img) => img.id === id);
+    if (!current) {
+      return;
+    }
+    if (this.isNewImage(current)) {
+      this.revokePreviewUrl(current.url);
+      this.adminDb.removeHeroHighlight(id);
+      this.removePendingHighlightFile(id);
+      return;
+    }
+    if (this.deletedHighlightIds()[id]) {
+      this.restoreHighlight(id);
+      return;
+    }
+    this.deletedHighlightIds.set({ ...this.deletedHighlightIds(), [id]: true });
+    this.adminDb.markDirty();
   }
 
   private removePendingProductFile(productId: string, imageId: string): void {
@@ -711,6 +904,77 @@ export class AdminBatchDetailPage {
     this.pendingHighlightFiles.set(this.pendingHighlightFiles().filter((item) => item.id !== imageId));
   }
 
+  protected isNewImage(image: { id: string; url: string; mediaId?: string }): boolean {
+    return !image.mediaId || image.url.startsWith('blob:') || image.url.startsWith('data:');
+  }
+
+  protected isProductImageDeleted(productId: string, imageId: string): boolean {
+    return !!this.deletedProductImageIds()[productId]?.[imageId];
+  }
+
+  protected imageBadge(
+    image: { id: string; url: string; mediaId?: string },
+    kind: 'product' | 'journey' | 'highlight',
+    productId?: string,
+  ): 'new' | 'existing' | 'deleted' {
+    if (kind === 'product' && productId && this.isProductImageDeleted(productId, image.id)) {
+      return 'deleted';
+    }
+    if (kind === 'journey' && this.deletedJourneyImageIds()[image.id]) {
+      return 'deleted';
+    }
+    if (kind === 'highlight' && this.deletedHighlightIds()[image.id]) {
+      return 'deleted';
+    }
+    return this.isNewImage(image) ? 'new' : 'existing';
+  }
+
+  private markProductImageDeleted(productId: string, imageId: string): void {
+    const current = this.deletedProductImageIds();
+    this.deletedProductImageIds.set({
+      ...current,
+      [productId]: { ...(current[productId] ?? {}), [imageId]: true },
+    });
+  }
+
+  private restoreProductImage(productId: string, imageId: string): void {
+    const current = { ...this.deletedProductImageIds() };
+    const productMap = { ...(current[productId] ?? {}) };
+    delete productMap[imageId];
+    if (Object.keys(productMap).length === 0) {
+      delete current[productId];
+    } else {
+      current[productId] = productMap;
+    }
+    this.deletedProductImageIds.set(current);
+    this.adminDb.markDirty();
+  }
+
+  private restoreJourneyImage(imageId: string): void {
+    const current = { ...this.deletedJourneyImageIds() };
+    delete current[imageId];
+    this.deletedJourneyImageIds.set(current);
+    this.adminDb.markDirty();
+  }
+
+  private restoreHighlight(imageId: string): void {
+    const current = { ...this.deletedHighlightIds() };
+    delete current[imageId];
+    this.deletedHighlightIds.set(current);
+    this.adminDb.markDirty();
+  }
+
+  private clearPendingImageState(): void {
+    this.pendingProductFiles.set({});
+    this.pendingJourneyFiles.set([]);
+    this.pendingHighlightFiles.set([]);
+    this.deletedProductImageIds.set({});
+    this.deletedJourneyImageIds.set({});
+    this.deletedHighlightIds.set({});
+    this.pendingJourneyPosterFile = null;
+    this.pendingJourneyVideoFile = null;
+  }
+
   protected setActive(): void {
     const b = this.batch();
     if (!b) {
@@ -721,7 +985,7 @@ export class AdminBatchDetailPage {
       this.notify('info', 'Save required', 'Save the batch first, then choose Show on website.', 4500);
       return;
     }
-    if (!this.highlights().length) {
+    if (!this.hasBatchImages()) {
       this.formError.set('Upload at least one batch image before making this batch active');
       this.notify('error', 'Image required', 'Upload batch images first (section 4)', 4500);
       return;
@@ -735,6 +999,9 @@ export class AdminBatchDetailPage {
   }
 
   protected setLiveNow(): void {
+    if (this.isReadOnly()) {
+      return;
+    }
     const b = this.batch();
     if (!b) {
       return;
@@ -751,6 +1018,9 @@ export class AdminBatchDetailPage {
   }
 
   protected setScheduled(): void {
+    if (this.isReadOnly()) {
+      return;
+    }
     const b = this.batch();
     if (!b) {
       return;

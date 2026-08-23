@@ -35,6 +35,11 @@ final class PageController
         $this->respond($this->repo->getPageBatchShop($this->siteId()), 'Batch shop page not found');
     }
 
+    public function countdown(): void
+    {
+        Response::json($this->repo->getPageCountdown($this->siteId()));
+    }
+
     private function siteId(): string
     {
         return (string) ($_GET['siteId'] ?? $this->config['default_site_id']);

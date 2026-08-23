@@ -157,6 +157,13 @@ export class SiteContentService {
           currency: 'PKR',
           currencySymbol: 'Rs',
         },
+        countdown: (pc['countdown'] as SiteContentDb['pageCopy']['countdown']) ?? {
+          countdownEyebrow: 'Next drop',
+          countdownHeading: 'New batch launching soon',
+          countdownLede: '',
+          celebrationHeading: 'This batch is live',
+          celebrationLede: '',
+        },
         footer,
       },
     };

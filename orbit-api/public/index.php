@@ -132,6 +132,7 @@ $router->add('GET', '/api/v1/page/about', static fn () => $page->about());
 $router->add('GET', '/api/v1/page/collections', static fn () => $page->collections());
 $router->add('GET', '/api/v1/page/journey', static fn () => $page->journey());
 $router->add('GET', '/api/v1/page/batch-shop', static fn () => $page->batchShop());
+$router->add('GET', '/api/v1/page/countdown', static fn () => $page->countdown());
 
 $router->add('GET', '/api/v1/batches', static fn () => $batch->index());
 $router->add('GET', '/api/v1/batches/active', static fn () => $batch->active());

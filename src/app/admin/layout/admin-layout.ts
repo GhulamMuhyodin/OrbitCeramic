@@ -71,6 +71,7 @@ export class AdminLayout implements OnInit {
     { label: 'Dashboard', path: '/admin', icon: 'dashboard', hint: 'overview' },
     { label: 'Site & Contact', path: '/admin/site', icon: 'storefront', hint: 'brand · WhatsApp · info' },
     { label: 'Batches', path: '/admin/batches', icon: 'inventory_2', hint: 'launch · products' },
+    { label: 'Countdown', path: '/admin/countdown', icon: 'timer', hint: 'countdown · celebration' },
     { label: 'About', path: '/admin/about', icon: 'article', hint: 'bio · copy' },
     { label: 'Reviews', path: '/admin/reviews', icon: 'rate_review', hint: 'client voices' },
   ];

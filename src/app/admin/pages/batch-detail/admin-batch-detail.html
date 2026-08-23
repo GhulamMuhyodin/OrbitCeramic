@@ -17,18 +17,18 @@
       <h1 class="m-0 text-2xl font-semibold tracking-tight md:text-3xl">{{ b.label }}</h1>
       <p class="mt-2 max-w-xl text-sm leading-relaxed text-muted md:text-[0.95rem]">
         Set the launch time, add products and photos, then choose when this batch should appear on the public site.
-        @if (scheduleStatus() === 'scheduled') {
+        @if (!isPersisted()) {
+          <span class="ml-2 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-slate-600">Draft — save required</span>
+        } @else if (scheduleStatus() === 'scheduled') {
           <span class="ml-2 inline-flex rounded-full bg-amber-50 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-amber-700">Scheduled</span>
         } @else if (scheduleStatus() === 'live') {
           <span class="ml-2 inline-flex rounded-full bg-green-50 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-green-700">Live</span>
         } @else {
           <span class="ml-2 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-slate-700">Complete</span>
         }
-        @if (!isPersisted()) {
-          <span class="ml-2 inline-flex rounded-full bg-slate-100 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-slate-600">Draft — save required</span>
-        } @else if (isActive()) {
+        @if (isPersisted() && isActive()) {
           <span class="ml-2 inline-flex rounded-full bg-green-50 px-2 py-0.5 text-[0.65rem] font-bold uppercase tracking-wide text-green-700">Website batch</span>
-        } @else {
+        } @else if (isPersisted() && !isActive()) {
           <button class="ml-2 rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-700" type="button" (click)="setActive()">Show on website</button>
         }
       </p>
@@ -40,14 +40,27 @@
         <div>
           <h2 class="m-0 text-sm font-semibold text-stone-800">How batch status works</h2>
           <p class="mt-1 text-sm leading-relaxed text-stone-600">
-            <strong>Draft</strong> means this batch exists only in the editor until you save it. <strong>Scheduled</strong>
-            means the saved launch time is in the future. At that time the batch becomes
-            <strong>Live</strong> automatically for its first 24 hours. <strong>Active on website</strong> means this
-            is the batch currently selected for the public homepage and shop. These are separate settings.
+            <strong>Draft</strong> means this batch exists only in the editor until you save it — drafts are always editable.
+            <strong>Scheduled</strong> means the saved launch time is in the future and the batch is fully editable.
+            <strong>Live</strong> (first 24 hours after a saved launch) is read-only — content cannot be changed (sold-out can still be updated).
+            <strong>Active on website</strong> means this is the batch currently selected for the public homepage and shop.
           </p>
         </div>
       </div>
     </div>
+
+    @if (isReadOnly()) {
+      <div class="mx-auto mb-4 flex w-full max-w-5xl items-start gap-3 rounded-2xl border border-green-300 bg-green-50 p-4 text-green-900" role="status">
+        <span class="material-symbols-outlined text-xl">lock</span>
+        <div>
+          <h2 class="m-0 text-sm font-semibold">This batch is currently LIVE and cannot be modified.</h2>
+          <p class="mt-1 text-sm leading-relaxed text-green-800/90">
+            Content, images, and schedule are locked during the 24-hour live window.
+            You can still mark the batch or products as sold out.
+          </p>
+        </div>
+      </div>
+    }
 
     <div class="mx-auto mb-4 flex w-full max-w-5xl flex-wrap gap-2">
       @if (scheduleStatus() === 'scheduled' && isPersisted()) {
@@ -65,7 +78,7 @@
       </div>
     }
 
-    <div class="mx-auto grid w-full max-w-5xl gap-4">
+    <div class="mx-auto grid w-full max-w-5xl gap-4" [class.opacity-80]="isReadOnly()">
       <p-card header="1 · Launch" subheader="Date & time drive the public countdown" styleClass="overflow-hidden">
         <div class="admin-section-intro">
           <span class="material-symbols-outlined">schedule</span>
@@ -74,19 +87,19 @@
         <div class="mt-2 grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
           <div class="admin-float-field">
             <label class="mb-1 block text-sm font-medium text-stone-700">Batch label <span class="text-rose-600">*</span></label>
-            <input pInputText class="w-full" [ngModel]="b.label" (ngModelChange)="patchBatch({ label: $event })" />
+            <input pInputText class="w-full" [disabled]="isReadOnly()" [ngModel]="b.label" (ngModelChange)="patchBatch({ label: $event })" />
             <small class="mt-1 block text-xs text-stone-500">Shown on shop & countdown</small>
           </div>
 
           <div class="admin-float-field">
             <label class="mb-1 block text-sm font-medium text-stone-700">Launch date <span class="text-rose-600">*</span></label>
-            <input type="date" class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2" [ngModel]="dateInputValue(b.launchAt)" (ngModelChange)="onLaunchDateInput($event)" />
+            <input type="date" class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2" [disabled]="isReadOnly()" [ngModel]="dateInputValue(b.launchAt)" (ngModelChange)="onLaunchDateInput($event)" />
             <small class="mt-1 block text-xs text-stone-500">Pick the calendar day</small>
           </div>
 
           <div class="admin-float-field">
             <label class="mb-1 block text-sm font-medium text-stone-700">Launch time <span class="text-rose-600">*</span></label>
-            <input type="time" class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2" [ngModel]="launchTimeValue(b.launchAt)" (ngModelChange)="onLaunchTime($event)" />
+            <input type="time" class="w-full rounded-lg border border-stone-300 bg-white px-3 py-2" [disabled]="isReadOnly()" [ngModel]="launchTimeValue(b.launchAt)" (ngModelChange)="onLaunchTime($event)" />
             <small class="mt-1 block text-xs text-stone-500">Local time</small>
           </div>
 
@@ -98,56 +111,30 @@
 
           <div>
             <label class="mb-1 block text-sm font-medium text-stone-700">Sort order</label>
-            <input pInputText type="number" class="w-full" [ngModel]="b.sortOrder" (ngModelChange)="patchBatch({ sortOrder: +$event })" />
+            <input pInputText type="number" class="w-full" [disabled]="isReadOnly()" [ngModel]="b.sortOrder" (ngModelChange)="patchBatch({ sortOrder: +$event })" />
           </div>
 
           <div>
             <label class="mb-1 block text-sm font-medium text-stone-700">Hero window days</label>
-            <input pInputText type="number" class="w-full" [ngModel]="b.heroWindowDays ?? 10" (ngModelChange)="patchBatch({ heroWindowDays: +$event })" />
+            <input pInputText type="number" class="w-full" [disabled]="isReadOnly()" [ngModel]="b.heroWindowDays ?? 10" (ngModelChange)="patchBatch({ heroWindowDays: +$event })" />
             <small class="mt-1 block text-xs text-stone-500">Days the hero highlights stay featured</small>
           </div>
 
           <div class="flex min-h-14 items-center">
             <label class="flex items-center gap-2 text-sm font-medium text-stone-700">
-              <input type="checkbox" [ngModel]="b.soldOut" (ngModelChange)="patchBatch({ soldOut: $event })" />
+              <input type="checkbox" [ngModel]="b.soldOut" (ngModelChange)="onBatchSoldOutChange($event)" />
               Entire batch sold out
             </label>
-          </div>
-        </div>
-      </p-card>
-
-      <p-card header="2 · Countdown & celebration" subheader="Public countdown and live celebration copy" styleClass="overflow-hidden">
-        <div class="admin-section-intro">
-          <span class="material-symbols-outlined">rocket_launch</span>
-          <span>Edit the text shown during the countdown and after launch on the public site.</span>
-        </div>
-        <div class="mt-2 grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
-          <div>
-            <label class="mb-1 block text-sm font-medium text-stone-700">Countdown eyebrow</label>
-            <input pInputText class="w-full" [ngModel]="b.countdownEyebrow" (ngModelChange)="patchBatch({ countdownEyebrow: $event })" />
-          </div>
-          <div>
-            <label class="mb-1 block text-sm font-medium text-stone-700">Countdown heading</label>
-            <input pInputText class="w-full" [ngModel]="b.countdownHeading" (ngModelChange)="patchBatch({ countdownHeading: $event })" />
-          </div>
-          <div class="md:col-span-2">
-            <label class="mb-1 block text-sm font-medium text-stone-700">Countdown lede</label>
-            <textarea pTextarea class="w-full" rows="2" [ngModel]="b.countdownLede" (ngModelChange)="patchBatch({ countdownLede: $event })"></textarea>
-          </div>
-          <div class="md:col-span-2">
-            <label class="mb-1 block text-sm font-medium text-stone-700">Celebration heading</label>
-            <input pInputText class="w-full" [ngModel]="b.celebrationHeading" (ngModelChange)="patchBatch({ celebrationHeading: $event })" />
-          </div>
-          <div class="md:col-span-2">
-            <label class="mb-1 block text-sm font-medium text-stone-700">Celebration lede</label>
-            <textarea pTextarea class="w-full" rows="2" [ngModel]="b.celebrationLede" (ngModelChange)="patchBatch({ celebrationLede: $event })"></textarea>
+            @if (isReadOnly()) {
+              <span class="ml-2 text-xs text-muted">(can change while Live)</span>
+            }
           </div>
         </div>
       </p-card>
 
       <p-card header="2 · Products ({{ b.products.length }})" subheader="Name, price (Rs), and at least one photo each" styleClass="overflow-hidden">
         <div class="mb-4 flex flex-wrap gap-2">
-          <p-button type="button" label="Add product" (onClick)="addProduct()" />
+          <p-button type="button" label="Add product" [disabled]="isReadOnly()" (onClick)="addProduct()" />
         </div>
 
         <div class="flex flex-col gap-2">
@@ -174,41 +161,98 @@
           }
         </div>
 
-        @if (product(); as p) {
+        @for (p of productEditorRows(); track p.id) {
           <div class="mt-3 rounded-2xl border border-stone-950/10 bg-[#fffcf8] p-4">
-            <h3 class="mb-2 mt-0 text-[0.98rem] font-semibold">Editing: {{ p.name }}</h3>
+            <h3 class="mb-2 mt-0 text-[0.98rem] font-semibold">Editing: {{ p.name || 'Untitled product' }}</h3>
             <div class="mt-2 grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
               <div>
-                <label class="mb-1 block text-sm font-medium text-stone-700">Name <span class="text-rose-600">*</span></label>
-                <input pInputText class="w-full" [ngModel]="p.name" (ngModelChange)="patchProduct({ name: $event })" />
+                <label class="mb-1 block text-sm font-medium text-stone-700" [attr.for]="'product-name-' + p.id">
+                  Name <span class="text-rose-600">*</span>
+                </label>
+                <input
+                  pInputText
+                  class="w-full"
+                  type="text"
+                  [id]="'product-name-' + p.id"
+                  [attr.name]="'product-name-' + p.id"
+                  autocomplete="off"
+                  [disabled]="isReadOnly()"
+                  [ngModel]="p.name"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="patchProduct({ name: $event })"
+                />
               </div>
 
               <div>
                 <label class="mb-1 block text-sm font-medium text-stone-700">Price <span class="text-rose-600">*</span></label>
-                <div class="flex items-center rounded-lg border border-stone-300 bg-white px-3">
+                <div class="flex items-center rounded-lg border border-stone-300 bg-white px-3" [class.opacity-60]="isReadOnly()">
                   <span class="mr-2 font-bold text-muted">Rs</span>
-                  <input class="w-full border-0 bg-transparent py-2 outline-none" type="number" min="0" step="1" [ngModel]="p.price" (ngModelChange)="onPriceChange($event)" />
+                  <input
+                    class="w-full border-0 bg-transparent py-2 outline-none"
+                    type="number"
+                    min="0"
+                    step="1"
+                    [attr.name]="'product-price-' + p.id"
+                    [disabled]="isReadOnly()"
+                    [ngModel]="p.price"
+                    [ngModelOptions]="{ standalone: true }"
+                    (ngModelChange)="onPriceChange($event)"
+                  />
                 </div>
                 <small class="mt-1 block text-xs text-stone-500">Amount in Pakistani Rupees</small>
               </div>
 
               <div class="md:col-span-2">
                 <label class="mb-1 block text-sm font-medium text-stone-700">Summary</label>
-                <input pInputText class="w-full" [ngModel]="p.summary" (ngModelChange)="patchProduct({ summary: $event })" />
+                <input
+                  pInputText
+                  class="w-full"
+                  [attr.name]="'product-summary-' + p.id"
+                  [disabled]="isReadOnly()"
+                  [ngModel]="p.summary"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="patchProduct({ summary: $event })"
+                />
               </div>
               <div class="md:col-span-2">
                 <label class="mb-1 block text-sm font-medium text-stone-700">Description</label>
-                <textarea pTextarea class="w-full" rows="3" [ngModel]="p.description" (ngModelChange)="patchProduct({ description: $event })"></textarea>
+                <textarea
+                  pTextarea
+                  class="w-full"
+                  rows="3"
+                  [attr.name]="'product-description-' + p.id"
+                  [disabled]="isReadOnly()"
+                  [ngModel]="p.description"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="patchProduct({ description: $event })"
+                ></textarea>
               </div>
               <div>
                 <label class="mb-1 block text-sm font-medium text-stone-700">Dimensions</label>
-                <input pInputText class="w-full" [ngModel]="p.dimensions" (ngModelChange)="patchProduct({ dimensions: $event })" />
+                <input
+                  pInputText
+                  class="w-full"
+                  [attr.name]="'product-dimensions-' + p.id"
+                  [disabled]="isReadOnly()"
+                  [ngModel]="p.dimensions"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="patchProduct({ dimensions: $event })"
+                />
               </div>
               <div class="flex min-h-14 items-center">
                 <label class="flex items-center gap-2 text-sm font-medium text-stone-700">
-                  <input type="checkbox" [ngModel]="p.soldOut" (ngModelChange)="patchProduct({ soldOut: $event })" />
+                  <input
+                    type="checkbox"
+                    [attr.name]="'product-soldout-' + p.id"
+                    [ngModel]="p.soldOut"
+                    [ngModelOptions]="{ standalone: true }"
+                    (ngModelChange)="onProductSoldOutChange($event)"
+                  />
                   Sold out
                 </label>
+                @if (isReadOnly()) {
+                  <span class="ml-2 text-xs text-muted">(can change while Live)</span>
+                }
               </div>
             </div>
 
@@ -216,20 +260,49 @@
               Product images <span class="text-rose-600">*</span>
               <span class="ml-2 inline-flex rounded-full bg-orange-100 px-1.5 py-0.5 text-[0.62rem] font-bold uppercase text-orange-800">required</span>
             </h4>
-            <label class="admin-upload-field my-2 mb-4" [class.pointer-events-none]="uploading()" [class.opacity-55]="uploading()" [class.border-amber-500]="!p.images.length" [class.bg-amber-50]="!p.images.length">
+            <p class="mb-2 text-xs text-muted">Existing images stay until you Save. Marking delete only applies on Save.</p>
+            <label class="admin-upload-field my-2 mb-4" [class.pointer-events-none]="uploading() || isReadOnly()" [class.opacity-55]="uploading() || isReadOnly()" [class.border-amber-500]="!p.images.length" [class.bg-amber-50]="!p.images.length">
               <span class="material-symbols-outlined text-[1.85rem] text-clay-deep">{{ p.images.length ? 'add_photo_alternate' : 'cloud_upload' }}</span>
               <span class="text-[0.92rem] font-semibold text-ink">{{ p.images.length ? 'Add more photos' : 'Upload product photos' }}</span>
               <span class="text-xs text-muted">JPG or PNG · at least one image required to save</span>
-              <input type="file" accept="image/*" multiple hidden (change)="onUploadProductImages($event)" />
+              <input type="file" accept="image/*" multiple hidden [disabled]="isReadOnly()" (change)="onUploadProductImages($event)" />
             </label>
             @if (p.images.length) {
               <div class="mt-3 grid grid-cols-[repeat(auto-fill,minmax(7.75rem,1fr))] gap-3">
                 @for (im of p.images; track im.id; let i = $index) {
-                  <figure class="relative m-0 overflow-hidden rounded-xl border border-stone-950/10 bg-[#f5f1eb]">
+                  @let badge = imageBadge(im, 'product', p.id);
+                  <figure
+                    class="relative m-0 overflow-hidden rounded-xl border border-stone-950/10 bg-[#f5f1eb]"
+                    [class.opacity-45]="badge === 'deleted'"
+                    [class.grayscale]="badge === 'deleted'"
+                    [class.ring-2]="badge === 'deleted'"
+                    [class.ring-red-300]="badge === 'deleted'"
+                  >
+                    <span
+                      class="absolute left-1 top-1 z-10 rounded px-1.5 py-0.5 text-[0.58rem] font-bold uppercase tracking-wide"
+                      [class.bg-stone-800]="badge === 'existing'"
+                      [class.text-white]="badge === 'existing'"
+                      [class.bg-sky-600]="badge === 'new'"
+                      [class.text-white]="badge === 'new' || badge === 'existing'"
+                      [class.bg-red-600]="badge === 'deleted'"
+                      [class.text-white]="badge === 'deleted'"
+                    >
+                      {{ badge === 'existing' ? 'Existing' : badge === 'new' ? 'New' : 'Deleted' }}
+                    </span>
                     <img class="aspect-square w-full object-cover" [src]="im.url" [alt]="'Image ' + (i + 1)" />
-                    <figcaption class="truncate px-2 py-1.5 text-[0.65rem] text-muted">{{ isDataUrl(im.url) ? 'Uploaded' : 'Photo ' + (i + 1) }}</figcaption>
-                    <button class="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-red-600" type="button" (click)="removeProductImage(i)">
-                      <span class="material-symbols-outlined text-base">delete</span>
+                    <figcaption class="truncate px-2 py-1.5 text-[0.65rem] text-muted">
+                      {{ badge === 'deleted' ? 'Will remove on Save' : badge === 'new' ? 'New · pending Save' : 'Photo ' + (i + 1) }}
+                    </figcaption>
+                    <button
+                      class="absolute right-1 top-1 z-10 rounded-full bg-white/90 p-1"
+                      [class.text-red-600]="badge !== 'deleted'"
+                      [class.text-green-700]="badge === 'deleted'"
+                      type="button"
+                      [disabled]="isReadOnly()"
+                      [attr.title]="badge === 'deleted' ? 'Undo delete' : 'Mark for deletion'"
+                      (click)="removeProductImage(i)"
+                    >
+                      <span class="material-symbols-outlined text-base">{{ badge === 'deleted' ? 'undo' : 'delete' }}</span>
                     </button>
                   </figure>
                 }
@@ -241,25 +314,27 @@
               <div class="mb-2 grid grid-cols-1 items-center gap-2 md:grid-cols-[1fr_1fr_auto_auto]">
                 <div>
                   <label class="mb-1 block text-sm font-medium text-stone-700">Name</label>
-                  <input pInputText class="w-full" [ngModel]="c.name" (ngModelChange)="updateColor(i, { name: $event })" />
+                  <input pInputText class="w-full" [disabled]="isReadOnly()" [ngModel]="c.name" (ngModelChange)="updateColor(i, { name: $event })" />
                 </div>
                 <div>
                   <label class="mb-1 block text-sm font-medium text-stone-700">Hex</label>
-                  <input pInputText class="w-full" [ngModel]="c.hex" (ngModelChange)="updateColor(i, { hex: $event })" />
+                  <input pInputText class="w-full" [disabled]="isReadOnly()" [ngModel]="c.hex" (ngModelChange)="updateColor(i, { hex: $event })" />
                 </div>
-                <input type="color" class="size-8 cursor-pointer rounded-lg border border-stone-950/10" [ngModel]="c.hex" (ngModelChange)="updateColor(i, { hex: $event })" [attr.aria-label]="'Color for ' + c.name" />
-                <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" type="button" (click)="removeColor(i)">Remove</button>
+                <input type="color" class="size-8 cursor-pointer rounded-lg border border-stone-950/10" [disabled]="isReadOnly()" [ngModel]="c.hex" (ngModelChange)="updateColor(i, { hex: $event })" [attr.aria-label]="'Color for ' + c.name" />
+                <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" type="button" [disabled]="isReadOnly()" (click)="removeColor(i)">Remove</button>
               </div>
             }
-            <button class="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-700" type="button" (click)="addColor()">Add color</button>
+            <button class="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-700" type="button" [disabled]="isReadOnly()" (click)="addColor()">Add color</button>
             <div class="mt-4 border-t border-stone-950/10 pt-3">
-              <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700" type="button" (click)="deleteProduct()">Delete product</button>
+              <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700" type="button" [disabled]="isReadOnly()" (click)="deleteProduct()">Delete product</button>
             </div>
           </div>
-        } @else if (!b.products.length) {
-          <p class="mb-3 text-sm leading-relaxed text-stone-500">Add a product, set its price, then upload images.</p>
-        } @else {
-          <p class="mb-3 text-sm leading-relaxed text-stone-500">Select a product to edit.</p>
+        } @empty {
+          @if (!b.products.length) {
+            <p class="mb-3 text-sm leading-relaxed text-stone-500">Add a product, set its price, then upload images.</p>
+          } @else {
+            <p class="mb-3 text-sm leading-relaxed text-stone-500">Select a product to edit.</p>
+          }
         }
       </p-card>
 
@@ -269,30 +344,30 @@
           <div class="mt-2 grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
             <div>
               <label class="mb-1 block text-sm font-medium text-stone-700">Title</label>
-              <input pInputText class="w-full" [ngModel]="jv.title" (ngModelChange)="patchJourneyVideo({ title: $event })" />
+              <input pInputText class="w-full" [disabled]="isReadOnly()" [ngModel]="jv.title" (ngModelChange)="patchJourneyVideo({ title: $event })" />
             </div>
             <div>
               <label class="mb-1 block text-sm font-medium text-stone-700">Video link</label>
-              <input pInputText type="url" class="w-full" placeholder="https://www.youtube.com/embed/..." [ngModel]="jv.videoUrl" (ngModelChange)="patchJourneyVideo({ videoUrl: $event, videoMediaId: undefined })" />
+              <input pInputText type="url" class="w-full" placeholder="https://www.youtube.com/embed/..." [disabled]="isReadOnly()" [ngModel]="jv.videoUrl" (ngModelChange)="patchJourneyVideo({ videoUrl: $event, videoMediaId: undefined })" />
               <small class="mt-1 block text-xs text-stone-500">Paste a YouTube embed URL or hosted video URL.</small>
             </div>
             <div class="md:col-span-2">
               <label class="mb-1 block text-sm font-medium text-stone-700">Lede</label>
-              <textarea pTextarea class="w-full" rows="2" [ngModel]="jv.lede" (ngModelChange)="patchJourneyVideo({ lede: $event })"></textarea>
+              <textarea pTextarea class="w-full" rows="2" [disabled]="isReadOnly()" [ngModel]="jv.lede" (ngModelChange)="patchJourneyVideo({ lede: $event })"></textarea>
             </div>
           </div>
           <div class="mb-4 mt-4 flex flex-wrap gap-2">
-            <label class="admin-upload-field admin-upload-field--inline text-sm font-semibold">
+            <label class="admin-upload-field admin-upload-field--inline text-sm font-semibold" [class.pointer-events-none]="isReadOnly()" [class.opacity-55]="isReadOnly()">
               <span class="material-symbols-outlined text-base">image</span>
               Upload poster
-              <input type="file" accept="image/*" hidden (change)="onUploadJourneyPoster($event)" />
+              <input type="file" accept="image/*" hidden [disabled]="isReadOnly()" (change)="onUploadJourneyPoster($event)" />
             </label>
-            <label class="admin-upload-field admin-upload-field--inline text-sm font-semibold">
+            <label class="admin-upload-field admin-upload-field--inline text-sm font-semibold" [class.pointer-events-none]="isReadOnly()" [class.opacity-55]="isReadOnly()">
               <span class="material-symbols-outlined text-base">movie</span>
               Upload video
-              <input type="file" accept="video/*" hidden (change)="onUploadJourneyVideoFile($event)" />
+              <input type="file" accept="video/*" hidden [disabled]="isReadOnly()" (change)="onUploadJourneyVideoFile($event)" />
             </label>
-            <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700" type="button" (click)="clearJourneyVideo()">Remove video</button>
+            <button class="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700" type="button" [disabled]="isReadOnly()" (click)="clearJourneyVideo()">Remove video</button>
           </div>
           @if (jv.posterImage) {
             <img [src]="jv.posterImage" alt="Poster" class="mt-2 max-w-48 rounded-xl border border-stone-950/10" />
@@ -303,25 +378,48 @@
             <p class="mb-3 text-sm leading-relaxed text-stone-500">Video file attached.</p>
           }
         } @else {
-          <button class="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-700" type="button" (click)="ensureJourneyVideo()">Add journey video</button>
+          <button class="rounded-lg border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-700" type="button" [disabled]="isReadOnly()" (click)="ensureJourneyVideo()">Add journey video</button>
         }
 
         <h4 class="mb-2 mt-5 text-[0.98rem] font-semibold">Journey images</h4>
-        <label class="admin-upload-field admin-upload-field--inline my-2 mb-4" [class.pointer-events-none]="uploading()" [class.opacity-55]="uploading()">
+        <label class="admin-upload-field admin-upload-field--inline my-2 mb-4" [class.pointer-events-none]="uploading() || isReadOnly()" [class.opacity-55]="uploading() || isReadOnly()">
           <span class="material-symbols-outlined text-[1.85rem] text-clay-deep">upload</span>
           <span class="text-[0.92rem] font-semibold text-ink">Upload journey stills</span>
-          <input type="file" accept="image/*" multiple hidden (change)="onUploadJourneyImages($event)" />
+          <input type="file" accept="image/*" multiple hidden [disabled]="isReadOnly()" (change)="onUploadJourneyImages($event)" />
         </label>
         @if (journeyImages().length) {
           <div class="mt-3 grid grid-cols-[repeat(auto-fill,minmax(7.75rem,1fr))] gap-3">
             @for (im of journeyImages(); track im.id) {
-              <figure class="relative m-0 overflow-hidden rounded-xl border border-stone-950/10 bg-[#f5f1eb]">
+              @let badge = imageBadge(im, 'journey');
+              <figure
+                class="relative m-0 overflow-hidden rounded-xl border border-stone-950/10 bg-[#f5f1eb]"
+                [class.opacity-45]="badge === 'deleted'"
+                [class.grayscale]="badge === 'deleted'"
+                [class.ring-2]="badge === 'deleted'"
+                [class.ring-red-300]="badge === 'deleted'"
+              >
+                <span
+                  class="absolute left-1 top-1 z-10 rounded px-1.5 py-0.5 text-[0.58rem] font-bold uppercase tracking-wide text-white"
+                  [class.bg-stone-800]="badge === 'existing'"
+                  [class.bg-sky-600]="badge === 'new'"
+                  [class.bg-red-600]="badge === 'deleted'"
+                >
+                  {{ badge === 'existing' ? 'Existing' : badge === 'new' ? 'New' : 'Deleted' }}
+                </span>
                 <img class="aspect-square w-full object-cover" [src]="im.url" [alt]="im.alt" />
                 <figcaption class="px-2 py-1.5">
-                  <input class="w-full border-0 bg-transparent text-[0.65rem] text-muted" [ngModel]="im.alt" (ngModelChange)="updateJourneyImageAlt(im.id, $event)" placeholder="Alt text" />
+                  <input class="w-full border-0 bg-transparent text-[0.65rem] text-muted" [disabled]="isReadOnly() || badge === 'deleted'" [ngModel]="im.alt" (ngModelChange)="updateJourneyImageAlt(im.id, $event)" placeholder="Alt text" />
                 </figcaption>
-                <button class="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-red-600" type="button" (click)="removeJourneyImage(im.id)">
-                  <span class="material-symbols-outlined text-base">delete</span>
+                <button
+                  class="absolute right-1 top-1 z-10 rounded-full bg-white/90 p-1"
+                  [class.text-red-600]="badge !== 'deleted'"
+                  [class.text-green-700]="badge === 'deleted'"
+                  type="button"
+                  [disabled]="isReadOnly()"
+                  [attr.title]="badge === 'deleted' ? 'Undo delete' : 'Mark for deletion'"
+                  (click)="removeJourneyImage(im.id)"
+                >
+                  <span class="material-symbols-outlined text-base">{{ badge === 'deleted' ? 'undo' : 'delete' }}</span>
                 </button>
               </figure>
             }
@@ -332,22 +430,45 @@
       </p-card>
 
       <p-card header="4 · Batch images" subheader="Hero highlight photos — required before showing on website" [styleClass]="!hasBatchImages() ? 'overflow-hidden border border-amber-500' : 'overflow-hidden'">
-        <label class="admin-upload-field my-2 mb-4" [class.pointer-events-none]="uploading()" [class.opacity-55]="uploading()" [class.border-amber-500]="!hasBatchImages()" [class.bg-amber-50]="!hasBatchImages()">
+        <label class="admin-upload-field my-2 mb-4" [class.pointer-events-none]="uploading() || isReadOnly()" [class.opacity-55]="uploading() || isReadOnly()" [class.border-amber-500]="!hasBatchImages()" [class.bg-amber-50]="!hasBatchImages()">
           <span class="material-symbols-outlined text-[1.85rem] text-clay-deep">cloud_upload</span>
           <span class="text-[0.92rem] font-semibold text-ink">Upload batch highlight images</span>
-          <span class="text-xs text-muted">Shown in the hero window · JPG or PNG</span>
-          <input type="file" accept="image/*" multiple hidden (change)="onUploadHighlights($event)" />
+          <span class="text-xs text-muted">Shown in the hero window · JPG or PNG · deletions apply on Save</span>
+          <input type="file" accept="image/*" multiple hidden [disabled]="isReadOnly()" (change)="onUploadHighlights($event)" />
         </label>
         @if (highlights().length) {
           <div class="mt-3 grid grid-cols-[repeat(auto-fill,minmax(7.75rem,1fr))] gap-3">
             @for (h of highlights(); track h.id) {
-              <figure class="relative m-0 overflow-hidden rounded-xl border border-stone-950/10 bg-[#f5f1eb]">
+              @let badge = imageBadge(h, 'highlight');
+              <figure
+                class="relative m-0 overflow-hidden rounded-xl border border-stone-950/10 bg-[#f5f1eb]"
+                [class.opacity-45]="badge === 'deleted'"
+                [class.grayscale]="badge === 'deleted'"
+                [class.ring-2]="badge === 'deleted'"
+                [class.ring-red-300]="badge === 'deleted'"
+              >
+                <span
+                  class="absolute left-1 top-1 z-10 rounded px-1.5 py-0.5 text-[0.58rem] font-bold uppercase tracking-wide text-white"
+                  [class.bg-stone-800]="badge === 'existing'"
+                  [class.bg-sky-600]="badge === 'new'"
+                  [class.bg-red-600]="badge === 'deleted'"
+                >
+                  {{ badge === 'existing' ? 'Existing' : badge === 'new' ? 'New' : 'Deleted' }}
+                </span>
                 <img class="aspect-square w-full object-cover" [src]="h.url" [alt]="h.alt" />
                 <figcaption class="px-2 py-1.5">
-                  <input class="w-full border-0 bg-transparent text-[0.65rem] text-muted" [ngModel]="h.alt" (ngModelChange)="updateHighlightAlt(h.id, $event)" placeholder="Alt text" />
+                  <input class="w-full border-0 bg-transparent text-[0.65rem] text-muted" [disabled]="isReadOnly() || badge === 'deleted'" [ngModel]="h.alt" (ngModelChange)="updateHighlightAlt(h.id, $event)" placeholder="Alt text" />
                 </figcaption>
-                <button class="absolute right-1 top-1 rounded-full bg-white/90 p-1 text-red-600" type="button" (click)="removeHighlight(h.id)">
-                  <span class="material-symbols-outlined text-base">delete</span>
+                <button
+                  class="absolute right-1 top-1 z-10 rounded-full bg-white/90 p-1"
+                  [class.text-red-600]="badge !== 'deleted'"
+                  [class.text-green-700]="badge === 'deleted'"
+                  type="button"
+                  [disabled]="isReadOnly()"
+                  [attr.title]="badge === 'deleted' ? 'Undo delete' : 'Mark for deletion'"
+                  (click)="removeHighlight(h.id)"
+                >
+                  <span class="material-symbols-outlined text-base">{{ badge === 'deleted' ? 'undo' : 'delete' }}</span>
                 </button>
               </figure>
             }
@@ -360,12 +481,14 @@
   </div>
 
   <div class="admin-form-actions shrink-0 border-t border-stone-200 bg-[#fffcf8] px-4 py-3 shadow-[0_-10px_32px_rgba(28,25,23,0.08)] md:px-5">
-    @if (dirty()) {
+    @if (isReadOnly()) {
+      <span class="min-w-28 flex-1 text-sm font-bold text-green-800">Live — read only</span>
+    } @else if (dirty()) {
       <span class="min-w-28 flex-1 text-sm font-bold text-amber-700">Unsaved changes</span>
     } @else {
       <span class="min-w-28 flex-1 text-sm font-bold text-green-700">Saved</span>
     }
-    <p-button type="button" label="Save to database" [disabled]="!dirty()" (onClick)="save()" />
+    <p-button type="button" label="Save to database" [disabled]="!dirty() || isReadOnly() || uploading()" (onClick)="save()" />
   </div>
 } @else {
   <div class="flex-1 min-h-0 overflow-auto p-4 pb-6 md:p-6">

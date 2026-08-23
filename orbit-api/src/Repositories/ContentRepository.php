@@ -202,6 +202,30 @@ final class ContentRepository
         ];
     }
 
+    public function getPageCountdown(string $siteId): array
+    {
+        $stmt = $this->pdo->prepare('SELECT * FROM page_countdown WHERE site_id = ? LIMIT 1');
+        $stmt->execute([$siteId]);
+        $row = $stmt->fetch();
+        if (!$row) {
+            return [
+                'countdownEyebrow' => 'Next drop',
+                'countdownHeading' => 'New batch launching soon',
+                'countdownLede' => '',
+                'celebrationHeading' => 'This batch is live',
+                'celebrationLede' => '',
+            ];
+        }
+
+        return [
+            'countdownEyebrow' => (string) ($row['countdown_eyebrow'] ?? ''),
+            'countdownHeading' => (string) ($row['countdown_heading'] ?? ''),
+            'countdownLede' => (string) ($row['countdown_lede'] ?? ''),
+            'celebrationHeading' => (string) ($row['celebration_heading'] ?? ''),
+            'celebrationLede' => (string) ($row['celebration_lede'] ?? ''),
+        ];
+    }
+
     /** @return list<array<string,mixed>> */
     public function listBatches(string $siteId, bool $withProducts = true): array
     {
@@ -488,6 +512,7 @@ final class ContentRepository
         $collections = $this->getPageCollections($siteId);
         $journey = $this->getPageJourney($siteId);
         $batchShop = $this->getPageBatchShop($siteId);
+        $countdown = $this->getPageCountdown($siteId);
 
         $pageCopy = [];
         if ($about) {
@@ -502,6 +527,7 @@ final class ContentRepository
         if ($batchShop) {
             $pageCopy['batchShop'] = $batchShop;
         }
+        $pageCopy['countdown'] = $countdown;
 
         $tz = new \DateTimeZone($this->timezone);
         $now = new \DateTimeImmutable('now', $tz);
@@ -580,11 +606,6 @@ final class ContentRepository
             'soldOut' => orbit_bool($row['sold_out']),
             'sortOrder' => (int) $row['sort_order'],
             'heroWindowDays' => (int) $row['hero_window_days'],
-            'countdownEyebrow' => $row['countdown_eyebrow'],
-            'countdownHeading' => $row['countdown_heading'],
-            'countdownLede' => $row['countdown_lede'],
-            'celebrationHeading' => $row['celebration_heading'],
-            'celebrationLede' => $row['celebration_lede'],
             'products' => [],
         ];
     }

@@ -1,10 +1,12 @@
 # Orbit Ceramic API (Phase 1)
 
-Separate PHP API for the Orbit Angular storefront.  
-Matches [`../public/data/schema-phase1.sql`](../public/data/schema-phase1.sql) and [`../public/data/PHASE-1-DB.md`](../public/data/PHASE-1-DB.md).
+Separate PHP API for the Orbit Angular storefront.
 
+- **Schema / seeds:** versioned migrations in [`database/migrations/`](database/migrations/) — run `php bin/database migrate`  
+  Guide: [`database/README.md`](database/README.md)
 - **In DB:** admin users/sessions, batches, products, about, reviews, media, page copy, contact, leads  
 - **Not in DB:** header nav + footer (Angular keeps `site-content.json` chrome)
+- Domain notes: [`../public/data/PHASE-1-DB.md`](../public/data/PHASE-1-DB.md), [`../CONTEXT.md`](../CONTEXT.md)
 
 Requires **PHP 8.1+** with `pdo_mysql`, `fileinfo`, and **MySQL 8 / MariaDB 10.5+**.
 
@@ -12,34 +14,25 @@ Requires **PHP 8.1+** with `pdo_mysql`, `fileinfo`, and **MySQL 8 / MariaDB 10.5
 
 ## Setup
 
-1. Create a MySQL database and import the schema:
-
-Or use phpMyAdmin in XAMPP:
-
-1. Import `../public/data/schema-phase1.sql`
-2. Import `sql/seed-phase1.sql` (sample Orbit content)
-
-CLI (XAMPP):
-
-```bat
-C:\xampp\mysql\bin\mysql.exe -u root -e "CREATE DATABASE IF NOT EXISTS orbit_ceramic CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
-type ..\public\data\schema-phase1.sql | C:\xampp\mysql\bin\mysql.exe -u root orbit_ceramic
-type sql\seed-phase1.sql | C:\xampp\mysql\bin\mysql.exe -u root orbit_ceramic
-type sql\seed-admin.sql | C:\xampp\mysql\bin\mysql.exe -u root orbit_ceramic
-```
-
-The admin login is at `/admin/login`. The local seed account is `admin` with
-password `change-me-admin-password`; change or remove this account before any
-shared or hosted deployment. Admin passwords are stored as PHP password hashes,
-and successful logins create revocable database sessions sent as Bearer tokens.
-
-2. Copy config:
+1. Copy config:
 
 ```bash
 cp config/config.example.php config/config.php
 ```
 
 Edit `config/config.php` — DB credentials, `public_base_url`, `api_key`, CORS origins.
+
+2. Apply database migrations (creates empty DB if missing; schema + idempotent seeds):
+
+```bat
+cd orbit-api
+php bin\database migrate
+php bin\database status
+```
+
+See [`database/README.md`](database/README.md). Admin login defaults: `admin` / `change-me-admin-password` (from **V003**). Change immediately on shared hosts.
+
+CI deploy + migrate: [`database/DEPLOY.md`](database/DEPLOY.md).
 
 3. Start the API (Windows + XAMPP):
 
@@ -127,26 +120,26 @@ curl -X POST http://localhost:8080/api/v1/leads \
 
 ## Hostinger notes
 
-1. Create MySQL DB in hPanel; import `schema-phase1.sql`.  
-2. Upload this `orbit-api` folder (or subdomain `api.`).  
-3. Set document root to `public/`.  
-4. Ensure `public/uploads` is writable (`chmod 755` or 775).  
-5. Set `public_base_url` to your API URL (e.g. `https://api.yourdomain.com`).  
-6. Put the Angular app CORS origin in `cors_origins`.
+1. Create MySQL DB in hPanel; put credentials in GitHub Environment secrets (see [`database/DEPLOY.md`](database/DEPLOY.md)).  
+2. Enable **Remote MySQL** so GitHub Actions can run `php bin/database migrate`.  
+3. Push to `uat` / `prod` — workflow deploys Angular + `php/` API and runs migrations.  
+4. Ensure `php/public/uploads` is writable.  
+5. Site `.htaccess` rewrites `/api/*` → `php/public/index.php` and `/uploads/*` → API uploads.  
+6. Set `ORBIT_PUBLIC_BASE_URL` / `ORBIT_CORS_ORIGINS` secrets to your live domain.
 
 ## Admin APIs (insert / manage content)
 
-All admin routes (except login) require:
+All admin routes (except login) require a session token:
 
 ```http
-X-Api-Key: change-me-orbit-media-key
+Authorization: Bearer <token-from-login>
 ```
 
-or `Authorization: Bearer <same-key>`.
+Public `POST /api/v1/media` still accepts `X-Api-Key` for legacy/scripts; admin uploads use `POST /api/v1/admin/media` with Bearer auth.
 
 | Method | Path | Purpose |
 |--------|------|---------|
-| `POST` | `/api/v1/admin/auth/login` | Body `{ "apiKey": "..." }` → returns token |
+| `POST` | `/api/v1/admin/auth/login` | Body `{ "username", "password" }` → Bearer session token |
 | `GET/PUT` | `/api/v1/admin/site` | Brand + create/update site |
 | `PUT` | `/api/v1/admin/sites/active-batch` | `{ "activeBatchId": "batch-001" }` |
 | `GET/PUT` | `/api/v1/admin/contact` | WhatsApp / email / visit lines |
@@ -172,7 +165,8 @@ or `Authorization: Bearer <same-key>`.
 5. `POST /admin/products` — `batchId` + colors; images need `mediaId` + `url` from step 3  
 6. `PUT .../journey` + `PUT .../hero-highlights`  
 7. `PUT /admin/page/about` + `POST /admin/reviews`  
-8. `PUT /admin/sites/active-batch`
+8. `PUT /admin/page/countdown` — site-wide countdown & celebration copy  
+9. `PUT /admin/sites/active-batch`
 
 ### Create batch example
 
@@ -180,7 +174,16 @@ or `Authorization: Bearer <same-key>`.
 curl -X POST http://127.0.0.1:8080/api/v1/admin/batches ^
   -H "Content-Type: application/json" ^
   -H "X-Api-Key: change-me-orbit-media-key" ^
-  -d "{\"label\":\"Batch-002\",\"launchAt\":\"2026-08-15T22:00:00+05:00\",\"launchDisplay\":\"Aug 15\",\"countdownEyebrow\":\"Next\",\"countdownHeading\":\"Batch-002\",\"countdownLede\":\"...\",\"celebrationHeading\":\"Live\",\"celebrationLede\":\"...\"}"
+  -d "{\"label\":\"Batch-002\",\"launchAt\":\"2026-08-15T22:00:00+05:00\",\"launchDisplay\":\"Aug 15\",\"heroWindowDays\":10}"
+```
+
+### Countdown & celebration example
+
+```bash
+curl -X PUT http://127.0.0.1:8080/api/v1/admin/page/countdown ^
+  -H "Content-Type: application/json" ^
+  -H "X-Api-Key: change-me-orbit-media-key" ^
+  -d "{\"countdownEyebrow\":\"Next\",\"countdownHeading\":\"Batch launching soon\",\"countdownLede\":\"...\",\"celebrationHeading\":\"Live\",\"celebrationLede\":\"...\"}"
 ```
 
 ### Create product example

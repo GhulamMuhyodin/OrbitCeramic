@@ -88,12 +88,13 @@
                 class="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700"
                 [routerLink]="['/admin/batches', b.id]"
               >
-                Edit
+                {{ isLive(b.launchAt) ? 'View' : 'Edit' }}
               </a>
               <button
                 pButton
                 type="button"
                 class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-700"
+                [disabled]="isLive(b.launchAt)"
                 (click)="deleteBatch(b.id, b.label)"
               >
                 Delete
@@ -162,12 +163,13 @@
             class="rounded-lg border border-stone-300 bg-white px-3 py-1.5 text-sm text-stone-700"
             [routerLink]="['/admin/batches', b.id]"
           >
-            Edit
+            {{ isLive(b.launchAt) ? 'View' : 'Edit' }}
           </a>
           <button
             pButton
             type="button"
             class="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-700"
+            [disabled]="isLive(b.launchAt)"
             (click)="deleteBatch(b.id, b.label)"
           >
             Delete

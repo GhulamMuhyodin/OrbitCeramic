@@ -79,6 +79,15 @@ export interface BatchShopCopy {
   currencySymbol: string;
 }
 
+/** Site-level countdown / celebration copy (not per-batch). */
+export interface CountdownPageCopy {
+  countdownEyebrow: string;
+  countdownHeading: string;
+  countdownLede: string;
+  celebrationHeading: string;
+  celebrationLede: string;
+}
+
 export interface FooterSocialLink {
   label: string;
   hrefKey: 'instagram' | 'email' ;
@@ -152,11 +161,6 @@ export interface BatchRow {
   sortOrder: number;
   /** Days before/after launchAt when hero highlight images replace the default hero photo. */
   heroWindowDays?: number;
-  countdownEyebrow: string;
-  countdownHeading: string;
-  countdownLede: string;
-  celebrationHeading: string;
-  celebrationLede: string;
   /** One batch → many products */
   products: ProductRow[];
 }
@@ -211,6 +215,7 @@ export interface PageCopyTables {
   collections: CollectionsContent;
   journey: JourneyPageCopy;
   batchShop: BatchShopCopy;
+  countdown: CountdownPageCopy;
   footer: FooterContent;
 }
 
@@ -336,6 +341,14 @@ export function assembleSiteContent(db: SiteContentDb): SiteContent {
       images: bySort(product.images ?? []).map((i) => i.url),
     }));
 
+  const countdown = db.pageCopy.countdown ?? {
+    countdownEyebrow: '',
+    countdownHeading: '',
+    countdownLede: '',
+    celebrationHeading: '',
+    celebrationLede: '',
+  };
+
   const assembleBatch = (row: BatchRow): BatchContent => ({
     id: row.id,
     label: row.label,
@@ -347,13 +360,13 @@ export function assembleSiteContent(db: SiteContentDb): SiteContent {
         ? row.heroWindowDays
         : DEFAULT_HERO_WINDOW_DAYS,
     countdown: {
-      eyebrow: row.countdownEyebrow,
-      heading: row.countdownHeading,
-      lede: row.countdownLede,
+      eyebrow: countdown.countdownEyebrow,
+      heading: countdown.countdownHeading,
+      lede: countdown.countdownLede,
     },
     celebration: {
-      heading: row.celebrationHeading,
-      lede: row.celebrationLede,
+      heading: countdown.celebrationHeading,
+      lede: countdown.celebrationLede,
     },
     shop: db.pageCopy.batchShop,
     items: assembleProducts(row.id, row.products),

@@ -211,11 +211,6 @@ export class AdminDbService {
       soldOut: batch.soldOut,
       sortOrder: batch.sortOrder,
       heroWindowDays: batch.heroWindowDays ?? 10,
-      countdownEyebrow: batch.countdownEyebrow,
-      countdownHeading: batch.countdownHeading,
-      countdownLede: batch.countdownLede,
-      celebrationHeading: batch.celebrationHeading,
-      celebrationLede: batch.celebrationLede,
     };
 
     const journeyVideo = db.journeyVideos.find((v) => v.batchId === batchId);
@@ -269,11 +264,15 @@ export class AdminDbService {
     };
 
     return this.api.saveBatch(batchId, payload).pipe(
+      switchMap((saved) =>
+        this.load().pipe(
+          map(() => saved),
+        ),
+      ),
       tap(() => {
         this.knownBatchIds.add(batchId);
-        batch.products.forEach((p) => {
-          this.knownProductIds.add(p.id);
-        });
+        const refreshed = this.db()?.batches.find((b) => b.id === batchId);
+        refreshed?.products.forEach((p) => this.knownProductIds.add(p.id));
         this.dirty.set(false);
         this.saving.set(false);
       }),
@@ -287,10 +286,14 @@ export class AdminDbService {
   saveBatchMultipart(batchId: string, formData: FormData): Observable<BatchRow> {
     this.saving.set(true);
     return this.api.saveBatch(batchId, formData).pipe(
+      switchMap((saved) =>
+        this.load().pipe(
+          map(() => saved),
+        ),
+      ),
       tap(() => {
         this.knownBatchIds.add(batchId);
-        const db = this.db();
-        const batch = db?.batches.find((b) => b.id === batchId);
+        const batch = this.db()?.batches.find((b) => b.id === batchId);
         if (batch) {
           batch.products.forEach((p) => this.knownProductIds.add(p.id));
         }
@@ -300,6 +303,46 @@ export class AdminDbService {
       catchError((err) => {
         this.saving.set(false);
         return throwError(() => err);
+      }),
+    );
+  }
+
+  /** Persist sold-out for a batch (+ all products). Allowed even when the batch is LIVE. */
+  setBatchSoldOut(batchId: string, soldOut: boolean): Observable<unknown> {
+    const batch = this.db()?.batches.find((b) => b.id === batchId);
+    if (!batch) {
+      return throwError(() => new Error('Batch not found'));
+    }
+
+    const requests: Observable<unknown>[] = [this.api.updateBatch(batchId, { soldOut })];
+    for (const product of batch.products) {
+      requests.push(this.api.updateProduct(product.id, { soldOut }));
+    }
+
+    return forkJoin(requests).pipe(
+      tap(() => {
+        this.upsertBatch({
+          ...batch,
+          soldOut,
+          products: batch.products.map((product) => ({ ...product, soldOut })),
+        });
+        this.dirty.set(false);
+      }),
+    );
+  }
+
+  /** Persist sold-out for one product. Allowed even when the batch is LIVE. */
+  setProductSoldOut(batchId: string, productId: string, soldOut: boolean): Observable<unknown> {
+    const batch = this.db()?.batches.find((b) => b.id === batchId);
+    const product = batch?.products.find((p) => p.id === productId);
+    if (!batch || !product) {
+      return throwError(() => new Error('Product not found'));
+    }
+
+    return this.api.updateProduct(productId, { soldOut }).pipe(
+      tap(() => {
+        this.upsertProduct(batchId, { ...product, soldOut });
+        this.dirty.set(false);
       }),
     );
   }
@@ -391,6 +434,25 @@ export class AdminDbService {
           return throwError(() => err);
         }),
       );
+  }
+
+  saveCountdown(): Observable<unknown> {
+    const db = this.db();
+    if (!db) {
+      return throwError(() => new Error('Not loaded'));
+    }
+    this.saving.set(true);
+    const countdown = db.pageCopy.countdown;
+    return this.api.putPage('countdown', countdown).pipe(
+      tap(() => {
+        this.dirty.set(false);
+        this.saving.set(false);
+      }),
+      catchError((err) => {
+        this.saving.set(false);
+        return throwError(() => err);
+      }),
+    );
   }
 
   saveReviews(): Observable<unknown> {
@@ -561,11 +623,6 @@ export class AdminDbService {
       soldOut: false,
       sortOrder,
       heroWindowDays: 10,
-      countdownEyebrow: 'Next drop',
-      countdownHeading: 'New firing opens soon',
-      countdownLede: 'Countdown ends at launch — then photos and WhatsApp orders go live.',
-      celebrationHeading: 'This batch is live',
-      celebrationLede: 'The drop is open. Explore each piece.',
       products: [],
     };
   }
@@ -584,11 +641,6 @@ export class AdminDbService {
       soldOut: draft.soldOut,
       sortOrder: draft.sortOrder,
       heroWindowDays: draft.heroWindowDays ?? 10,
-      countdownEyebrow: draft.countdownEyebrow,
-      countdownHeading: draft.countdownHeading,
-      countdownLede: draft.countdownLede,
-      celebrationHeading: draft.celebrationHeading,
-      celebrationLede: draft.celebrationLede,
     };
     return this.api.createBatch(body).pipe(
       map((created) => {
@@ -601,11 +653,6 @@ export class AdminDbService {
           soldOut: created.soldOut ?? draft.soldOut,
           sortOrder: created.sortOrder ?? draft.sortOrder,
           heroWindowDays: created.heroWindowDays ?? draft.heroWindowDays,
-          countdownEyebrow: created.countdownEyebrow ?? draft.countdownEyebrow,
-          countdownHeading: created.countdownHeading ?? draft.countdownHeading,
-          countdownLede: created.countdownLede ?? draft.countdownLede,
-          celebrationHeading: created.celebrationHeading ?? draft.celebrationHeading,
-          celebrationLede: created.celebrationLede ?? draft.celebrationLede,
           products: Array.isArray(created.products) ? created.products : [],
         };
         this.knownBatchIds.add(row.id);
@@ -776,6 +823,12 @@ export class AdminDbService {
   updateAbout(patch: Partial<SiteContentDb['pageCopy']['about']>): void {
     this.patchDb((db) => {
       db.pageCopy.about = { ...db.pageCopy.about, ...patch };
+    });
+  }
+
+  updateCountdown(patch: Partial<SiteContentDb['pageCopy']['countdown']>): void {
+    this.patchDb((db) => {
+      db.pageCopy.countdown = { ...db.pageCopy.countdown, ...patch };
     });
   }
 
@@ -955,6 +1008,13 @@ export class AdminDbService {
           buyLabel: 'Buy on WhatsApp',
           currency: 'PKR',
           currencySymbol: 'Rs',
+        },
+        countdown: (pc['countdown'] as SiteContentDb['pageCopy']['countdown']) ?? {
+          countdownEyebrow: 'Next drop',
+          countdownHeading: 'New batch launching soon',
+          countdownLede: '',
+          celebrationHeading: 'This batch is live',
+          celebrationLede: '',
         },
         footer,
       },

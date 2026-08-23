@@ -1,21 +1,21 @@
--- Orbit Ceramic — PHASE 1 schema only
--- Content CMS: batches/products, about + reviews, media uploads
--- Header nav + footer stay in site-content.json (NOT in DB)
--- Batch-centric: batch → products → images; batch → journey images + 1 video; batch → highlights
--- Journey videos support either an external linked video_url or an uploaded video_media_id.
--- Files live on disk; `media` stores metadata; child rows use media_id (+ denormalized url)
--- NO cart, orders, payments, or customers
--- Target: MySQL 8 / MariaDB 10.5+ (Hostinger)
--- Charset: utf8mb4
---
--- Import this file for Phase 1.
+<?php
 
+declare(strict_types=1);
+
+/**
+ * V001__InitialSchema
+ *
+ * Phase 1 content CMS schema (initial database).
+ * Never edit after apply — create a new migration instead.
+ */
+
+return [
+    'type' => 'schema',
+    'description' => 'Initial Phase 1 schema (sites, batches, products, media, pages, admin auth)',
+    'irreversible' => true,
+    'up' => <<<'SQL'
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
-
--- ---------------------------------------------------------------------------
--- Site + contact (nav/footer are static JSON — not stored here)
--- ---------------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS sites (
   id              VARCHAR(64)  NOT NULL,
@@ -27,10 +27,6 @@ CREATE TABLE IF NOT EXISTS sites (
   updated_at      TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ---------------------------------------------------------------------------
--- Admin authentication (password hashes + revocable database sessions)
--- ---------------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS admin_users (
   id            VARCHAR(64)  NOT NULL,
@@ -76,10 +72,6 @@ CREATE TABLE IF NOT EXISTS contacts (
     ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ---------------------------------------------------------------------------
--- Media (files on disk; PHP API uploads write here)
--- ---------------------------------------------------------------------------
-
 CREATE TABLE IF NOT EXISTS media (
   id            VARCHAR(64)     NOT NULL,
   site_id       VARCHAR(64)     NOT NULL,
@@ -96,11 +88,6 @@ CREATE TABLE IF NOT EXISTS media (
   CONSTRAINT fk_p1_media_site FOREIGN KEY (site_id) REFERENCES sites (id)
     ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ---------------------------------------------------------------------------
--- Batches + products
--- Delete batch → cascades products, colors, images, journey, highlights
--- ---------------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS batches (
   id                  VARCHAR(64)  NOT NULL,
@@ -124,11 +111,6 @@ CREATE TABLE IF NOT EXISTS batches (
   CONSTRAINT fk_p1_batches_site FOREIGN KEY (site_id) REFERENCES sites (id)
     ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-ALTER TABLE sites
-  ADD CONSTRAINT fk_p1_sites_active_batch
-    FOREIGN KEY (active_batch_id) REFERENCES batches (id)
-    ON UPDATE CASCADE ON DELETE SET NULL;
 
 CREATE TABLE IF NOT EXISTS products (
   id          VARCHAR(64)    NOT NULL,
@@ -175,10 +157,6 @@ CREATE TABLE IF NOT EXISTS product_images (
   CONSTRAINT fk_p1_images_media FOREIGN KEY (media_id) REFERENCES media (id)
     ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ---------------------------------------------------------------------------
--- Journey + hero highlights (owned by batch)
--- ---------------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS journey_videos (
   id              VARCHAR(64)   NOT NULL,
@@ -234,10 +212,6 @@ CREATE TABLE IF NOT EXISTS hero_highlight_images (
   CONSTRAINT fk_p1_hero_highlights_media FOREIGN KEY (media_id) REFERENCES media (id)
     ON UPDATE CASCADE ON DELETE RESTRICT
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
--- ---------------------------------------------------------------------------
--- Page copy
--- ---------------------------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS page_about (
   site_id         VARCHAR(64)   NOT NULL,
@@ -332,12 +306,29 @@ CREATE TABLE IF NOT EXISTS page_batch_shop (
     ON UPDATE CASCADE ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ---------------------------------------------------------------------------
--- Tables created (Phase 1): 21
--- sites, admin_users, admin_sessions, contacts, media,
--- batches, products, product_colors, product_images,
--- journey_videos (1 per batch), journey_images, hero_highlight_images,
--- page_about, reviews,
--- page_collections, page_journey, page_batch_shop, leads
--- NOT in DB: nav_links, page_footer, footer_explore_links, footer_social_links
--- ---------------------------------------------------------------------------
+SET FOREIGN_KEY_CHECKS = 1;
+SQL,
+    'down' => <<<'SQL'
+-- IRREVERSIBLE: drops all Phase 1 content tables. Requires --force.
+SET FOREIGN_KEY_CHECKS = 0;
+DROP TABLE IF EXISTS page_batch_shop;
+DROP TABLE IF EXISTS page_journey;
+DROP TABLE IF EXISTS page_collections;
+DROP TABLE IF EXISTS reviews;
+DROP TABLE IF EXISTS page_reviews;
+DROP TABLE IF EXISTS page_about;
+DROP TABLE IF EXISTS hero_highlight_images;
+DROP TABLE IF EXISTS journey_images;
+DROP TABLE IF EXISTS journey_videos;
+DROP TABLE IF EXISTS product_images;
+DROP TABLE IF EXISTS product_colors;
+DROP TABLE IF EXISTS products;
+DROP TABLE IF EXISTS batches;
+DROP TABLE IF EXISTS media;
+DROP TABLE IF EXISTS contacts;
+DROP TABLE IF EXISTS admin_sessions;
+DROP TABLE IF EXISTS admin_users;
+DROP TABLE IF EXISTS sites;
+SET FOREIGN_KEY_CHECKS = 1;
+SQL,
+];

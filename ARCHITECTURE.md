@@ -1,283 +1,91 @@
 # Orbit Project Architecture
 
-## 1. Project overview
+> Full project context (routes, API inventory, batch scheduling, **migrations**, gaps): **[`CONTEXT.md`](CONTEXT.md)**.
 
-This project is a full-stack digital storefront and admin system for Orbit Ceramic.
+## Overview
 
-It is split into three main parts:
+Orbit Ceramic is a three-layer system:
 
-- Frontend: Angular application in `src/`
-- Backend API: PHP service in `orbit-api/`
-- Static content and schema files: `public/data/` and `public/images/`
-
-The app is designed to separate:
-
-- customer-facing storefront UI
-- admin/content management workflows
-- database-backed API access
-- static brand/content configuration
-
----
-
-## 2. High-level architecture
+- **Angular frontend** (`src/app/`) — storefront + admin CMS
+- **PHP API** (`orbit-api/`) — REST endpoints over MySQL
+- **Hybrid content** — dynamic catalog in DB; nav/footer (and hero defaults) in `public/data/site-content.json`
 
 ```text
-Angular Frontend (src/app)
-        |
-        | HTTP requests
-        v
-PHP API (orbit-api/src + public)
-        |
-        | MySQL queries
-        v
-MySQL Database
-        |
-        | media files / uploads
-        v
-public/uploads/ and public/images/
+Angular (4200)  ──proxy /api──►  PHP API (8080)  ──PDO──►  MySQL
+       │                              │                      ▲
+       └── site-content.json          └── public/uploads/    │
+                                                             │
+                              php bin/database migrate ──────┘
+                              (orbit-api/database/migrations)
 ```
 
-The frontend is the customer-facing presentation layer. The PHP API exposes data for batches, products, pages, contact info, leads, and media. Static branding/chrome such as nav and footer remains in Angular-side content config, while dynamic content is served from the API and database.
+## Frontend structure
 
----
+| Area | Path | Role |
+|------|------|------|
+| Public pages | `src/app/pages/` | home, batch, collections, journey, about |
+| Components | `src/app/components/` | hero, batch, collections, journey, chrome |
+| Admin CMS | `src/app/admin/` | login, dashboard, site, batches, about, reviews |
+| Models | `src/app/data/site-content.model.ts` | DB types + `assembleSiteContent()` |
+| API client | `src/app/config/api.config.ts` | Base URL + site id |
 
-## 3. Frontend architecture
+Admin is lazy-loaded at `/admin`. Batch editing (`/admin/batches/:id`) is the primary launch CMS — schedule, products, journey media, hero highlights, atomic save.
 
-### Main app folder
+## Backend structure
 
-`src/app` contains the Angular application structure.
+| Area | Path | Role |
+|------|------|------|
+| Entry | `orbit-api/public/index.php` | Routes + CORS + dispatch |
+| Controllers | `orbit-api/src/Controllers/` | HTTP handlers |
+| Repositories | `orbit-api/src/Repositories/` | SQL (`ContentRepository`, `AdminRepository`) |
+| Auth | `orbit-api/src/AdminAuth.php` | Username/password sessions (Bearer tokens) |
+| DB connection | `orbit-api/src/Database.php` | PDO (+ create empty DB if missing) |
+| Migrations | `orbit-api/src/Migration/` | Runner, history, SQL executor |
+| Migration CLI | `orbit-api/bin/database` | `status` / `migrate` / `create` / `rollback` |
+| Migration files | `orbit-api/database/migrations/` | **Source of truth** for schema + seeds |
 
-Key folders:
+## Data & migrations
 
-- `app/` – root app bootstrap and configuration
-- `components/` – reusable storefront UI components
-  - `hero`
-  - `collections`
-  - `journey`
-  - `batch`
-  - `site-header`
-  - `site-footer`
-- `pages/` – page-level screens for the public site
-  - `home`
-  - `about`
-  - `collections`
-  - `journey`
-  - `studio`
-  - `batch`
-  - `view-all`
-- `services/` – shared application services
-  - `site-content.service.ts`
-  - `launch-celebration.service.ts`
-- `data/` – TypeScript models and shared content interfaces
-- `config/` – API configuration and environment-related settings
-- `directives/` – reusable Angular directives
+| Concern | Location |
+|---------|----------|
+| **Schema + seed (source of truth)** | `orbit-api/database/migrations/V00x__*.php` |
+| History table | MySQL `database_migrations` |
+| Migration docs | [`orbit-api/database/README.md`](orbit-api/database/README.md) |
+| Deploy secrets guide | [`orbit-api/database/DEPLOY.md`](orbit-api/database/DEPLOY.md) |
+| CI workflow | [`.github/workflows/main.yml`](.github/workflows/main.yml) |
+| Entity / API docs | `public/data/API-CATALOG.md`, `CONTENT-SCHEMA.md`, `PHASE-1-DB.md` |
 
-### Admin area
+```bat
+cd orbit-api
+php bin\database migrate
+php bin\database migration:create DescribeChange
+```
 
-The admin system is separated under `src/app/admin/`.
+Never edit an applied migration. All schema and seed changes go through new `V0xx` files.
 
-This section includes:
-
-- admin routing and layout
-- management pages
-- batch and product management screens
-- leads and page-copy editing tools
-- API connection logic for admin operations
-
-Important files:
-
-- `src/app/admin/admin.routes.ts`
-- `src/app/admin/admin-api.service.ts`
-- `src/app/admin/admin-db.service.ts`
-- `src/app/admin/layout/`
-- `src/app/admin/pages/`
-
-This indicates the project includes a dedicated CMS/admin workflow, not just a public storefront.
-
----
-
-## 4. Backend architecture
-
-The PHP backend sits in `orbit-api/` and is designed as a separate API service.
-
-### Core folders
-
-- `orbit-api/public/` – entry points for the web server
-  - `index.php`
-  - `router.php`
-- `orbit-api/src/Controllers/` – request handlers for API endpoints
-  - `BatchController.php`
-  - `ProductController.php`
-  - `PageController.php`
-  - `SiteController.php`
-  - `ContactController.php`
-  - `LeadsController.php`
-  - `MediaController.php`
-  - `AdminController.php`
-- `orbit-api/src/Repositories/` – business/data access logic
-  - `AdminRepository.php`
-  - `ContentRepository.php`
-- `orbit-api/src/Database.php` – database connection
-- `orbit-api/src/Router.php` – route dispatching
-- `orbit-api/src/Response.php` – structured API responses
-- `orbit-api/src/helpers.php` – helper functions
-
-### API purpose
-
-The backend provides endpoints for:
-
-- site configuration
-- batch data
-- products and catalog data
-- page copy sections
-- contact information
-- lead capture
-- media uploads
-- admin authentication and management
-
-The README in `orbit-api/README.md` describes a phase-based API model, with public storefront endpoints and admin-managed data routes.
-
----
-
-## 5. Data and content architecture
-
-### Database layer
-
-The project uses a MySQL database with schema and seed files under:
-
-- `public/data/schema.sql`
-- `public/data/schema-phase1.sql`
-- `orbit-api/sql/seed-phase1.sql`
-
-This is where core data like:
-
-- batches
-- products
-- site settings
-- reviews
-- media metadata
-- contact info
-- page sections
-- lead records
-
-is stored.
-
-### Static content layer
-
-The project also contains structured content files:
-
-- `public/data/site-content.json` – static site chrome and content references
-- `public/data/API-CATALOG.md` – API documentation
-- `public/data/ADMIN.md` – admin workflow guidance
-- `public/data/CONTENT-SCHEMA.md` – content schema notes
-
-These files help define the site’s content model and support CMS-like management.
-
-### Media assets
-
-Files and uploaded images are stored in:
-
-- `public/images/`
-- `orbit-api/public/uploads/`
-
-This separation indicates that static assets are versioned in the repo, while uploaded media is served from the API/public upload area.
-
----
-
-## 6. Frontend-to-backend flow
-
-A typical user flow is:
-
-1. Angular app loads the storefront UI.
-2. Frontend requests data from the PHP API.
-3. PHP controller loads data from database repositories.
-4. API returns JSON to Angular.
-5. Angular renders the page, products, batch info, contact details, and content sections.
-
-For admin operations:
-
-1. Admin panel calls admin API endpoints.
-2. API validates the API key or auth token.
-3. Updates are written to the database or media storage.
-4. Frontend reflects the updated data after refresh or re-fetch.
-
----
-
-## 7. Key architectural patterns
-
-### Separation of concerns
-
-- UI logic stays in Angular components
-- API logic stays in PHP controllers and repositories
-- Data persistence stays in MySQL
-- static configuration stays in JSON and schema files
-
-### Modular structure
-
-The app is organized by feature area rather than by file type alone.
-
-Examples:
-
-- `pages/` for user-facing screens
-- `admin/pages/` for admin operations
-- `components/` for reusable blocks
-- `controllers/` and `repositories/` for backend logic
-
-### Hybrid content model
-
-The app mixes:
-
-- database-driven dynamic content
-- JSON-based site chrome/content config
-- static media files in `public/images/`
-- uploaded media in the API `uploads` directory
-
-This is a common pattern for content-heavy storefronts.
-
----
-
-## 8. Development workflow
-
-### Frontend development
-
-From root:
+## Development
 
 ```bash
-npm install
+# Migrate first (once / after new V00x files)
+cd orbit-api && php bin/database migrate
+
+# API (from orbit-api/public, router.php required)
+php -S localhost:8080 router.php
+
+# Frontend (proxies /api → :8080)
 npm start
 ```
 
-The Angular app runs with the CLI and serves the storefront at the default Angular dev server.
+## Deployment
 
-### Backend development
-
-The PHP API is usually run separately with its local server script or PHP built-in server.
-
-Examples from `orbit-api/README.md`:
-
-```bash
-cd orbit-api
-run-local.bat
+```text
+Build → Deploy API → php bin/database migrate → Deploy Angular → Start
 ```
 
-or
+## Phases
 
-```bash
-cd orbit-api/public
-php -S localhost:8080 router.php
-```
+1. **Now** — Content DB, bootstrap, admin CMS, WhatsApp checkout, versioned migrations
+2. **Next** — Guest cart (add as new `V0xx` migrations)
+3. **Later** — Orders, COD, customer accounts
 
-This means the frontend and backend are intentionally separate development services.
-
----
-
-## 9. Summary
-
-The Orbit project is a multi-layer architecture:
-
-- Angular frontend for presentation and admin UI
-- PHP backend for APIs and business logic
-- MySQL database for persistent content and commerce data
-- static and uploaded media assets for product and brand visuals
-
-This structure supports a storefront plus an admin/content-management workflow, and it keeps the UI, API, and storage concerns clearly separated.
+Details: [`CONTEXT.md`](CONTEXT.md) §9 / §11 / §12 and [`public/data/API-CATALOG.md`](public/data/API-CATALOG.md).

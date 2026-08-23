@@ -160,6 +160,9 @@ final class AdminController
             $siteId = $this->siteId();
             $batchId = (string) $params['id'];
 
+            // Reject LIVE batches before accepting uploads (UI + race protection).
+            $this->admin->rejectIfBatchLive($siteId, $batchId);
+
             if ($this->isMultipartRequest()) {
                 $multipart = $this->parseMultipartRequest();
                 $payload = $this->parseMultipartPayload($multipart['post']);
@@ -510,6 +513,7 @@ final class AdminController
             'collections' => $this->content->getPageCollections($siteId),
             'journey' => $this->content->getPageJourney($siteId),
             'batch-shop' => $this->content->getPageBatchShop($siteId),
+            'countdown' => $this->content->getPageCountdown($siteId),
             default => null,
         };
         if ($data === null) {
@@ -530,6 +534,7 @@ final class AdminController
                 'collections' => $this->admin->putPageCollections($siteId, $body),
                 'journey' => $this->admin->putPageJourney($siteId, $body),
                 'batch-shop' => $this->admin->putPageBatchShop($siteId, $body),
+                'countdown' => $this->admin->putPageCountdown($siteId, $body),
                 default => throw new RuntimeException('Unknown section', 404),
             };
             Response::json($data);

@@ -41,7 +41,7 @@ const CONFETTI_PIECES = Array.from({ length: 36 }, (_, i) => i + 1);
 
 @Component({
   selector: 'app-batch',
-  imports: [BatchCelebration, BatchLive, JsonPipe],
+  imports: [BatchCelebration, BatchLive],
   host: { class: 'block' },
   templateUrl: './batch.html',
   styleUrl: './batch.css',

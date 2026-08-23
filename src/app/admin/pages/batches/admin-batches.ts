@@ -73,14 +73,7 @@ export class AdminBatchesPage {
     this.confirmationService.confirm({
       message: confirmMessage,
       accept: () => {
-        const updated = {
-          ...batch,
-          soldOut,
-          products: batch.products.map((product) => ({ ...product, soldOut })),
-        };
-
-        this.adminDb.upsertBatch(updated);
-        this.adminDb.saveBatch(batchId).subscribe({
+        this.adminDb.setBatchSoldOut(batchId, soldOut).subscribe({
           next: () => {
             this.messageService.add({
               severity: 'success',
@@ -119,8 +112,7 @@ export class AdminBatchesPage {
     this.confirmationService.confirm({
       message: confirmMessage,
       accept: () => {
-        this.adminDb.upsertProduct(batchId, { ...product, soldOut });
-        this.adminDb.saveBatch(batchId).subscribe({
+        this.adminDb.setProductSoldOut(batchId, productId, soldOut).subscribe({
           next: () => {
             this.messageService.add({
               severity: 'success',
@@ -141,6 +133,7 @@ export class AdminBatchesPage {
       },
       reject: () => {
         this.adminDb.upsertProduct(batchId, { ...product, soldOut: !soldOut });
+        this.adminDb.dirty.set(false);
       },
     });
 
@@ -186,6 +179,16 @@ export class AdminBatchesPage {
   }
 
   protected deleteBatch(id: string, label: string): void {
+    const batch = this.db()?.batches.find((b) => b.id === id);
+    if (batch && this.isLive(batch.launchAt)) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Read only',
+        detail: 'This batch is currently LIVE and cannot be modified.',
+        life: 4500,
+      });
+      return;
+    }
     this.confirmationService.confirm({
       message: `Delete ${label} and its products / linked media?`,
       accept: () => {
