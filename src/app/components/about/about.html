@@ -27,17 +27,13 @@
     </div>
 
     <figure class="m-0 w-full min-w-0 overflow-hidden" appReveal>
-      <picture>
-        <source srcset="/images/about/about-01.webp" type="image/webp" />
-        <img
-          class="aspect-4/5 w-full max-w-full object-cover"
-          [src]="content().image"
-          [alt]="content().imageAlt"
-          width="1200"
-          height="1500"
-          loading="lazy"
-        />
-      </picture>
+      <img
+        class="aspect-4/5 w-full max-w-full object-cover"
+        [src]="content().image"
+        width="1200"
+        height="1500"
+        loading="lazy"
+      />
     </figure>
   </div>
 </section>
@@ -52,13 +48,13 @@
         <p
           class="mb-2 text-[clamp(0.7rem,1.6vw,0.75rem)] font-medium tracking-[0.14em] text-stone-500 uppercase"
         >
-          {{ content().reviewsEyebrow }}
+         Client voices
         </p>
         <h2
           class="font-display m-0 text-[clamp(1.45rem,3.2vw,2.15rem)] font-medium tracking-[-0.02em] text-stone-900"
           id="reviews-heading"
         >
-          {{ content().reviewsHeading }}
+          What collectors say
         </h2>
       </div>
 
@@ -71,23 +67,21 @@
               >
                 <figure
                   class="m-0 flex size-[clamp(4.75rem,14vw,6.5rem)] shrink-0 items-center justify-center overflow-hidden rounded-full bg-stone-300 text-stone-700"
-                  [attr.aria-label]="reviewImageAlt(review)"
                 >
                   @if (hasReviewPhoto(review)) {
                     <img
                       class="size-full object-cover"
                       [src]="reviewImage(review)"
-                      [alt]="reviewImageAlt(review)"
                       width="220"
                       height="220"
                       loading="lazy"
                     />
                   } @else {
-                    <mat-icon
-                      class="review-avatar-icon text-stone-700"
-                      [svgIcon]="reviewAvatarIcon(review)"
+                    <span
+                      class="review-avatar-icon flex size-full items-center justify-center text-stone-700"
                       aria-hidden="true"
-                    ></mat-icon>
+                      [innerHTML]="reviewAvatarIconSvg(review)"
+                    ></span>
                   }
                 </figure>
 
@@ -98,13 +92,14 @@
                   >
                     <div class="review-stars flex items-center gap-0.5" aria-hidden="true">
                       @for (star of starSlots; track star) {
-                        <mat-icon
+                        <span
                           class="review-star-icon"
                           [class.review-star-icon--filled]="isStarFilled(review, star)"
                           [class.review-star-icon--empty]="!isStarFilled(review, star)"
+                          aria-hidden="true"
                         >
-                          {{ isStarFilled(review, star) ? 'star' : 'star_border' }}
-                        </mat-icon>
+                          {{ isStarFilled(review, star) ? '★' : '☆' }}
+                        </span>
                       }
                     </div>
                     <span class="text-[0.75rem] font-semibold tracking-[0.08em] text-stone-500 uppercase">

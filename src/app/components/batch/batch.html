@@ -1,7 +1,20 @@
+@if (celebrationOpen()) {
+  <app-batch-celebration
+    [content]="content()"
+    (dismiss)="dismissCelebration()"
+  ></app-batch-celebration>
+  <div class="batch-confetti pointer-events-none fixed inset-0 z-[190] overflow-hidden" aria-hidden="true">
+    @for (i of confettiPieces; track i) {
+      <span class="batch-confetti__piece" [style.--i]="i"></span>
+    }
+  </div>
+}
+
 <section
   [class]="sectionClass()"
   aria-labelledby="batch-heading"
 >
+
   @if (!live()) {
     <div class="mx-auto mb-0 max-w-[1200px]">
       <p class="mb-3 text-xs font-medium tracking-[0.14em] text-stone-700 uppercase">
@@ -81,218 +94,17 @@
   }
 
   @if (live() && !timerOnly()) {
-    <div class="mx-auto mb-11 max-w-[1200px]" appReveal>
-      <p class="mb-3 text-xs font-medium tracking-[0.14em] text-stone-700 uppercase">
-        {{ content().shop.eyebrow }}
-      </p>
-      <p
-        class="font-display mb-2.5 text-[clamp(1.15rem,2vw,1.45rem)] font-medium tracking-[0.04em] text-stone-900"
-      >
-        {{ content().label }} · {{ content().soldOut ? 'Sold out' : 'Live' }}
-      </p>
-      <h2
-        class="font-display mb-4 max-w-[16ch] text-[clamp(2.25rem,4.5vw,3.35rem)] font-medium leading-[1.05] tracking-[-0.02em] text-stone-900"
-        id="batch-heading"
-      >
-        {{ content().shop.heading }}
-      </h2>
-      <p class="m-0 max-w-[44ch] text-[1.05rem] leading-[1.65] text-stone-700">
-        {{ content().shop.lede }}
-      </p>
-      @if (content().soldOut) {
-        <p class="mt-4 mb-5 max-w-[44ch] text-[0.95rem] leading-[1.55] text-stone-700">
-          This firing is sold out. Browse the archive in Collections — same design can be remade with
-          different colors.
-        </p>
-        <a
-          class="inline-flex items-center justify-center self-start border border-stone-900 bg-stone-900 px-[1.15rem] py-3 text-xs font-semibold tracking-[0.1em] text-surface uppercase transition-[background,color] duration-250 hover:bg-transparent hover:text-stone-900"
-          routerLink="/collections"
-          >Open collections</a
-        >
-      }
-    </div>
-
-    <div
-      class="batch-reveal mx-auto grid max-w-[1200px] grid-cols-1 gap-x-5 gap-y-8 sm:grid-cols-2 min-[980px]:gap-x-7 min-[980px]:gap-y-10"
-      appReveal
-    >
-      @for (product of content().items; track product.id) {
-        <article class="group flex flex-col gap-[0.95rem]">
-          <div class="relative overflow-hidden bg-stone-300">
-            <button
-              type="button"
-              class="block w-full cursor-zoom-in border-0 bg-transparent p-0"
-              (click)="openLightbox(product)"
-              [attr.aria-label]="'Expand photos of ' + product.name"
-            >
-              <img
-                class="aspect-4/5 w-full object-cover transition-transform duration-700 ease-[cubic-bezier(0.22,1,0.36,1)] group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-                [src]="product.images[photoIndex(product.id)]"
-                [alt]="product.alt + ' — photo ' + (photoIndex(product.id) + 1)"
-                width="1080"
-                height="1350"
-                loading="lazy"
-              />
-            </button>
-
-            @if (isUnavailable(product)) {
-              <span
-                class="pointer-events-none absolute top-3.5 left-3.5 z-[2] border border-stone-900/20 bg-surface/90 px-2.5 py-1.5 text-[0.65rem] font-semibold tracking-[0.12em] text-stone-900 uppercase"
-              >
-                Out of stock
-              </span>
-            }
-            @if (product.images.length > 1) {
-              <button
-                type="button"
-                class="absolute top-1/2 left-2.5 z-[2] grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border-0 bg-surface/90 text-[1.35rem] leading-none text-stone-900 transition-colors hover:bg-surface"
-                (click)="prevPhoto(product, $event)"
-                [attr.aria-label]="'Previous photo of ' + product.name"
-              >
-                ‹
-              </button>
-              <button
-                type="button"
-                class="absolute top-1/2 right-2.5 z-[2] grid h-9 w-9 -translate-y-1/2 place-items-center rounded-full border-0 bg-surface/90 text-[1.35rem] leading-none text-stone-900 transition-colors hover:bg-surface"
-                (click)="nextPhoto(product, $event)"
-                [attr.aria-label]="'Next photo of ' + product.name"
-              >
-                ›
-              </button>
-
-              <div
-                class="absolute inset-x-0 bottom-3 z-[2] flex justify-center gap-1.5"
-                role="tablist"
-                [attr.aria-label]="product.name + ' photos'"
-              >
-                @for (image of product.images; track image; let i = $index) {
-                  <button
-                    type="button"
-                    class="h-[0.45rem] w-[0.45rem] cursor-pointer rounded-full border-0 p-0"
-                    [class.bg-surface]="photoIndex(product.id) === i"
-                    [class.bg-surface/45]="photoIndex(product.id) !== i"
-                    (click)="setPhoto(product.id, i, $event)"
-                    [attr.aria-label]="'Show photo ' + (i + 1)"
-                    [attr.aria-selected]="photoIndex(product.id) === i"
-                  ></button>
-                }
-              </div>
-            }
-          </div>
-
-          <div class="flex flex-col gap-3.5">
-            <div class="flex items-baseline justify-between gap-4">
-              <h3 class="font-display m-0 text-[1.35rem] font-medium text-stone-900">
-                {{ product.name }}
-              </h3>
-              <p class="m-0 text-[0.9375rem] font-medium text-stone-700">
-                {{ content().shop.currencySymbol }} {{ product.price | number: '1.0-0' }}
-              </p>
-            </div>
-
-            <p class="m-0 text-[0.9rem] leading-[1.55] text-stone-700">{{ product.summary }}</p>
-
-            <dl class="m-0 grid gap-3">
-              <div class="grid gap-1.5">
-                <dt class="m-0 text-[0.7rem] font-semibold tracking-[0.12em] text-stone-500 uppercase">
-                  Dimensions
-                </dt>
-                <dd class="m-0 text-[0.9rem] leading-[1.45] text-stone-900">{{ product.dimensions }}</dd>
-              </div>
-              <div class="grid gap-1.5">
-                <dt class="m-0 text-[0.7rem] font-semibold tracking-[0.12em] text-stone-500 uppercase">
-                  Colors
-                </dt>
-                <dd class="m-0">
-                  <ul class="m-0 flex list-none flex-wrap gap-x-3.5 gap-y-2.5 p-0">
-                    @for (color of product.colors; track color.name) {
-                      <li class="inline-flex items-center gap-1.5 text-sm">
-                        <span
-                          class="h-3.5 w-3.5 shrink-0 border border-stone-900/25"
-                          [style.background]="color.hex"
-                          [attr.title]="color.name"
-                          aria-hidden="true"
-                        ></span>
-                        <span>{{ color.name }}</span>
-                      </li>
-                    }
-                  </ul>
-                </dd>
-              </div>
-            </dl>
-
-            @if (isUnavailable(product)) {
-              <p class="m-0 text-xs font-semibold tracking-[0.1em] text-stone-700 uppercase">
-                Out of stock
-              </p>
-              <div class="flex flex-wrap gap-2.5">
-                <button
-                  type="button"
-                  class="inline-flex cursor-not-allowed items-center justify-center border border-stone-900/35 bg-stone-900/35 px-[1.15rem] py-3 text-xs font-semibold tracking-[0.1em] text-white/70 uppercase"
-                  disabled
-                  aria-disabled="true"
-                >
-                  {{ content().shop.buyLabel }}
-                </button>
-                <a
-                  class="inline-flex items-center justify-center border border-stone-900 bg-stone-900 px-[1.15rem] py-3 text-xs font-semibold tracking-[0.1em] text-surface uppercase transition-[background,color] duration-250 hover:bg-transparent hover:text-stone-900"
-                  [href]="customUrl(product)"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Request similar design
-                </a>
-              </div>
-            } @else {
-              <a
-                class="inline-flex items-center justify-center self-start border border-stone-900 bg-stone-900 px-[1.15rem] py-3 text-xs font-semibold tracking-[0.1em] text-white uppercase transition-[background,color] duration-250 hover:bg-transparent hover:text-stone-900"
-                [href]="buyUrl(product)"
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                {{ content().shop.buyLabel }}
-              </a>
-            }
-          </div>
-        </article>
-      }
-    </div>
-  }
-
-  @if (celebrating()) {
-    <div
-      class="batch-celebrate fixed inset-0 z-[120] grid place-items-center bg-stone-950/80 p-6 backdrop-blur-[6px]"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="batch-celebrate-heading"
-    >
-      <div class="batch-celebrate-burst pointer-events-none absolute inset-0 overflow-hidden" aria-hidden="true">
-        @for (i of [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; track i) {
-          <span [style.--i]="i"></span>
-        }
-      </div>
-      <div
-        class="batch-celebrate-panel relative z-[1] max-w-md bg-surface px-7 py-9 text-center text-stone-900"
-      >
-        <p class="mb-3 text-xs font-medium tracking-[0.14em] text-stone-700 uppercase">
-          {{ content().label }}
-        </p>
-        <h3
-          class="font-display mb-3.5 text-[clamp(2rem,4vw,2.75rem)] font-medium leading-[1.05]"
-          id="batch-celebrate-heading"
-        >
-          {{ content().celebration.heading }}
-        </h3>
-        <p class="mb-6 text-base leading-[1.6] text-stone-700">{{ content().celebration.lede }}</p>
-        <button
-          type="button"
-          class="inline-block cursor-pointer border border-stone-900 bg-stone-900 px-[1.35rem] py-3.5 text-xs font-semibold tracking-[0.1em] text-surface uppercase hover:bg-transparent hover:text-stone-900"
-          (click)="dismissCelebration()"
-        >
-          View the batch
-        </button>
-      </div>
-    </div>
+    <app-batch-live
+      [content]="content()"
+      [photoIndex]="photoIndexFn"
+      [setPhoto]="setPhotoFn"
+      [prevPhoto]="prevPhotoFn"
+      [nextPhoto]="nextPhotoFn"
+      [openLightbox]="openLightboxFn"
+      [buyUrl]="buyUrlFn"
+      [customUrl]="customUrlFn"
+      [isUnavailable]="isUnavailableFn"
+    ></app-batch-live>
   }
 
   @if (lightboxProduct(); as product) {

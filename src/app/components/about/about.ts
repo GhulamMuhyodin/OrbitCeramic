@@ -8,8 +8,6 @@ import {
   input,
   signal,
 } from '@angular/core';
-import { MatIconModule, MatIconRegistry } from '@angular/material/icon';
-import { DomSanitizer } from '@angular/platform-browser';
 import { CarouselModule, OwlOptions } from 'ngx-owl-carousel-o';
 import { RevealDirective } from '../../directives/reveal';
 import { AboutContent, AboutReview } from '../../data/site-content.model';
@@ -24,7 +22,7 @@ const STAR_SLOTS = [1, 2, 3, 4, 5] as const;
 
 @Component({
   selector: 'app-about',
-  imports: [RevealDirective, MatIconModule, CarouselModule],
+  imports: [RevealDirective, CarouselModule],
   host: { class: 'block' },
   templateUrl: './about.html',
 })
@@ -62,18 +60,6 @@ export class About {
   };
 
   constructor() {
-    const iconRegistry = inject(MatIconRegistry);
-    const sanitizer = inject(DomSanitizer);
-
-    iconRegistry.addSvgIconLiteral(
-      'review-woman',
-      sanitizer.bypassSecurityTrustHtml(WOMAN_ICON_SVG),
-    );
-    iconRegistry.addSvgIconLiteral(
-      'review-man',
-      sanitizer.bypassSecurityTrustHtml(MAN_ICON_SVG),
-    );
-
     afterNextRender(() => {
       if (isPlatformBrowser(this.platformId)) {
         this.carouselReady.set(true);
@@ -85,23 +71,14 @@ export class About {
     return Boolean(review.image?.trim());
   }
 
-  protected reviewAvatarIcon(review: AboutReview): string {
-    return review.gender === 'woman' ? 'review-woman' : 'review-man';
+  protected reviewAvatarIconSvg(review: AboutReview): string {
+    return  MAN_ICON_SVG;
   }
 
   protected reviewImage(review: AboutReview): string {
     return review.image?.trim() ?? '';
   }
 
-  protected reviewImageAlt(review: AboutReview): string {
-    const photo = review.image?.trim();
-    if (photo && review.imageAlt?.trim()) {
-      return review.imageAlt;
-    }
-    return review.gender === 'woman'
-      ? `${review.name} — woman avatar`
-      : `${review.name} — man avatar`;
-  }
 
   protected reviewRating(review: AboutReview): number {
     const value = Number(review.rating);

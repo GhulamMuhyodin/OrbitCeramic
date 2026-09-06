@@ -1,9 +1,11 @@
-import { DecimalPipe, DOCUMENT } from '@angular/common';
+import { DOCUMENT, isPlatformBrowser, JsonPipe } from '@angular/common';
 import {
   Component,
   DestroyRef,
   HostListener,
   OnDestroy,
+  PLATFORM_ID,
+  afterNextRender,
   computed,
   effect,
   inject,
@@ -11,14 +13,17 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { interval } from 'rxjs';
-import { RevealDirective } from '../../directives/reveal';
+import { LaunchCelebrationService } from '../../services/launch-celebration.service';
+import { BatchCelebration } from './batch-celebration';
+import { BatchLive } from './batch-live';
 import {
   BatchContent,
   ProductItem,
   isBatchLive,
   isProductUnavailable,
+  isWithinLaunchCelebrationDay,
   whatsappBuyUrl,
   whatsappCustomDesignUrl,
 } from '../../data/site-content.model';
@@ -31,9 +36,12 @@ export interface CountdownParts {
   totalMs: number;
 }
 
+/** Decorative confetti pieces for the launch-day rain. */
+const CONFETTI_PIECES = Array.from({ length: 36 }, (_, i) => i + 1);
+
 @Component({
   selector: 'app-batch',
-  imports: [DecimalPipe, RevealDirective, RouterLink],
+  imports: [BatchCelebration, BatchLive],
   host: { class: 'block' },
   templateUrl: './batch.html',
   styleUrl: './batch.css',
@@ -42,6 +50,8 @@ export class Batch implements OnDestroy {
   private readonly document = inject(DOCUMENT);
   private readonly destroyRef = inject(DestroyRef);
   private readonly router = inject(Router);
+  private readonly platformId = inject(PLATFORM_ID);
+  private readonly launchCelebration = inject(LaunchCelebrationService);
 
   readonly content = input.required<BatchContent>();
   readonly brand = input.required<string>();
@@ -50,16 +60,46 @@ export class Batch implements OnDestroy {
   readonly timerOnly = input(false);
 
   protected readonly now = signal(Date.now());
-  protected readonly celebrating = signal(false);
+  /** Becomes true only in the browser after first paint (avoids SSR hydration hiding the popup). */
+  protected readonly browserReady = signal(false);
   protected readonly activeIndexes = signal<Record<string, number>>({});
   protected readonly lightboxProduct = signal<ProductItem | null>(null);
+  protected readonly confettiPieces = Array.from({ length: 36 }, (_, i) => i + 1);
 
-  protected readonly live = computed(() => isBatchLive(this.content().launchAt, this.now()));
+  protected readonly live = computed(
+    () => !this.content().soldOut && isBatchLive(this.content().launchAt, this.now()),
+  );
+
+  protected readonly photoIndexFn = (productId: string) => this.photoIndex(productId);
+  protected readonly setPhotoFn = (productId: string, index: number) => this.setPhoto(productId, index);
+  protected readonly prevPhotoFn = (product: ProductItem, event: Event) => this.prevPhoto(product, event);
+  protected readonly nextPhotoFn = (product: ProductItem, event: Event) => this.nextPhoto(product, event);
+  protected readonly openLightboxFn = (product: ProductItem) => this.openLightbox(product);
+  protected readonly buyUrlFn = (product: ProductItem) => this.buyUrl(product);
+  protected readonly customUrlFn = (product: ProductItem) => this.customUrl(product);
+  protected readonly isUnavailableFn = (product: ProductItem) => this.isUnavailable(product);
+
+  /** First 24 hours after launch. */
+  protected readonly celebrationDay = computed(() =>
+    isWithinLaunchCelebrationDay(this.content().launchAt, this.now()),
+  );
+
+  /**
+   * Home-only launch popup. Hidden after "View the batch" for this SPA session;
+   * shows again only after a full website reload.
+   */
+  protected readonly celebrationOpen = computed(
+    () =>
+      this.timerOnly() &&
+      this.browserReady() &&
+      this.celebrationDay() &&
+      !this.launchCelebration.isDismissed(this.content().id),
+  );
 
   protected readonly sectionClass = computed(() => {
     const timer = this.timerOnly();
     const isLive = this.live();
-    const celebrating = this.celebrating();
+    const celebrating = this.celebrationOpen();
 
     if (timer && isLive && !celebrating) {
       return 'hidden';
@@ -78,7 +118,9 @@ export class Batch implements OnDestroy {
 
   protected readonly countdown = computed((): CountdownParts => {
     const launch = Date.parse(this.content().launchAt);
-    const totalMs = Math.max(0, launch - this.now());
+    const totalMs = Number.isFinite(launch)
+      ? Math.max(0, launch - this.now())
+      : 0;
     const totalSeconds = Math.floor(totalMs / 1000);
     const days = Math.floor(totalSeconds / 86_400);
     const hours = Math.floor((totalSeconds % 86_400) / 3_600);
@@ -94,21 +136,45 @@ export class Batch implements OnDestroy {
     };
   });
 
-  private wasLive = false;
   private celebrationTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     interval(250)
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.tick());
+      .subscribe(() => this.now.set(Date.now()));
 
     effect(() => {
       const items = this.content().items;
       this.activeIndexes.set(Object.fromEntries(items.map((item) => [item.id, 0])));
     });
 
+    afterNextRender(() => {
+      this.browserReady.set(true);
+    });
+
+    // Lock body scroll while popup is open; auto-dismiss after 15s.
     effect(() => {
-      this.wasLive = isBatchLive(this.content().launchAt, this.now());
+      const open = this.celebrationOpen();
+      if (!isPlatformBrowser(this.platformId)) {
+        return;
+      }
+      if (open) {
+        this.document.body.style.overflow = 'hidden';
+        if (this.celebrationTimer) {
+          clearTimeout(this.celebrationTimer);
+        }
+        this.celebrationTimer = setTimeout(() => {
+          this.launchCelebration.dismiss(this.content().id);
+          this.unlockScroll();
+          this.celebrationTimer = null;
+        }, 15_000);
+      } else {
+        this.unlockScroll();
+        if (this.celebrationTimer) {
+          clearTimeout(this.celebrationTimer);
+          this.celebrationTimer = null;
+        }
+      }
     });
   }
 
@@ -121,13 +187,18 @@ export class Batch implements OnDestroy {
 
   @HostListener('document:keydown.escape')
   protected onEscape(): void {
+    if (this.celebrationOpen()) {
+      this.dismissCelebration();
+      return;
+    }
     if (this.lightboxProduct()) {
       this.closeLightbox();
     }
   }
 
   protected dismissCelebration(): void {
-    this.celebrating.set(false);
+    this.launchCelebration.dismiss(this.content().id);
+    this.unlockScroll();
     if (this.celebrationTimer) {
       clearTimeout(this.celebrationTimer);
       this.celebrationTimer = null;
@@ -178,6 +249,7 @@ export class Batch implements OnDestroy {
       product.price,
       this.content().shop.currencySymbol,
       this.content().label,
+      product.images[0],
     );
   }
 
@@ -194,30 +266,6 @@ export class Batch implements OnDestroy {
 
   protected isUnavailable(product: ProductItem): boolean {
     return isProductUnavailable(this.content(), product);
-  }
-
-  private tick(): void {
-    const stamp = Date.now();
-    const liveNow = isBatchLive(this.content().launchAt, stamp);
-    this.now.set(stamp);
-
-    if (liveNow && !this.wasLive) {
-      this.wasLive = true;
-      this.startCelebration();
-    } else if (liveNow) {
-      this.wasLive = true;
-    }
-  }
-
-  private startCelebration(): void {
-    this.celebrating.set(true);
-    if (this.celebrationTimer) {
-      clearTimeout(this.celebrationTimer);
-    }
-    this.celebrationTimer = setTimeout(() => {
-      this.celebrating.set(false);
-      this.celebrationTimer = null;
-    }, 8_000);
   }
 
   private pad(value: number): string {

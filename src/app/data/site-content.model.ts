@@ -12,21 +12,7 @@ export interface ContactInfo {
   email: string;
   instagram: string;
   instagramHandle: string;
-  visitLines: string[];
-  website?: string;
-}
-
-export interface HeroContent {
-  image: string;
-  brand: string;
-  /** Wordmark line 1 (e.g. Orbit). */
-  brandPrimary: string;
-  /** Wordmark line 2 (e.g. Ceramic). */
-  brandSecondary: string;
-  title: string;
-  lede: string;
-  ctaLabel: string;
-  ctaHref: string;
+  lineText: string;
 }
 
 export interface AboutReview {
@@ -36,11 +22,12 @@ export interface AboutReview {
   detail: string;
   /** Star rating from 1 to 5. */
   rating: number;
-  /** Optional photo; when empty, gender avatar is used. */
+  /** Optional photo; when empty, avatar is used. */
   image?: string;
-  imageAlt?: string;
-  /** Used for default avatar when image is missing. */
-  gender: 'woman' | 'man';
+  /** Optional backend media reference for the image. */
+  imageMediaId?: string;
+  /** UI sort order for review list rendering. */
+  sortOrder?: number;
 }
 
 export interface AboutContent {
@@ -48,10 +35,14 @@ export interface AboutContent {
   heading: string;
   paragraphs: string[];
   image: string;
-  imageAlt: string;
-  reviewsEyebrow: string;
-  reviewsHeading: string;
+  imageMediaId?: string;
   reviews: AboutReview[];
+  showOnWebsite: boolean;
+}
+
+export interface ReviewsContent {
+  eyebrow: string;
+  heading: string;
 }
 
 export interface CollectionsContent {
@@ -88,9 +79,18 @@ export interface BatchShopCopy {
   currencySymbol: string;
 }
 
+/** Site-level countdown / celebration copy (not per-batch). */
+export interface CountdownPageCopy {
+  countdownEyebrow: string;
+  countdownHeading: string;
+  countdownLede: string;
+  celebrationHeading: string;
+  celebrationLede: string;
+}
+
 export interface FooterSocialLink {
   label: string;
-  hrefKey: 'instagram' | 'email' | 'website';
+  hrefKey: 'instagram' | 'email' ;
 }
 
 export interface FooterContent {
@@ -108,6 +108,8 @@ export interface FooterContent {
 export interface SiteRow {
   id: string;
   brand: string;
+  image: string;
+  imageMediaId?: string;
   activeBatchId: string;
 }
 
@@ -130,6 +132,8 @@ export interface ProductImageEmbedded {
   id: string;
   url: string;
   sortOrder: number;
+  /** Future PHP media row id */
+  mediaId?: string;
 }
 
 /** Product belongs to a batch; owns many colors + many images. */
@@ -155,15 +159,13 @@ export interface BatchRow {
   launchDisplay: string;
   soldOut: boolean;
   sortOrder: number;
-  countdownEyebrow: string;
-  countdownHeading: string;
-  countdownLede: string;
-  celebrationHeading: string;
-  celebrationLede: string;
+  /** Days before/after launchAt when hero highlight images replace the default hero photo. */
+  heroWindowDays?: number;
   /** One batch → many products */
   products: ProductRow[];
 }
 
+/** One video per batch (DB UNIQUE batch_id). sortOrder kept for older JSON. */
 export interface JourneyVideoRow {
   id: string;
   batchId: string;
@@ -171,7 +173,9 @@ export interface JourneyVideoRow {
   lede: string;
   posterImage: string;
   videoUrl: string;
-  sortOrder: number;
+  sortOrder?: number;
+  posterMediaId?: string;
+  videoMediaId?: string;
 }
 
 /** Still photos for a batch journey (wheel → kiln story). */
@@ -181,6 +185,28 @@ export interface JourneyImageRow {
   url: string;
   alt: string;
   sortOrder: number;
+  mediaId?: string;
+}
+
+/** Dedicated hero backdrop + thumb images for a batch (FK = batchId). */
+export interface HeroHighlightImageRow {
+  id: string;
+  batchId: string;
+  url: string;
+  alt: string;
+  sortOrder: number;
+  mediaId?: string;
+}
+
+export interface HeroContent {
+  image: string;
+  brand: string;
+  brandPrimary: string;
+  brandSecondary: string;
+  title: string;
+  lede: string;
+  ctaLabel: string;
+  ctaHref: string;
 }
 
 export interface PageCopyTables {
@@ -189,6 +215,7 @@ export interface PageCopyTables {
   collections: CollectionsContent;
   journey: JourneyPageCopy;
   batchShop: BatchShopCopy;
+  countdown: CountdownPageCopy;
   footer: FooterContent;
 }
 
@@ -201,6 +228,7 @@ export interface SiteContentDb {
   batches: BatchRow[];
   journeyVideos: JourneyVideoRow[];
   journeyImages?: JourneyImageRow[];
+  heroHighlightImages?: HeroHighlightImageRow[];
   pageCopy: PageCopyTables;
 }
 
@@ -232,6 +260,8 @@ export interface BatchContent {
   launchAt: string;
   launchDisplay: string;
   soldOut: boolean;
+  /** Days before/after launch when hero highlight images apply. */
+  heroWindowDays: number;
   countdown: {
     eyebrow: string;
     heading: string;
@@ -254,16 +284,41 @@ export interface JourneyBatchCard {
   coverImage: string;
 }
 
+export interface HeroHighlightImage {
+  url: string;
+  alt: string;
+}
+
+/** Thumbs from heroHighlightImages table for scheduled / live / recent batches. */
+export interface HeroHighlightBatch {
+  batchId: string;
+  label: string;
+  status: 'scheduled' | 'live' | 'recent';
+  images: HeroHighlightImage[];
+  href: string;
+}
+
+const HERO_HIGHLIGHT_IMAGE_CAP = 4;
+/** Default days before/after launch when batch.heroWindowDays is omitted. */
+const DEFAULT_HERO_WINDOW_DAYS = 10;
+
 /** Hydrated view used by pages/components. */
 export interface SiteContent {
   brand: string;
   contact: ContactInfo;
   nav: NavLink[];
   hero: HeroContent;
+  heroHighlights: HeroHighlightBatch[];
   about: AboutContent;
   collections: CollectionsContent;
   journey: JourneyPageCopy;
+  /** Batch shop content for /batch — always the latest live batch when one exists. */
   batch: BatchContent;
+  /**
+   * Home countdown/celebration target.
+   * Prefers the next scheduled drop when one exists; otherwise same as batch.
+   */
+  homeBatch: BatchContent;
   batches: BatchContent[];
   journeyCards: JourneyBatchCard[];
   footer: FooterContent;
@@ -292,39 +347,68 @@ export function assembleSiteContent(db: SiteContentDb): SiteContent {
       images: bySort(product.images ?? []).map((i) => i.url),
     }));
 
+  const countdown = db.pageCopy.countdown ?? {
+    countdownEyebrow: '',
+    countdownHeading: '',
+    countdownLede: '',
+    celebrationHeading: '',
+    celebrationLede: '',
+  };
+
   const assembleBatch = (row: BatchRow): BatchContent => ({
     id: row.id,
     label: row.label,
     launchAt: row.launchAt,
     launchDisplay: row.launchDisplay,
     soldOut: row.soldOut,
+    heroWindowDays:
+      typeof row.heroWindowDays === 'number' && row.heroWindowDays >= 0
+        ? row.heroWindowDays
+        : DEFAULT_HERO_WINDOW_DAYS,
     countdown: {
-      eyebrow: row.countdownEyebrow,
-      heading: row.countdownHeading,
-      lede: row.countdownLede,
+      eyebrow: countdown.countdownEyebrow,
+      heading: countdown.countdownHeading,
+      lede: countdown.countdownLede,
     },
     celebration: {
-      heading: row.celebrationHeading,
-      lede: row.celebrationLede,
+      heading: countdown.celebrationHeading,
+      lede: countdown.celebrationLede,
     },
     shop: db.pageCopy.batchShop,
     items: assembleProducts(row.id, row.products),
   });
 
-  const batchRows = bySort(db.batches);
-  if (batchRows.length === 0) {
-    throw new Error('site-content.json must include at least one batch row.');
-  }
+  const batchRows = bySort(db.batches ?? []);
 
   const batches = batchRows.map(assembleBatch);
-  const active =
-    batches.find((b) => b.id === db.site.activeBatchId) ?? batches[0];
+  const active = batches.find((b) => b.id === db.site.activeBatchId) ?? batches[0] ?? {
+    id: '',
+    label: '',
+    launchAt: '',
+    launchDisplay: '',
+    soldOut: true,
+    heroWindowDays: DEFAULT_HERO_WINDOW_DAYS,
+    countdown: { eyebrow: '', heading: '', lede: '' },
+    celebration: { heading: '', lede: '' },
+    shop: db.pageCopy.batchShop,
+    items: [],
+  };
 
   const journeyImages = bySort(db.journeyImages ?? []);
+  const heroHighlightRows = bySort(db.heroHighlightImages ?? []);
+  const now = Date.now();
+  const scheduled = latestScheduledBatch(batches, now);
+  // Only one shop batch should be "live": the most recently launched (not sold out).
+  const latestLive = latestLaunchedBatch(batches, now);
+  const batchToShow = latestLive ?? scheduled ?? active;
+  // Home timer prefers the upcoming drop so countdown still works while a batch is live.
+  const homeBatch = scheduled ?? batchToShow;
 
   const journeyCards: JourneyBatchCard[] = batches
     .map((batch) => {
-      const videos = bySort(db.journeyVideos.filter((v) => v.batchId === batch.id));
+      const videos = [...(db.journeyVideos ?? []).filter((v) => v.batchId === batch.id)].sort(
+        (a, b) => (a.sortOrder ?? 0) - (b.sortOrder ?? 0),
+      );
       const images = journeyImages.filter((img) => img.batchId === batch.id);
       return {
         batch,
@@ -340,19 +424,179 @@ export function assembleSiteContent(db: SiteContentDb): SiteContent {
         isBatchLive(card.batch.launchAt),
     );
 
+  const heroHighlights = assembleHeroHighlights(batchToShow, batches, heroHighlightRows);
+  const heroImage = resolveHeroBackdropImage(
+    db.site.image || db.pageCopy.hero.image,
+    batchToShow,
+    batches,
+    heroHighlightRows,
+  );
+
   return {
     brand: db.site.brand,
     contact: db.contact,
     nav: bySort(db.navLinks).map(({ label, href }) => ({ label, href })),
-    hero: db.pageCopy.hero,
+    hero: {
+      ...db.pageCopy.hero,
+      image: heroImage,
+      ctaLabel: batchToShow.label ? `See ${batchToShow.label}` : 'See batch',
+      ctaHref: '/batch',
+    },
+    heroHighlights,
     about: db.pageCopy.about,
     collections: db.pageCopy.collections,
     journey: db.pageCopy.journey,
-    batch: active,
+    batch: batchToShow,
+    homeBatch,
     batches,
     journeyCards,
     footer: db.pageCopy.footer,
   };
+}
+
+function batchHeroImages(
+  batchId: string,
+  heroHighlightRows: HeroHighlightImageRow[],
+): HeroHighlightImage[] {
+  return heroHighlightRows
+    .filter((row) => row.batchId === batchId)
+    .slice(0, HERO_HIGHLIGHT_IMAGE_CAP)
+    .map((row) => ({
+      url: row.url,
+      alt: row.alt,
+    }));
+}
+
+/** True when now is within the batch hero window (before or after launch). */
+export function isWithinHeroLaunchWindow(
+  launchAt: string,
+  windowDays = DEFAULT_HERO_WINDOW_DAYS,
+  now = Date.now(),
+): boolean {
+  const launch = Date.parse(launchAt);
+  if (!Number.isFinite(launch)) {
+    return false;
+  }
+  const windowMs = Math.max(0, windowDays) * 24 * 60 * 60 * 1000;
+  return Math.abs(now - launch) <= windowMs;
+}
+
+function batchInHeroWindow(batch: BatchContent, now = Date.now()): boolean {
+  return isWithinHeroLaunchWindow(batch.launchAt, batch.heroWindowDays, now);
+}
+
+export function isBatchScheduled(launchAt: string, now = Date.now()): boolean {
+  const launch = Date.parse(launchAt);
+  return Number.isFinite(launch) && launch > now;
+}
+
+function latestScheduledBatch(batches: BatchContent[], now = Date.now()): BatchContent | undefined {
+  return [...batches]
+    .filter((b) => !b.soldOut && isBatchScheduled(b.launchAt, now))
+    .sort((a, b) => Date.parse(a.launchAt) - Date.parse(b.launchAt))[0];
+}
+
+function latestScheduledBatchInWindow(batches: BatchContent[], now = Date.now()): BatchContent | undefined {
+  return [...batches]
+    .filter((b) => !b.soldOut && isBatchScheduled(b.launchAt, now) && batchInHeroWindow(b, now))
+    .sort((a, b) => Date.parse(a.launchAt) - Date.parse(b.launchAt))[0];
+}
+
+/** Most recently launched batch that has already gone live (and is not sold out). */
+function latestLaunchedBatch(batches: BatchContent[], now = Date.now()): BatchContent | undefined {
+  return [...batches]
+    .filter((b) => !b.soldOut && isBatchLive(b.launchAt, now))
+    .sort((a, b) => Date.parse(b.launchAt) - Date.parse(a.launchAt))[0];
+}
+
+function latestLiveBatch(batches: BatchContent[], now = Date.now()): BatchContent | undefined {
+  return [...batches]
+    .filter((b) => !b.soldOut && isBatchLive(b.launchAt, now) && batchInHeroWindow(b, now))
+    .sort((a, b) => Date.parse(b.launchAt) - Date.parse(a.launchAt))[0];
+}
+
+/**
+ * Prefer first heroHighlightImages row for an in-window batch;
+ * otherwise keep the static hero image from pageCopy.
+ */
+function isHeroImageEligible(batch: BatchContent, now = Date.now()): boolean {
+  return !batch.soldOut && batchInHeroWindow(batch, now);
+}
+
+function resolveHeroBackdropImage(
+  defaultImage: string,
+  active: BatchContent,
+  batches: BatchContent[],
+  heroHighlightRows: HeroHighlightImageRow[],
+  now = Date.now(),
+): string {
+  const scheduled = latestScheduledBatch(batches, now);
+  if (scheduled) {
+    const scheduledImage = batchHeroImages(scheduled.id, heroHighlightRows)[0]?.url;
+    if (scheduledImage) {
+      return scheduledImage;
+    }
+  }
+
+  if (isHeroImageEligible(active, now)) {
+    const activeImage = batchHeroImages(active.id, heroHighlightRows)[0]?.url;
+    if (activeImage) {
+      return activeImage;
+    }
+  }
+
+  const recent = latestLiveBatch(batches, now);
+  if (recent && recent.id !== active.id && recent.id !== scheduled?.id) {
+    const recentImage = batchHeroImages(recent.id, heroHighlightRows)[0]?.url;
+    if (recentImage) {
+      return recentImage;
+    }
+  }
+
+  return defaultImage;
+}
+
+function assembleHeroHighlights(
+  active: BatchContent,
+  batches: BatchContent[],
+  heroHighlightRows: HeroHighlightImageRow[],
+  now = Date.now(),
+): HeroHighlightBatch[] {
+  const rows: HeroHighlightBatch[] = [];
+  const scheduled = latestScheduledBatchInWindow(batches, now);
+  const live = latestLaunchedBatch(batches, now);
+  const heroBatch = live ?? active;
+  const thumbCap = 2;
+
+  // Live first — primary shop signal on the home hero.
+  if (heroBatch && isHeroImageEligible(heroBatch, now) && heroBatch.id !== scheduled?.id) {
+    const images = batchHeroImages(heroBatch.id, heroHighlightRows).slice(0, thumbCap);
+    if (images.length > 0) {
+      rows.push({
+        batchId: heroBatch.id,
+        label: heroBatch.label,
+        status: isBatchLive(heroBatch.launchAt, now) ? 'live' : 'recent',
+        images,
+        href: '/batch',
+      });
+    }
+  }
+
+  // At most one upcoming drop — keeps the first viewport from stacking.
+  if (scheduled) {
+    const images = batchHeroImages(scheduled.id, heroHighlightRows).slice(0, thumbCap);
+    if (images.length > 0) {
+      rows.push({
+        batchId: scheduled.id,
+        label: scheduled.label,
+        status: 'scheduled',
+        images,
+        href: '/batch',
+      });
+    }
+  }
+
+  return rows;
 }
 
 export function whatsappBuyUrl(
@@ -362,10 +606,14 @@ export function whatsappBuyUrl(
   price: number,
   currencySymbol: string,
   batchLabel?: string,
+  productImageUrl?: string,
 ): string {
   const formatted = price.toLocaleString('en-PK');
   const batch = batchLabel ? ` [${batchLabel}]` : '';
-  const message = `Hi ${brand}! I'd like to buy: ${productName}${batch} (${currencySymbol} ${formatted}).`;
+  const imageText = productImageUrl ? `\n\nImage: ${productImageUrl}` : '';
+  const message =
+    `Hi ${brand}! I'd like to buy: ${productName}${batch} (${currencySymbol} ${formatted}).` +
+    imageText;
   return `https://wa.me/${whatsapp}?text=${encodeURIComponent(message)}`;
 }
 
@@ -395,6 +643,33 @@ export function contactHref(contact: ContactInfo, key: FooterSocialLink['hrefKey
 export function isBatchLive(launchAt: string, now = Date.now()): boolean {
   const launch = Date.parse(launchAt);
   return Number.isFinite(launch) && now >= launch;
+}
+
+export type BatchScheduleStatus = 'scheduled' | 'live' | 'complete';
+
+export function getBatchScheduleStatus(
+  launchAt: string,
+  now = Date.now(),
+): BatchScheduleStatus {
+  const launch = Date.parse(launchAt);
+  if (!Number.isFinite(launch)) {
+    return 'scheduled';
+  }
+  if (now < launch) {
+    return 'scheduled';
+  }
+  return isWithinLaunchCelebrationDay(launchAt, now) ? 'live' : 'complete';
+}
+
+const LAUNCH_CELEBRATION_DAY_MS = 24 * 60 * 60 * 1000;
+
+/** True during the first 24 hours after launch (celebration / confetti window). */
+export function isWithinLaunchCelebrationDay(launchAt: string, now = Date.now()): boolean {
+  const launch = Date.parse(launchAt);
+  if (!Number.isFinite(launch) || now < launch) {
+    return false;
+  }
+  return now - launch < LAUNCH_CELEBRATION_DAY_MS;
 }
 
 /** Product is buyable only when neither the batch nor the product is sold out. */

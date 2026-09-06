@@ -1,22 +1,5 @@
 {
   "version": 1,
-  "site": {
-    "id": "site-orbit",
-    "brand": "Orbit Ceramic",
-    "activeBatchId": "batch-002"
-  },
-  "contact": {
-    "id": "contact-main",
-    "siteId": "site-orbit",
-    "whatsapp": "923227987366",
-    "email": "theorbitceramic@gmail.com",
-    "instagram": "https://instagram.com/orbitceramic",
-    "instagramHandle": "@orbitceramic",
-    "visitLines": [
-      "Anarkali",
-      "Lahore"
-    ]
-  },
   "navLinks": [
     {
       "id": "nav-1",
@@ -47,236 +30,21 @@
       "sortOrder": 4
     }
   ],
-  "batches": [
-    {
-      "id": "batch-001",
-      "label": "Batch-001",
-      "launchAt": "2026-07-26T17:51:00+05:00",
-      "launchDisplay": "July 26, 2026 · 5:51 PM PKT",
-      "soldOut": false,
-      "sortOrder": 1,
-      "countdownEyebrow": "Next drop",
-      "countdownHeading": "Batch-001 opens the kiln doors",
-      "countdownLede": "A limited firing of cups, bowls, plates, and vessels. The countdown ends at launch — then photos, details, and WhatsApp orders go live.",
-      "celebrationHeading": "Batch-001 is live",
-      "celebrationLede": "The drop is open. Explore each piece — summary, dimensions, and the colors fired into the clay.",
-      "products": [
-        {
-          "id": "product-orbit-shoes",
-          "name": "Orbit Shoes",
-          "price": 8000,
-          "description": "Everyday setup for a shoes with soft glaze and a comfortable hand feel.",
-          "summary": "A round shoes with a quiet lip and soft belly — made for morning coffee and slow sips.",
-          "dimensions": "H 06 cm × W 06 cm",
-          "alt": "Handmade ceramic shoes with soft glaze",
-          "sortOrder": 1,
-          "colors": [
-            {
-              "id": "pc-1",
-              "name": "Ash mist",
-              "hex": "#D3AD19",
-              "sortOrder": 1
-            },
-            {
-              "id": "pc-2",
-              "name": "Raw clay",
-              "hex": "#C7C1AD",
-              "sortOrder": 2
-            },
-            {
-              "id": "pc-3",
-              "name": "Clay",
-              "hex": "#24201F",
-              "sortOrder": 3
-            },
-            {
-              "id": "pc-2",
-              "name": "Raw clay",
-              "hex": "#3C3D37",
-              "sortOrder": 4
-            },
-            {
-              "id": "pc-3",
-              "name": "Clay",
-              "hex": "#202C14",
-              "sortOrder": 5
-            }
-          ],
-          "images": [
-            {
-              "id": "pi-1",
-              "url": "/images/products/orbit-b1-pod/orbit-pod-b1-01.jpeg",
-              "sortOrder": 1
-            },
-            {
-              "id": "pi-2",
-              "url": "/images/products/orbit-b1-pod/orbit-pod-b1-02.jpeg",
-              "sortOrder": 2
-            },
-            {
-              "id": "pi-3",
-              "url": "/images/products/orbit-b1-pod/orbit-pod-b1-03.jpeg",
-              "sortOrder": 3
-            },
-            {
-              "id": "pi-1",
-              "url": "/images/products/orbit-b1-pod/orbit-pod-b1-04.jpeg",
-              "sortOrder": 4
-            }
-          ],
-          "soldOut": false
-        }
-      ]
-    }
-  ],
-  "journeyVideos": [
-    {
-      "id": "jv-1",
-      "batchId": "batch-001",
-      "title": "Batch-001 shoes journey",
-      "lede": "From wheel to fire — the making of Batch-001.",
-      "posterImage": "/images/products/orbit-b1-pod/orbit-pod-b1-03.jpeg",
-      "videoUrl": "https://www.youtube.com/embed/ScMzIvxBSi4?autoplay=1&rel=0",
-      "sortOrder": 1
-    }
-  ],
-  "journeyImages": [
-    {
-      "id": "ji-b1-1",
-      "batchId": "batch-001",
-      "url": "/images/products/orbit-b1-pod/orbit-pod-b1-02.jpeg",
-      "alt": "Batch-001 — clay on the wheel",
-      "sortOrder": 1
-    }
-   ],
   "pageCopy": {
-    "hero": {
-      "image": "/images/hero/hero-01.jpg",
-      "brand": "Orbit Ceramic",
-      "brandPrimary": "Orbit",
-      "brandSecondary": "Ceramic",
-      "title": "Handmade forms for everyday ritual",
-      "lede": "Stone-fired vessels shaped slowly — cups, bowls, and tableware with a loft-born quiet.",
-      "ctaLabel": "See Batch-002",
-      "ctaHref": "/batch"
-    },
-    "about": {
-      "eyebrow": "The maker",
-      "heading": "Mr. Ghulam Jilani",
-      "paragraphs": [
-        "I am a ceramic artist and clay craftsman with a deep passion for transforming raw clay into timeless works of art. My work is inspired by traditional pottery, antique forms, natural textures, and the quiet beauty found in handmade objects. Every piece I create is shaped by hand, allowing each bowl, vase, platter, mug, and decorative sculpture to carry its own unique character and story.",
-        "I specialize in handcrafted ceramic bowls, antique-inspired pottery, decorative clay art, custom ceramic pieces, and artisan home décor. My goal is to create heirloom-quality ceramics that celebrate the beauty of imperfection, the richness of traditional craftsmanship, and the lasting connection between the artist, the material, and the people who use my work."
-      ],
-      "image": "/images/about/about-01.jpg",
-      "imageAlt": "Handmade ceramic vessels arranged in a loft studio",
-      "reviewsEyebrow": "Client voices",
-      "reviewsHeading": "What collectors say",
-      "reviews": [
-        {
-          "id": "review-1",
-          "quote": "The cup feels quiet in the hand — soft glaze, honest weight. It has become my morning ritual piece.",
-          "name": "Ayesha R.",
-          "detail": "Lahore · Batch-001",
-          "gender": "woman",
-          "rating": 5,
-          "image": "",
-          "imageAlt": ""
-        },
-        {
-          "id": "review-2",
-          "quote": "We ordered a custom glaze on the same form. The studio listened carefully and the piece arrived exactly as imagined.",
-          "name": "Hassan M.",
-          "detail": "Islamabad · Made to order",
-          "gender": "man",
-          "rating": 5,
-          "image": "",
-          "imageAlt": ""
-        },
-        {
-          "id": "review-3",
-          "quote": "You can see the maker in every edge. Not factory polish — real clay character. Worth the wait for the drop.",
-          "name": "Sara K.",
-          "detail": "Karachi · Batch-001",
-          "gender": "woman",
-          "rating": 4,
-          "image": "",
-          "imageAlt": ""
-        },
-        {
-          "id": "review-4",
-          "quote": "Gifted a bowl to my sister. She wrote back the same day. Orbit makes objects people keep, not shelf décor.",
-          "name": "Bilal A.",
-          "detail": "Lahore · Gift order",
-          "gender": "man",
-          "rating": 5,
-          "image": "",
-          "imageAlt": ""
-        }
-      ]
-    },
-    "collections": {
-      "eyebrow": "Collections",
-      "heading": "Batch forms, kept in the archive",
-      "lede": "Every firing leaves a record — image, colors, and dimensions — so you can feel the piece even after the drop sells out.",
-      "outOfStockLabel": "Out of stock",
-      "customNote": "Want this type of product? The design and form can stay the same — color, glaze, or surface details can change for a made-to-order piece.",
-      "customCtaLabel": "Request similar design",
-      "viewByBatchLabel": "By batch",
-      "viewAllLabel": "View all",
-      "emptyTitle": "Collection opens with the batch",
-      "emptyLede": "Pieces appear here once the firing goes live — or stay archived after the drop sells out. Until then, follow the countdown on Batch.",
-      "emptyCtaLabel": "See batch countdown"
-    },
-    "journey": {
-      "eyebrow": "Journey",
-      "heading": "Fire, clay, and each batch’s story",
-      "lede": "Open a batch card to watch that firing’s journey — from the wheel to the kiln door.",
-      "openLabel": "Watch journey",
-      "backLabel": "All batches",
-      "emptyTitle": "Journey unlocks with the drop",
-      "emptyLede": "Batch journey videos appear here once that firing goes live. Until then, follow the countdown on Batch.",
-      "emptyCtaLabel": "See batch countdown"
-    },
-    "batchShop": {
-      "eyebrow": "Batch shop",
-      "heading": "Pieces from this firing",
-      "lede": "Each photo carries the story of the form — what it is, how large it sits in the hand, and which colors shaped the surface.",
-      "buyLabel": "Buy on WhatsApp",
-      "currency": "PKR",
-      "currencySymbol": "Rs"
-    },
     "footer": {
       "tagline": "Orbit Ceramic is a handcrafted ceramic and pottery studio based in Lahore, Pakistan, specializing in handmade ceramic art, antique pottery, clay craftsmanship, and timeless home décor. Every piece is carefully shaped by hand using premium clay, blending traditional pottery techniques with contemporary design to create functional works of art that last for generations.",
       "visitLabel": "Visit",
       "exploreLabel": "Explore",
       "followLabel": "Follow",
       "exploreLinks": [
-        {
-          "label": "About",
-          "href": "/about"
-        },
-        {
-          "label": "Collections",
-          "href": "/collections"
-        },
-        {
-          "label": "Batch",
-          "href": "/batch"
-        },
-        {
-          "label": "Journey",
-          "href": "/journey"
-        }
+        { "label": "About", "href": "/about" },
+        { "label": "Collections", "href": "/collections" },
+        { "label": "Batch", "href": "/batch" },
+        { "label": "Journey", "href": "/journey" }
       ],
       "socialLinks": [
-        {
-          "label": "Instagram",
-          "hrefKey": "instagram"
-        },
-        {
-          "label": "Email",
-          "hrefKey": "email"
-        }
+        { "label": "Instagram", "hrefKey": "instagram" },
+        { "label": "Email", "hrefKey": "email" }
       ],
       "copyright": "All pieces made by hand."
     }

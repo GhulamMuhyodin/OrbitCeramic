@@ -1,0 +1,219 @@
+<?php
+
+declare(strict_types=1);
+
+/**
+ * Orbit Ceramic database CLI
+ *
+ * Usage:
+ *   php bin/database status
+ *   php bin/database migrate
+ *   php bin/database migration:create CreatePayments
+ *   php bin/database migration:create SeedPaymentTypes --type=seed
+ *   php bin/database rollback-last
+ *   php bin/database rollback-to V005
+ *   php bin/database baseline [--to=V002]
+ */
+
+$root = dirname(__DIR__);
+
+$configPath = $root . '/config/config.php';
+if (!is_file($configPath)) {
+    fwrite(STDERR, "Missing config/config.php — copy from config.example.php\n");
+    exit(1);
+}
+
+/** @var array $config */
+$config = require $configPath;
+
+require_once $root . '/src/Database.php';
+require_once $root . '/src/Migration/SqlExecutor.php';
+require_once $root . '/src/Migration/MigrationHistory.php';
+require_once $root . '/src/Migration/MigrationRunner.php';
+
+use OrbitApi\Database;
+use OrbitApi\Migration\MigrationRunner;
+
+$argvList = $_SERVER['argv'] ?? [];
+array_shift($argvList);
+$command = $argvList[0] ?? 'help';
+$args = array_slice($argvList, 1);
+$migrationsDir = $root . '/database/migrations';
+
+function db_flag(array $args, string $name): ?string
+{
+    foreach ($args as $arg) {
+        if (str_starts_with($arg, "--{$name}=")) {
+            return substr($arg, strlen($name) + 3);
+        }
+    }
+    return null;
+}
+
+function db_has_flag(array $args, string $name): bool
+{
+    return in_array("--{$name}", $args, true) || db_flag($args, $name) !== null;
+}
+
+/** @return list<string> */
+function db_positional(array $args): array
+{
+    return array_values(array_filter(
+        $args,
+        static fn (string $a) => !str_starts_with($a, '--')
+    ));
+}
+
+function db_help(): void
+{
+    echo <<<TXT
+Orbit Ceramic — database migrations
+
+Commands:
+  status                         Show applied / pending migrations
+  migrate                        Apply all pending migrations
+  migration:create <Name>        Create next versioned migration file
+      --type=schema|seed|data    Migration type (default: schema)
+  rollback-last                  Roll back the latest applied migration
+  rollback-to <V00N>             Roll back migrations after the target
+  baseline                       Mark migrations applied without running SQL
+      --to=V00N                  Baseline only up to this version
+  help                           Show this help
+
+Examples:
+  php bin/database migrate
+  php bin/database migration:create CreatePayments
+  php bin/database migration:create SeedPaymentTypes --type=seed
+  php bin/database rollback-to V003 --force
+  php bin/database status
+
+Rules:
+  - Never edit an already-applied migration.
+  - Create a new V0xx file for every schema or seed change.
+  - Seeders must be idempotent (ON DUPLICATE KEY / existence checks).
+
+TXT;
+}
+
+/**
+ * Create migration file from filesystem only (no DB connection required).
+ */
+function db_create_migration(string $migrationsDir, string $name, string $type): int
+{
+    $name = preg_replace('/[^A-Za-z0-9_]+/', '', str_replace([' ', '-'], '_', $name)) ?? '';
+    $name = trim($name, '_');
+    if ($name === '') {
+        fwrite(STDERR, "Migration name is required.\n");
+        return 1;
+    }
+    $name = ucfirst($name);
+    $type = strtolower($type);
+    if (!in_array($type, ['schema', 'seed', 'data'], true)) {
+        fwrite(STDERR, "Type must be schema, seed, or data.\n");
+        return 1;
+    }
+
+    $max = 0;
+    foreach (glob($migrationsDir . DIRECTORY_SEPARATOR . 'V*__*.php') ?: [] as $file) {
+        if (preg_match('/V(\d+)__/', basename($file), $m)) {
+            $max = max($max, (int) $m[1]);
+        }
+    }
+    $version = sprintf('V%03d', $max + 1);
+    $filename = "{$version}__{$name}.php";
+    $path = $migrationsDir . DIRECTORY_SEPARATOR . $filename;
+    if (is_file($path)) {
+        fwrite(STDERR, "File already exists: {$filename}\n");
+        return 1;
+    }
+
+    $template = <<<PHP
+<?php
+
+declare(strict_types=1);
+
+/**
+ * {$version}__{$name}
+ *
+ * Type: {$type}
+ * Never edit this file after it has been applied in any shared environment.
+ * Create a new migration instead.
+ */
+
+return [
+    'type' => '{$type}',
+    'description' => '{$name}',
+    'irreversible' => false,
+    'up' => <<<'SQL'
+-- Write UP SQL here
+SQL,
+    'down' => <<<'SQL'
+-- Write DOWN SQL here (rollback)
+SQL,
+];
+
+PHP;
+
+    if (file_put_contents($path, $template) === false) {
+        fwrite(STDERR, "Could not write {$path}\n");
+        return 1;
+    }
+    echo "Created {$filename}\n";
+    echo "Edit: database/migrations/{$filename}\n";
+    return 0;
+}
+
+try {
+    switch ($command) {
+        case 'help':
+        case '--help':
+        case '-h':
+            db_help();
+            exit(0);
+
+        case 'migration:create':
+        case 'create':
+            $pos = db_positional($args);
+            $name = $pos[0] ?? '';
+            if ($name === '') {
+                fwrite(STDERR, "Usage: php bin/database migration:create <Name> [--type=schema|seed|data]\n");
+                exit(1);
+            }
+            exit(db_create_migration($migrationsDir, $name, db_flag($args, 'type') ?? 'schema'));
+
+        case 'status':
+            $runner = new MigrationRunner(Database::pdo($config), $migrationsDir);
+            exit($runner->status());
+
+        case 'migrate':
+            $runner = new MigrationRunner(Database::pdo($config), $migrationsDir);
+            exit($runner->migrate());
+
+        case 'rollback-last':
+        case 'rollback':
+            $runner = new MigrationRunner(Database::pdo($config), $migrationsDir);
+            exit($runner->rollbackLast(db_has_flag($args, 'force')));
+
+        case 'rollback-to':
+            $pos = db_positional($args);
+            $target = $pos[0] ?? '';
+            if ($target === '') {
+                fwrite(STDERR, "Usage: php bin/database rollback-to V005 [--force]\n");
+                exit(1);
+            }
+            $runner = new MigrationRunner(Database::pdo($config), $migrationsDir);
+            exit($runner->rollbackTo($target, db_has_flag($args, 'force')));
+
+        case 'baseline':
+            $runner = new MigrationRunner(Database::pdo($config), $migrationsDir);
+            exit($runner->baseline(db_flag($args, 'to')));
+
+        default:
+            fwrite(STDERR, "Unknown command: {$command}\n\n");
+            db_help();
+            exit(1);
+    }
+} catch (Throwable $e) {
+    fwrite(STDERR, 'ERROR: ' . $e->getMessage() . PHP_EOL);
+    exit(1);
+}

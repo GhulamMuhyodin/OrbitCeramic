@@ -12,7 +12,7 @@
       fetchpriority="high"
     />
     <div
-      class="absolute inset-0 bg-[linear-gradient(180deg,rgba(26,26,26,0.35)_0%,rgba(26,26,26,0.15)_40%,rgba(26,26,26,0.72)_100%),linear-gradient(90deg,rgba(26,26,26,0.45)_0%,transparent_55%)]"
+      class="absolute inset-0 bg-[linear-gradient(180deg,rgba(26,26,26,0.35)_0%,rgba(26,26,26,0.15)_40%,rgba(26,26,26,0.78)_100%),linear-gradient(90deg,rgba(26,26,26,0.45)_0%,transparent_55%)]"
     ></div>
   </div>
 
@@ -39,5 +39,51 @@
     >
       {{ content().ctaLabel }}
     </a>
+
+    @if (highlights().length > 0) {
+      <div
+        class="hero-rise hero-rise-delay-4 mt-8 flex flex-wrap items-end gap-x-8 gap-y-4"
+        aria-label="Batch highlights"
+      >
+        @for (row of highlights(); track row.batchId + row.status) {
+          <a
+            class="hero-highlight-rail group inline-flex max-w-full items-center gap-3 no-underline"
+            [routerLink]="row.href"
+            [attr.aria-label]="statusLabel(row.status) + ' ' + row.label"
+          >
+            <span class="min-w-0">
+              <span
+                class="mb-1.5 flex items-center gap-2 text-[0.65rem] font-semibold tracking-[0.14em] text-surface/70 uppercase transition-colors duration-200 group-hover:text-surface"
+              >
+                <span
+                  class="size-1.5 shrink-0 rounded-full"
+                  [class.hero-status-dot--live]="row.status === 'live'"
+                  [class.hero-status-dot--scheduled]="row.status === 'scheduled'"
+                  [class.hero-status-dot--recent]="row.status === 'recent'"
+                  aria-hidden="true"
+                ></span>
+                <span class="truncate">{{ statusLabel(row.status) }} · {{ row.label }}</span>
+              </span>
+              <span class="flex gap-1.5">
+                @for (image of row.images; track image.url) {
+                  <span
+                    class="hero-highlight-thumb relative block size-[clamp(2.75rem,9vw,3.75rem)] overflow-hidden border border-surface/25 bg-stone-800 transition-[border-color,transform] duration-300 group-hover:border-surface/70"
+                  >
+                    <img
+                      class="size-full object-cover transition-transform duration-500 group-hover:scale-[1.06]"
+                      [src]="image.url"
+                      [alt]="image.alt"
+                      width="120"
+                      height="120"
+                      loading="lazy"
+                    />
+                  </span>
+                }
+              </span>
+            </span>
+          </a>
+        }
+      </div>
+    }
   </div>
 </section>
