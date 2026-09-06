@@ -973,23 +973,7 @@
   }
 
   app-admin-dashboard .dashboard-stat-card {
-    @apply overflow-hidden rounded-[1.5rem] border border-stone-200 bg-white/90 shadow-[0_10px_25px_rgba(28,25,23,0.04)];
-  }
-
-  app-admin-dashboard .dashboard-stat-card .mat-mdc-card-content {
-    @apply p-0;
-  }
-
-  app-admin-dashboard .p-chart {
-    display: block;
-    height: 100%;
-    width: 100%;
-  }
-
-  app-admin-dashboard .p-chart canvas {
-    display: block;
-    height: 100% !important;
-    width: 100% !important;
+    @apply overflow-hidden;
   }
 }
 

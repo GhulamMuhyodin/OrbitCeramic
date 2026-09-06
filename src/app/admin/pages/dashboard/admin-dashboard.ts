@@ -1,115 +1,198 @@
+import { DatePipe } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
-import { ChartModule } from 'primeng/chart';
-import { CardModule } from 'primeng/card';
-import { isBatchLive } from '../../../data/site-content.model';
+import { RouterLink } from '@angular/router';
+import {
+  BatchRow,
+  getBatchScheduleStatus,
+  isBatchLive,
+} from '../../../data/site-content.model';
+import { AdminAuthService } from '../../admin-auth.service';
 import { AdminDbService } from '../../admin-db.service';
+
+interface AttentionItem {
+  label: string;
+  detail: string;
+  path: string;
+  tone: 'warn' | 'info' | 'ok';
+}
 
 @Component({
   selector: 'app-admin-dashboard',
-  imports: [CardModule, ChartModule],
-  host: { class: 'flex min-h-0 flex-1 flex-col overflow-auto p-4 md:p-6' },
+  imports: [DatePipe, RouterLink],
+  host: { class: 'flex min-h-0 flex-1 flex-col overflow-auto' },
   templateUrl: './admin-dashboard.html',
 })
 export class AdminDashboardPage {
   private readonly adminDb = inject(AdminDbService);
+  private readonly auth = inject(AdminAuthService);
   private readonly db = this.adminDb.db;
 
-  protected readonly stats = computed(() => {
+  protected readonly now = Date.now();
+  protected readonly userName = computed(
+    () => this.auth.user()?.displayName || this.auth.user()?.username || 'there',
+  );
+
+  protected readonly greeting = computed(() => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Good morning';
+    if (hour < 18) return 'Good afternoon';
+    return 'Good evening';
+  });
+
+  protected readonly overview = computed(() => {
     const d = this.db();
     if (!d) {
       return null;
     }
-    const active = d.batches.find((b) => b.id === d.site.activeBatchId) ?? d.batches[0];
-    if (!active) {
-      return null;
-    }
+
     const now = Date.now();
+    const batches = d.batches;
+    const liveWindow = batches.find((b) => getBatchScheduleStatus(b.launchAt, now) === 'live');
+    const onShop = latestLaunched(batches, now);
+    const nextDrop = earliestScheduled(batches, now);
+    const focus = liveWindow ?? onShop;
+
+    const productCount = batches.reduce((n, b) => n + b.products.length, 0);
+    const soldOutProducts = batches.reduce(
+      (n, b) => n + b.products.filter((p) => p.soldOut || b.soldOut).length,
+      0,
+    );
+    const availableProducts = productCount - soldOutProducts;
+    const reviewCount = d.pageCopy.about.reviews.length;
+
     return {
-      batchCount: d.batches.length,
-      productCount: d.batches.reduce((n, b) => n + b.products.length, 0),
-      reviewCount: d.pageCopy.about.reviews.length,
-      activeLabel: active.label,
-      activeLive: isBatchLive(active.launchAt, now),
-      launchAt: active.launchAt,
+      brand: d.pageCopy.hero.brand || d.site.brand || 'Orbit',
+      batchCount: batches.length,
+      productCount,
+      availableProducts,
+      soldOutProducts,
+      reviewCount,
+      liveWindow,
+      onShop,
+      focus,
+      nextDrop,
+      focusStatus: focus ? getBatchScheduleStatus(focus.launchAt, now) : null,
+      focusAvailable:
+        focus && !focus.soldOut
+          ? focus.products.filter((p) => !p.soldOut).length
+          : 0,
+      focusTotal: focus?.products.length ?? 0,
     };
   });
 
-  protected readonly modules = [
-    {
-      path: '/admin/site',
-      title: 'Site & Contact',
-      desc: 'Brand, active batch, WhatsApp, email',
-      icon: 'storefront',
-    },
+  protected readonly attention = computed((): AttentionItem[] => {
+    const o = this.overview();
+    if (!o) {
+      return [];
+    }
+
+    const items: AttentionItem[] = [];
+
+    if (o.batchCount === 0) {
+      items.push({
+        label: 'No batches yet',
+        detail: 'Create your first collection and set a launch time.',
+        path: '/admin/batches',
+        tone: 'warn',
+      });
+      return items;
+    }
+
+    if (o.liveWindow?.soldOut) {
+      items.push({
+        label: `${o.liveWindow.label} is sold out while LIVE`,
+        detail: 'Customers still see it as live — clear sold-out or prepare the next drop.',
+        path: `/admin/batches/${o.liveWindow.id}`,
+        tone: 'warn',
+      });
+    } else if (o.focus && o.focusAvailable === 0 && o.focusTotal > 0) {
+      items.push({
+        label: `All products sold out in ${o.focus.label}`,
+        detail: 'Mark the batch sold out or restock before the next inquiry wave.',
+        path: `/admin/batches/${o.focus.id}`,
+        tone: 'warn',
+      });
+    }
+
+    if (!o.nextDrop) {
+      items.push({
+        label: 'No upcoming drop',
+        detail: 'Schedule the next batch so the home countdown has a target.',
+        path: '/admin/batches',
+        tone: 'info',
+      });
+    }
+
+    if (o.reviewCount === 0) {
+      items.push({
+        label: 'No reviews on About',
+        detail: 'Add a few client voices when you have a quiet moment.',
+        path: '/admin/reviews',
+        tone: 'info',
+      });
+    }
+
+    if (!items.length) {
+      items.push({
+        label: 'Studio looks settled',
+        detail: 'Live status, next drop, and catalog are in good shape.',
+        path: '/admin/batches',
+        tone: 'ok',
+      });
+    }
+
+    return items;
+  });
+
+  protected readonly shortcuts = [
     {
       path: '/admin/batches',
       title: 'Batches',
-      desc: 'Launch date, products and batch details',
+      desc: 'Launch dates, products, sold-out',
       icon: 'inventory_2',
     },
     {
-      path: '/admin/about',
-      title: 'About',
-      desc: 'Maker story, image, and review headings',
-      icon: 'article',
+      path: '/admin/countdown',
+      title: 'Countdown',
+      desc: 'Pre-launch and celebration copy',
+      icon: 'timer',
+    },
+    {
+      path: '/admin/site',
+      title: 'Site & Contact',
+      desc: 'Brand, WhatsApp, active batch',
+      icon: 'storefront',
     },
     {
       path: '/admin/reviews',
       title: 'Reviews',
-      desc: 'Client voices shown on About',
+      desc: 'Client voices on About',
       icon: 'rate_review',
     },
-  ];
+  ] as const;
 
-  protected readonly salesChartData = {
-    labels: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug'],
-    datasets: [
-      {
-        label: 'Sales',
-        data: [72, 58, 78, 64, 86, 92, 74, 96],
-        borderColor: '#7ea8ff',
-        backgroundColor: 'rgba(126, 168, 255, 0.18)',
-        tension: 0.38,
-        fill: true,
-        pointRadius: 0,
-        pointHoverRadius: 4,
-      },
-      {
-        label: 'Target',
-        data: [64, 68, 70, 72, 80, 81, 86, 88],
-        borderColor: '#f0b77a',
-        backgroundColor: 'rgba(240, 183, 122, 0.12)',
-        tension: 0.38,
-        fill: false,
-        pointRadius: 0,
-        pointHoverRadius: 4,
-      },
-    ],
-  };
+  protected statusLabel(batch: BatchRow | null | undefined): string {
+    if (!batch) {
+      return '—';
+    }
+    if (batch.soldOut) {
+      return 'Sold out';
+    }
+    const status = getBatchScheduleStatus(batch.launchAt);
+    if (status === 'scheduled') return 'Scheduled';
+    if (status === 'live') return 'LIVE';
+    return 'On shop';
+  }
+}
 
-  protected readonly salesChartOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    interaction: { intersect: false, mode: 'index' as const },
-    plugins: {
-      legend: { display: false },
-      tooltip: {
-        backgroundColor: '#111827',
-        borderColor: '#e5e7eb',
-        borderWidth: 1,
-        titleColor: '#fff',
-        bodyColor: '#fff',
-      },
-    },
-    scales: {
-      x: {
-        grid: { display: false },
-        ticks: { color: '#6b7280', font: { size: 12 } },
-      },
-      y: {
-        display: false,
-        grid: { display: false },
-      },
-    },
-  };
+function earliestScheduled(batches: BatchRow[], now: number): BatchRow | undefined {
+  return [...batches]
+    .filter((b) => getBatchScheduleStatus(b.launchAt, now) === 'scheduled')
+    .sort((a, b) => Date.parse(a.launchAt) - Date.parse(b.launchAt))[0];
+}
+
+function latestLaunched(batches: BatchRow[], now: number): BatchRow | undefined {
+  return [...batches]
+    .filter((b) => isBatchLive(b.launchAt, now))
+    .sort((a, b) => Date.parse(b.launchAt) - Date.parse(a.launchAt))[0];
 }
