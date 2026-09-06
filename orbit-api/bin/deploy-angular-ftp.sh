@@ -32,9 +32,11 @@ echo "FTP host: ${FTP_HOST}"
 echo "FTP requested remote: ${REQUESTED_BASE}"
 echo "FTP local: ${ANGULAR_DIST}"
 
-# Resolve same way as API (may fall back to . or public_html)
-REMOTE_BASE="$(ftp_resolve_remote_base "${FTP_USERNAME}" "${FTP_PASSWORD}" "${FTP_HOST}" "${REQUESTED_BASE}")"
-echo "FTP using remote base: ${REMOTE_BASE}"
+# Resolve public_html (Angular root). API is public_html/php.
+REMOTE_BASE="$(ftp_resolve_public_html "${FTP_USERNAME}" "${FTP_PASSWORD}" "${FTP_HOST}" "${REQUESTED_BASE}")"
+PUBLIC_HTML="${REMOTE_BASE}"
+echo "FTP public_html: ${PUBLIC_HTML}"
+echo "FTP Angular dir: ${PUBLIC_HTML}/"
 
 mapfile -t FILES < <(
   find "${ANGULAR_DIST}" -type f \
@@ -50,7 +52,7 @@ mapfile -t DIRS < <(
     | LC_ALL=C sort -u
 )
 
-echo "Deploying Angular (${FILE_COUNT} files, parallel=${LFTP_PARALLEL}) → ftp://${FTP_HOST}/${REMOTE_BASE}/"
+echo "Deploying Angular (${FILE_COUNT} files, parallel=${LFTP_PARALLEL}) → ftp://${FTP_HOST}/${PUBLIC_HTML}/"
 START="$(date +%s)"
 
 SCRIPT="$(mktemp)"
@@ -67,12 +69,12 @@ trap 'rm -f "${SCRIPT}"' EXIT
   echo "set cmd:interactive false"
   echo "set xfer:clobber on"
   echo "open -u ${FTP_USERNAME},${FTP_PASSWORD} ftp://${FTP_HOST}"
-  if [[ "${REMOTE_BASE}" == "." ]]; then
+  if [[ "${PUBLIC_HTML}" == "." ]]; then
     echo "pwd"
   else
-    echo "cd ${REMOTE_BASE}"
+    echo "cd ${PUBLIC_HTML}"
   fi
-  echo "!echo FTP_STATUS Angular mkdir — starting puts"
+  echo "!echo FTP_STATUS public_html ready — starting Angular puts"
 
   for d in "${DIRS[@]}"; do
     echo "set cmd:fail-exit no"

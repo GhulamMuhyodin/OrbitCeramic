@@ -1,5 +1,10 @@
 #!/usr/bin/env bash
-# Shared FTP upload progress helpers for CI deploy scripts.
+# Shared FTP helpers for Orbit deploy.
+# Path model:
+#   ORBIT_FTP_REMOTE_DIR  → domain root (e.g. domains/site.hostingersite.com or .)
+#   public_html           → Angular web root
+#   public_html/php       → orbit-api
+#
 # Source from deploy-*.sh — do not execute directly.
 
 ftp_bar() {
@@ -49,8 +54,23 @@ ftp_try_cd() {
   fi
 }
 
-# Probe Hostinger FTP home. Prints resolved base on stdout only.
-ftp_resolve_remote_base() {
+# True if path looks like public_html (has php/ or index.html).
+ftp_looks_like_public_html() {
+  local user="$1" pass="$2" host="$3" path="$4"
+  local cd_cmd
+  if [[ "$path" == "." || -z "$path" ]]; then
+    cd_cmd="pwd"
+  else
+    cd_cmd="cd ${path}"
+  fi
+  lftp -u "${user},${pass}" "ftp://${host}" \
+    -e "$(ftp_lftp_settings); ${cd_cmd}; cls -1; bye" 2>/dev/null \
+    | grep -Eiq '(^php/?$|^index\.html$)'
+}
+
+# Resolve public_html (Angular root). Prints path on stdout.
+# ORBIT_FTP_REMOTE_DIR is the parent (domain folder); we append /public_html when needed.
+ftp_resolve_public_html() {
   local user="${1:?}"
   local pass="${2:?}"
   local host="${3:?}"
@@ -58,6 +78,9 @@ ftp_resolve_remote_base() {
 
   requested="${requested#./}"
   requested="${requested%/}"
+  # If secret was set to .../public_html, treat that as web root directly
+  local strip_php="${requested%/php}"
+  requested="$strip_php"
   [[ -z "$requested" ]] && requested="."
 
   echo "FTP resolve: listing login home…" >&2
@@ -68,77 +91,110 @@ ftp_resolve_remote_base() {
   fi
 
   local candidates=()
-  candidates+=("$requested" "." "public_html")
 
-  if [[ "$requested" == *"/public_html" ]]; then
-    candidates+=("public_html" ".")
+  # Preferred layout: ORBIT_FTP_REMOTE_DIR/public_html
+  if [[ "$requested" == *"/public_html" || "$requested" == "public_html" ]]; then
+    candidates+=("$requested")
+  else
+    if [[ "$requested" != "." ]]; then
+      candidates+=("${requested}/public_html")
+    fi
+    candidates+=("public_html")
   fi
-  if [[ "$requested" == domains/*/* ]]; then
-    # domains/hostname/public_html → public_html
-    candidates+=("${requested##*/}")
-    # domains/hostname/public_html → hostname/public_html (rare)
-    candidates+=("${requested#domains/}")
+
+  # FTP account often already lands inside public_html
+  candidates+=(".")
+
+  # Extra Hostinger variants
+  if [[ "$requested" == domains/* ]]; then
+    candidates+=("${requested}/public_html")
+    candidates+=("domains/${requested#domains/}/public_html")
   fi
 
   local seen="|" c
   for c in "${candidates[@]}"; do
     [[ "$seen" == *"|$c|"* ]] && continue
     seen+="$c|"
-    echo "FTP resolve: trying cd → '${c}'" >&2
-    if ftp_try_cd "$user" "$pass" "$host" "$c"; then
-      echo "FTP resolve: OK → '${c}'" >&2
-      if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
-        echo "::notice title=FTP path::Using remote dir '${c}'" >&2
+    echo "FTP resolve: trying public_html candidate → '${c}'" >&2
+    if ! ftp_try_cd "$user" "$pass" "$host" "$c"; then
+      continue
+    fi
+    # Prefer a folder that already looks like the site root
+    if [[ "$c" == *public_html || "$c" == "." ]]; then
+      if ftp_looks_like_public_html "$user" "$pass" "$host" "$c" \
+        || [[ "$c" == *"/public_html" || "$c" == "public_html" ]]; then
+        echo "FTP resolve: OK public_html → '${c}'" >&2
+        if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+          echo "::notice title=FTP path::public_html='${c}' → API='${c}/php'" >&2
+        fi
+        printf '%s\n' "$c"
+        return 0
       fi
+    fi
+  done
+
+  # Fallback: first candidate we could cd into
+  seen="|"
+  for c in "${candidates[@]}"; do
+    [[ "$seen" == *"|$c|"* ]] && continue
+    seen+="$c|"
+    if ftp_try_cd "$user" "$pass" "$host" "$c"; then
+      echo "FTP resolve: fallback public_html → '${c}'" >&2
       printf '%s\n' "$c"
       return 0
     fi
   done
 
-  echo "::error::Could not cd into any of: ${candidates[*]}" >&2
-  echo "::error::Set ORBIT_FTP_REMOTE_DIR to '.' or 'public_html' (Hostinger FTP often starts in site root)." >&2
+  echo "::error::Could not find public_html under ORBIT_FTP_REMOTE_DIR='${requested}'" >&2
+  echo "::error::Expected: ORBIT_FTP_REMOTE_DIR/public_html/php (File Manager) or FTP home already in public_html." >&2
   return 1
 }
 
-# Resolve path + ensure php/. Prints resolved base on stdout only.
+# Back-compat alias used by Angular script
+ftp_resolve_remote_base() {
+  ftp_resolve_public_html "$@"
+}
+
+# Resolve public_html + ensure php/. Prints public_html path on stdout.
 ftp_preflight() {
   local user="${1:?}"
   local pass="${2:?}"
   local host="${3:?}"
-  local remote_base="${4:?}"
-  local resolved cd_cmd
+  local remote_dir="${4:?}"
+  local public_html cd_cmd
 
   echo "FTP preflight: connecting to ${host}…" >&2
   if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
     echo "::notice title=FTP::Connecting to ${host}" >&2
   fi
 
-  resolved="$(ftp_resolve_remote_base "$user" "$pass" "$host" "$remote_base")" || return 1
+  public_html="$(ftp_resolve_public_html "$user" "$pass" "$host" "$remote_dir")" || return 1
 
-  echo "FTP preflight: ensuring php/ under '${resolved}'" >&2
-  if [[ "$resolved" == "." ]]; then
+  echo "FTP preflight: site root (public_html)='${public_html}'" >&2
+  echo "FTP preflight: API target='${public_html}/php'" >&2
+
+  if [[ "$public_html" == "." ]]; then
     cd_cmd="pwd"
   else
-    cd_cmd="cd ${resolved}"
+    cd_cmd="cd ${public_html}"
   fi
 
-  # 1) Try enter existing php/
+  # Enter existing php/, or create then enter (once — never php/php)
   if lftp -u "${user},${pass}" "ftp://${host}" \
     -e "$(ftp_lftp_settings); ${cd_cmd}; cd php; pwd; bye" >&2; then
     echo "FTP preflight: php/ already exists — using it" >&2
   else
-    # 2) Not found → create, then enter
-    echo "FTP preflight: php/ not found — creating…" >&2
+    echo "FTP preflight: php/ not found — creating under public_html…" >&2
     if ! lftp -u "${user},${pass}" "ftp://${host}" \
       -e "$(ftp_lftp_settings); ${cd_cmd}; mkdir php; cd php; pwd; bye" >&2; then
-      echo "::error::FTP could not create or enter php/ under '${resolved}'" >&2
+      echo "::error::FTP could not create or enter ${public_html}/php" >&2
       return 1
     fi
-    echo "FTP preflight: php/ created" >&2
+    echo "FTP preflight: created ${public_html}/php" >&2
   fi
 
-  echo "FTP preflight: ready (remote base=${resolved})" >&2
-  printf '%s\n' "$resolved"
+  echo "FTP preflight: ready" >&2
+  printf '%s\n' "$public_html"
   return 0
 }
 

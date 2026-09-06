@@ -36,24 +36,42 @@ Add the secrets below on **each** environment (values can differ per env).
 | Secret | Example |
 |--------|---------|
 | `ORBIT_SITE_DOMAIN` | `https://your-site.hostingersite.com` |
-| `ORBIT_FTP_REMOTE_DIR` | `.` or `public_html` (see below) |
+| `ORBIT_FTP_REMOTE_DIR` | `domains/your-site.hostingersite.com` |
 
-**Hostinger FTP path tip:** many FTP accounts already open inside `public_html`.  
-If deploy fails with `could not cd/mkdir domains/.../public_html`, set secret:
+### Hostinger folder layout
+
+```text
+ORBIT_FTP_REMOTE_DIR/
+└── public_html/          ← Angular (index.html, assets)
+    └── php/              ← orbit-api
+```
+
+File Manager example:
+
+```text
+domains/mediumvioletred-trout-528447.hostingersite.com/public_html/php
+```
+
+Set the secret to the **domain folder only** (no `public_html`, no `php`):
+
+```text
+ORBIT_FTP_REMOTE_DIR=domains/mediumvioletred-trout-528447.hostingersite.com
+```
+
+Deploy scripts then use:
+
+- Angular → `ORBIT_FTP_REMOTE_DIR/public_html`
+- API → `ORBIT_FTP_REMOTE_DIR/public_html/php`
+
+If your FTP user already logs into `public_html`, set:
 
 ```text
 ORBIT_FTP_REMOTE_DIR=.
 ```
 
-or:
+(scripts detect that `.` is already `public_html` and still upload API to `./php`).
 
-```text
-ORBIT_FTP_REMOTE_DIR=public_html
-```
-
-Do **not** use the full `domains/yoursite/public_html` path unless your FTP home is the account root above `domains/`.
-
-If omitted, the workflow defaults to `.` and the deploy scripts auto-probe `.` / `public_html`.
+If omitted, the workflow defaults to the Hostinger domain folder above and auto-probes `…/public_html`.
 
 ### Database (Remote MySQL must be allowed for GitHub Actions)
 
