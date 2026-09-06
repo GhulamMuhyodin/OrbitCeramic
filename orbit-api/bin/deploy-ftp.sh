@@ -86,13 +86,17 @@ trap 'rm -f "${SCRIPT}"' EXIT
   else
     echo "cd ${REMOTE_BASE}"
   fi
-  echo "mkdir -p php || true"
+  # Prefer existing php/; create only when missing
+  echo "set cmd:fail-exit no"
+  echo "cd php || mkdir php"
+  echo "set cmd:fail-exit yes"
   echo "cd php"
-  echo "!echo FTP_STATUS mkdir done — starting file puts"
+  echo "!echo FTP_STATUS php/ ready — starting file puts"
 
   for d in "${DIRS[@]}"; do
-    # Escape for lftp (paths are relative, no quotes in Orbit tree)
-    echo "mkdir -p ${d} || true"
+    echo "set cmd:fail-exit no"
+    echo "mkdir -p ${d}"
+    echo "set cmd:fail-exit yes"
   done
   echo "!echo FTP_STATUS directories ready — uploading ${FILE_COUNT} files"
 
