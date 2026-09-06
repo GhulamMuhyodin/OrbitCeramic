@@ -28,7 +28,10 @@ echo "FTP requested remote: ${REQUESTED_BASE}"
 echo "FTP local: ${ORBIT_ROOT}"
 
 REMOTE_BASE="$(ftp_preflight "${FTP_USERNAME}" "${FTP_PASSWORD}" "${FTP_HOST}" "${REQUESTED_BASE}")"
-echo "FTP using remote base: ${REMOTE_BASE}"
+# REMOTE_BASE is public_html; API lives at public_html/php
+PUBLIC_HTML="${REMOTE_BASE}"
+echo "FTP public_html: ${PUBLIC_HTML}"
+echo "FTP API dir: ${PUBLIC_HTML}/php"
 
 # Local file list only — never walks remote uploads/
 mapfile -t FILES < <(
@@ -64,7 +67,7 @@ mapfile -t DIRS < <(
     | LC_ALL=C sort -u
 )
 
-echo "Deploying orbit-api (${FILE_COUNT} files, parallel=${LFTP_PARALLEL}) → ftp://${FTP_HOST}/${REMOTE_BASE}/php"
+echo "Deploying orbit-api (${FILE_COUNT} files, parallel=${LFTP_PARALLEL}) → ftp://${FTP_HOST}/${PUBLIC_HTML}/php"
 START="$(date +%s)"
 
 SCRIPT="$(mktemp)"
@@ -81,17 +84,14 @@ trap 'rm -f "${SCRIPT}"' EXIT
   echo "set cmd:interactive false"
   echo "set xfer:clobber on"
   echo "open -u ${FTP_USERNAME},${FTP_PASSWORD} ftp://${FTP_HOST}"
-  if [[ "${REMOTE_BASE}" == "." ]]; then
+  if [[ "${PUBLIC_HTML}" == "." ]]; then
     echo "pwd"
   else
-    echo "cd ${REMOTE_BASE}"
+    echo "cd ${PUBLIC_HTML}"
   fi
-  # Prefer existing php/; create only when missing
-  echo "set cmd:fail-exit no"
-  echo "cd php || mkdir php"
-  echo "set cmd:fail-exit yes"
-  echo "cd php"
-  echo "!echo FTP_STATUS php/ ready — starting file puts"
+  # public_html/php — enter once (create if missing)
+  echo "cd php || (mkdir php && cd php)"
+  echo "!echo FTP_STATUS public_html/php ready — starting file puts"
 
   for d in "${DIRS[@]}"; do
     echo "set cmd:fail-exit no"

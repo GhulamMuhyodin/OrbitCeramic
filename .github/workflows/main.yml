@@ -60,9 +60,8 @@ jobs:
             DOMAIN="https://mediumvioletred-trout-528447.hostingersite.com"
           fi
           if [ -z "$DIR" ]; then
-            # Hostinger FTP users usually land in public_html already.
-            # Scripts auto-probe '.', 'public_html', then domains/... if needed.
-            DIR="."
+            # Domain folder only — scripts append /public_html and /public_html/php
+            DIR="domains/mediumvioletred-trout-528447.hostingersite.com"
           fi
 
           # Strip leading/trailing slashes for lftp paths
