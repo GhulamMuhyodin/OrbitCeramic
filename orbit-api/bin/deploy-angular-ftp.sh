@@ -19,8 +19,9 @@ FTP_REMOTE_DIR="${FTP_REMOTE_DIR:?FTP_REMOTE_DIR required}"
 LFTP_PARALLEL="${LFTP_PARALLEL:-6}"
 
 FTP_HOST="$(ftp_normalize_host "${FTP_SERVER}")"
-REMOTE_BASE="${FTP_REMOTE_DIR#./}"
-REMOTE_BASE="${REMOTE_BASE%/}"
+REQUESTED_BASE="${FTP_REMOTE_DIR#./}"
+REQUESTED_BASE="${REQUESTED_BASE%/}"
+[[ -z "$REQUESTED_BASE" ]] && REQUESTED_BASE="."
 
 if [[ ! -f "${ANGULAR_DIST}/index.html" ]]; then
   echo "ERROR: Missing ${ANGULAR_DIST}/index.html — run npm run build first."
@@ -28,18 +29,12 @@ if [[ ! -f "${ANGULAR_DIST}/index.html" ]]; then
 fi
 
 echo "FTP host: ${FTP_HOST}"
-echo "FTP remote: ${REMOTE_BASE}/"
+echo "FTP requested remote: ${REQUESTED_BASE}"
 echo "FTP local: ${ANGULAR_DIST}"
 
-# Reuse API preflight path check (ensures base exists; php/ untouched)
-echo "FTP preflight: connecting to ${FTP_HOST}…"
-if ! lftp -u "${FTP_USERNAME},${FTP_PASSWORD}" "ftp://${FTP_HOST}" \
-  -e "set ftp:ssl-allow no; set ftp:passive-mode yes; set net:timeout 12; set net:max-retries 1; set cmd:fail-exit yes; cd ${REMOTE_BASE}; pwd; bye" \
-  2>&1; then
-  echo "::error::FTP Angular preflight failed — check FTP secrets / ORBIT_FTP_REMOTE_DIR"
-  exit 1
-fi
-echo "FTP preflight: ready"
+# Resolve same way as API (may fall back to . or public_html)
+REMOTE_BASE="$(ftp_resolve_remote_base "${FTP_USERNAME}" "${FTP_PASSWORD}" "${FTP_HOST}" "${REQUESTED_BASE}")"
+echo "FTP using remote base: ${REMOTE_BASE}"
 
 mapfile -t FILES < <(
   find "${ANGULAR_DIST}" -type f \
@@ -72,7 +67,11 @@ trap 'rm -f "${SCRIPT}"' EXIT
   echo "set cmd:interactive false"
   echo "set xfer:clobber on"
   echo "open -u ${FTP_USERNAME},${FTP_PASSWORD} ftp://${FTP_HOST}"
-  echo "cd ${REMOTE_BASE}"
+  if [[ "${REMOTE_BASE}" == "." ]]; then
+    echo "pwd"
+  else
+    echo "cd ${REMOTE_BASE}"
+  fi
   echo "!echo FTP_STATUS Angular mkdir — starting puts"
 
   for d in "${DIRS[@]}"; do

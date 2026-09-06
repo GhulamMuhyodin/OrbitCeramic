@@ -19,14 +19,16 @@ FTP_REMOTE_DIR="${FTP_REMOTE_DIR:?FTP_REMOTE_DIR required}"
 LFTP_PARALLEL="${LFTP_PARALLEL:-6}"
 
 FTP_HOST="$(ftp_normalize_host "${FTP_SERVER}")"
-REMOTE_BASE="${FTP_REMOTE_DIR#./}"
-REMOTE_BASE="${REMOTE_BASE%/}"
+REQUESTED_BASE="${FTP_REMOTE_DIR#./}"
+REQUESTED_BASE="${REQUESTED_BASE%/}"
+[[ -z "$REQUESTED_BASE" ]] && REQUESTED_BASE="."
 
 echo "FTP host: ${FTP_HOST}"
-echo "FTP remote: ${REMOTE_BASE}/php"
+echo "FTP requested remote: ${REQUESTED_BASE}"
 echo "FTP local: ${ORBIT_ROOT}"
 
-ftp_preflight "${FTP_USERNAME}" "${FTP_PASSWORD}" "${FTP_HOST}" "${REMOTE_BASE}"
+REMOTE_BASE="$(ftp_preflight "${FTP_USERNAME}" "${FTP_PASSWORD}" "${FTP_HOST}" "${REQUESTED_BASE}")"
+echo "FTP using remote base: ${REMOTE_BASE}"
 
 # Local file list only — never walks remote uploads/
 mapfile -t FILES < <(
@@ -79,7 +81,11 @@ trap 'rm -f "${SCRIPT}"' EXIT
   echo "set cmd:interactive false"
   echo "set xfer:clobber on"
   echo "open -u ${FTP_USERNAME},${FTP_PASSWORD} ftp://${FTP_HOST}"
-  echo "cd ${REMOTE_BASE}"
+  if [[ "${REMOTE_BASE}" == "." ]]; then
+    echo "pwd"
+  else
+    echo "cd ${REMOTE_BASE}"
+  fi
   echo "mkdir -p php || true"
   echo "cd php"
   echo "!echo FTP_STATUS mkdir done — starting file puts"

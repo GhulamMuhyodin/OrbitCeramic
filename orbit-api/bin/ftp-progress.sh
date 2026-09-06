@@ -22,47 +22,117 @@ ftp_normalize_host() {
   host="${host#FTPS://}"
   host="${host#http://}"
   host="${host#https://}"
-  # Drop path if someone pasted a URL; keep host or host:port
   if [[ "$host" == *"/"* ]]; then
     host="${host%%/*}"
   fi
   printf '%s' "$host"
 }
 
-# Fast connect check — fails within ~20s instead of hanging for minutes.
+ftp_lftp_settings() {
+  echo "set ftp:ssl-allow no"
+  echo "set ftp:passive-mode yes"
+  echo "set ftp:auto-sync-mode no"
+  echo "set net:timeout 12"
+  echo "set net:max-retries 1"
+  echo "set cmd:fail-exit yes"
+  echo "set cmd:interactive false"
+}
+
+ftp_try_cd() {
+  local user="$1" pass="$2" host="$3" path="$4"
+  if [[ "$path" == "." || -z "$path" ]]; then
+    lftp -u "${user},${pass}" "ftp://${host}" \
+      -e "$(ftp_lftp_settings); pwd; bye" >/dev/null 2>&1
+  else
+    lftp -u "${user},${pass}" "ftp://${host}" \
+      -e "$(ftp_lftp_settings); cd ${path}; pwd; bye" >/dev/null 2>&1
+  fi
+}
+
+# Probe Hostinger FTP home. Prints resolved base on stdout only.
+ftp_resolve_remote_base() {
+  local user="${1:?}"
+  local pass="${2:?}"
+  local host="${3:?}"
+  local requested="${4:-.}"
+
+  requested="${requested#./}"
+  requested="${requested%/}"
+  [[ -z "$requested" ]] && requested="."
+
+  echo "FTP resolve: listing login home…" >&2
+  if ! lftp -u "${user},${pass}" "ftp://${host}" \
+    -e "$(ftp_lftp_settings); pwd; cls -1; bye" >&2; then
+    echo "::error::FTP login failed — check FTP_SERVER / FTP_USERNAME / FTP_PASSWORD" >&2
+    return 1
+  fi
+
+  local candidates=()
+  candidates+=("$requested" "." "public_html")
+
+  if [[ "$requested" == *"/public_html" ]]; then
+    candidates+=("public_html" ".")
+  fi
+  if [[ "$requested" == domains/*/* ]]; then
+    # domains/hostname/public_html → public_html
+    candidates+=("${requested##*/}")
+    # domains/hostname/public_html → hostname/public_html (rare)
+    candidates+=("${requested#domains/}")
+  fi
+
+  local seen="|" c
+  for c in "${candidates[@]}"; do
+    [[ "$seen" == *"|$c|"* ]] && continue
+    seen+="$c|"
+    echo "FTP resolve: trying cd → '${c}'" >&2
+    if ftp_try_cd "$user" "$pass" "$host" "$c"; then
+      echo "FTP resolve: OK → '${c}'" >&2
+      if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+        echo "::notice title=FTP path::Using remote dir '${c}'" >&2
+      fi
+      printf '%s\n' "$c"
+      return 0
+    fi
+  done
+
+  echo "::error::Could not cd into any of: ${candidates[*]}" >&2
+  echo "::error::Set ORBIT_FTP_REMOTE_DIR to '.' or 'public_html' (Hostinger FTP often starts in site root)." >&2
+  return 1
+}
+
+# Resolve path + ensure php/. Prints resolved base on stdout only.
 ftp_preflight() {
   local user="${1:?}"
   local pass="${2:?}"
   local host="${3:?}"
   local remote_base="${4:?}"
+  local resolved cd_cmd
 
-  echo "FTP preflight: connecting to ${host}…"
+  echo "FTP preflight: connecting to ${host}…" >&2
   if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
-    echo "::notice title=FTP::Connecting to ${host}"
+    echo "::notice title=FTP::Connecting to ${host}" >&2
   fi
 
-  # shellcheck disable=SC2034
+  resolved="$(ftp_resolve_remote_base "$user" "$pass" "$host" "$remote_base")" || return 1
+
+  echo "FTP preflight: ensuring php/ under '${resolved}'" >&2
+  if [[ "$resolved" == "." ]]; then
+    cd_cmd="pwd"
+  else
+    cd_cmd="cd ${resolved}"
+  fi
+
   if ! lftp -u "${user},${pass}" "ftp://${host}" \
-    -e "set ftp:ssl-allow no; set ftp:passive-mode yes; set net:timeout 12; set net:max-retries 1; set cmd:fail-exit yes; pwd; bye" \
-    2>&1; then
-    echo "::error::FTP preflight failed — check FTP_SERVER / username / password"
+    -e "$(ftp_lftp_settings); ${cd_cmd}; mkdir -p php; cd php; pwd; bye" >&2; then
+    echo "::error::FTP could not mkdir php under '${resolved}'" >&2
     return 1
   fi
 
-  echo "FTP preflight: login OK — ensuring remote path ${remote_base}/php"
-  if ! lftp -u "${user},${pass}" "ftp://${host}" \
-    -e "set ftp:ssl-allow no; set ftp:passive-mode yes; set net:timeout 12; set net:max-retries 1; set cmd:fail-exit yes; cd ${remote_base}; mkdir -p php; cd php; pwd; bye" \
-    2>&1; then
-    echo "::error::FTP could not cd/mkdir ${remote_base}/php — check ORBIT_FTP_REMOTE_DIR"
-    return 1
-  fi
-
-  echo "FTP preflight: ready"
+  echo "FTP preflight: ready (remote base=${resolved})" >&2
+  printf '%s\n' "$resolved"
   return 0
 }
 
-# Reads lines from stdin; counts FTP_PUT markers (and lftp Transferring lines).
-# Args: label total_files
 ftp_track_progress() {
   local label="${1:?label required}"
   local total="${2:?total required}"
@@ -85,7 +155,6 @@ ftp_track_progress() {
   while IFS= read -r line || [[ -n "$line" ]]; do
     printf '%s\n' "$line"
 
-    # Heartbeat if quiet for 20s (still connecting / mkdir)
     if [[ "$(( $(date +%s) - last_beat ))" -ge 20 ]]; then
       echo "FTP ${label}: still working… ${done}/${total} uploaded so far ($(ftp_bar "$pct") ${pct}%)"
       last_beat="$(date +%s)"

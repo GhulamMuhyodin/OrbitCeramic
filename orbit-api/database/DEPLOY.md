@@ -36,9 +36,24 @@ Add the secrets below on **each** environment (values can differ per env).
 | Secret | Example |
 |--------|---------|
 | `ORBIT_SITE_DOMAIN` | `https://your-site.hostingersite.com` |
-| `ORBIT_FTP_REMOTE_DIR` | `domains/your-site.hostingersite.com/public_html` |
+| `ORBIT_FTP_REMOTE_DIR` | `.` or `public_html` (see below) |
 
-If omitted, the workflow falls back to the previous hard-coded Hostinger path.
+**Hostinger FTP path tip:** many FTP accounts already open inside `public_html`.  
+If deploy fails with `could not cd/mkdir domains/.../public_html`, set secret:
+
+```text
+ORBIT_FTP_REMOTE_DIR=.
+```
+
+or:
+
+```text
+ORBIT_FTP_REMOTE_DIR=public_html
+```
+
+Do **not** use the full `domains/yoursite/public_html` path unless your FTP home is the account root above `domains/`.
+
+If omitted, the workflow defaults to `.` and the deploy scripts auto-probe `.` / `public_html`.
 
 ### Database (Remote MySQL must be allowed for GitHub Actions)
 
