@@ -19,6 +19,7 @@ jobs:
     # Create GitHub Environments named "production" and "uat"
     # with the secrets listed in orbit-api/database/DEPLOY.md
     environment: ${{ github.ref_name == 'prod' && 'production' || 'uat' }}
+    timeout-minutes: 25
 
     steps:
       - uses: actions/checkout@v4
@@ -111,6 +112,7 @@ jobs:
 
       - name: Run database migrations
         working-directory: orbit-api
+        timeout-minutes: 3
         run: |
           echo "Migrating remote database…"
           php bin/database status
@@ -122,11 +124,13 @@ jobs:
         run: sudo apt-get update && sudo apt-get install -y lftp
 
       - name: Deploy orbit-api (preserve uploads)
+        timeout-minutes: 8
         env:
           FTP_SERVER: ${{ secrets.FTP_SERVER }}
           FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
           FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
           FTP_REMOTE_DIR: ${{ steps.target.outputs.dir }}
+          LFTP_PARALLEL: '8'
         run: |
           if [ -z "$FTP_SERVER" ] || [ -z "$FTP_USERNAME" ] || [ -z "$FTP_PASSWORD" ]; then
             echo "::error::Missing FTP secrets (FTP_SERVER, FTP_USERNAME, FTP_PASSWORD). See orbit-api/database/DEPLOY.md"
@@ -136,21 +140,19 @@ jobs:
           orbit-api/bin/deploy-ftp.sh
 
       - name: Deploy Angular to Hostinger
-        uses: SamKirkland/FTP-Deploy-Action@v4.4.0
-        with:
-          server: ${{ secrets.FTP_SERVER }}
-          username: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          local-dir: dist/OrbitCeramic/browser/
-          server-dir: ${{ steps.target.outputs.dir }}/
-          log-level: standard
-          exclude: |
-            **/.git*
-            **/.git*/**
-            php/**
-            php-backup-*/**
+        timeout-minutes: 10
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_REMOTE_DIR: ${{ steps.target.outputs.dir }}
+          LFTP_PARALLEL: '8'
+        run: |
+          chmod +x orbit-api/bin/deploy-angular-ftp.sh
+          orbit-api/bin/deploy-angular-ftp.sh
 
       - name: Deploy summary
+        if: always()
         run: |
           echo "### Deploy ${{ steps.target.outputs.site }}" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
@@ -159,3 +161,4 @@ jobs:
           echo "- FTP dir: \`${{ steps.target.outputs.dir }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- API: \`${{ steps.target.outputs.dir }}/php\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- DB migrations: applied via \`php bin/database migrate\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- FTP: parallel lftp (API + Angular)" >> "$GITHUB_STEP_SUMMARY"
