@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# Deploy orbit-api to Hostinger via lftp (parallel + % progress).
-# Preserves remote config/config.php and public/uploads/.
+# Deploy orbit-api to Hostinger via lftp put (no remote tree scan).
+# Preserves remote public/uploads/ (never uploaded/deleted here).
 #
 # Required env: FTP_SERVER, FTP_USERNAME, FTP_PASSWORD, FTP_REMOTE_DIR
-# Optional: ORBIT_ROOT, LFTP_PARALLEL (default 8)
+# Optional: ORBIT_ROOT, LFTP_PARALLEL (default 6)
 
 set -euo pipefail
 
@@ -16,87 +16,104 @@ FTP_SERVER="${FTP_SERVER:?FTP_SERVER required}"
 FTP_USERNAME="${FTP_USERNAME:?FTP_USERNAME required}"
 FTP_PASSWORD="${FTP_PASSWORD:?FTP_PASSWORD required}"
 FTP_REMOTE_DIR="${FTP_REMOTE_DIR:?FTP_REMOTE_DIR required}"
-LFTP_PARALLEL="${LFTP_PARALLEL:-8}"
+LFTP_PARALLEL="${LFTP_PARALLEL:-6}"
 
+FTP_HOST="$(ftp_normalize_host "${FTP_SERVER}")"
 REMOTE_BASE="${FTP_REMOTE_DIR#./}"
 REMOTE_BASE="${REMOTE_BASE%/}"
 
-FILE_COUNT="$(find "${ORBIT_ROOT}" -type f \
-  ! -path '*/.git/*' \
-  ! -path '*/public/uploads/*' \
-  ! -name 'config.php' \
-  ! -name '*.md' \
-  ! -name '*.bat' \
-  ! -name '.gitignore' \
-  ! -name 'deploy-ftp.sh' \
-  ! -name 'deploy-angular-ftp.sh' \
-  ! -name 'ftp-progress.sh' \
-  | wc -l | tr -d ' ')"
+echo "FTP host: ${FTP_HOST}"
+echo "FTP remote: ${REMOTE_BASE}/php"
+echo "FTP local: ${ORBIT_ROOT}"
 
-# config.php uploaded in a second step
+ftp_preflight "${FTP_USERNAME}" "${FTP_PASSWORD}" "${FTP_HOST}" "${REMOTE_BASE}"
+
+# Local file list only — never walks remote uploads/
+mapfile -t FILES < <(
+  find "${ORBIT_ROOT}" -type f \
+    ! -path '*/.git/*' \
+    ! -path '*/public/uploads/*' \
+    ! -name 'config.php' \
+    ! -name '*.md' \
+    ! -name '*.bat' \
+    ! -name '.gitignore' \
+    ! -name 'deploy-ftp.sh' \
+    ! -name 'deploy-angular-ftp.sh' \
+    ! -name 'ftp-progress.sh' \
+    | sed "s|^${ORBIT_ROOT}/||" \
+    | LC_ALL=C sort
+)
+
 if [[ -f "${ORBIT_ROOT}/config/config.php" ]]; then
-  FILE_COUNT=$((FILE_COUNT + 1))
+  FILES+=("config/config.php")
 fi
 
-echo "Deploying orbit-api (${FILE_COUNT} files, parallel=${LFTP_PARALLEL}) → ftp://${FTP_SERVER}/${REMOTE_BASE}/php"
+FILE_COUNT="${#FILES[@]}"
+if [[ "$FILE_COUNT" -lt 1 ]]; then
+  echo "::error::No local orbit-api files to upload"
+  exit 1
+fi
+
+# Unique directories (parents of each file), shallow → deep
+mapfile -t DIRS < <(
+  printf '%s\n' "${FILES[@]}" \
+    | xargs -n1 dirname \
+    | grep -v '^\.$' \
+    | LC_ALL=C sort -u
+)
+
+echo "Deploying orbit-api (${FILE_COUNT} files, parallel=${LFTP_PARALLEL}) → ftp://${FTP_HOST}/${REMOTE_BASE}/php"
 START="$(date +%s)"
 
-# No --delete: listing/deleting remote trees on Hostinger is extremely slow.
+SCRIPT="$(mktemp)"
+trap 'rm -f "${SCRIPT}"' EXIT
+
+{
+  echo "set ftp:ssl-allow no"
+  echo "set ftp:passive-mode yes"
+  echo "set ftp:auto-sync-mode no"
+  echo "set net:timeout 15"
+  echo "set net:max-retries 1"
+  echo "set net:persist-retries 0"
+  echo "set cmd:fail-exit yes"
+  echo "set cmd:interactive false"
+  echo "set xfer:clobber on"
+  echo "open -u ${FTP_USERNAME},${FTP_PASSWORD} ftp://${FTP_HOST}"
+  echo "cd ${REMOTE_BASE}"
+  echo "mkdir -p php || true"
+  echo "cd php"
+  echo "!echo FTP_STATUS mkdir done — starting file puts"
+
+  for d in "${DIRS[@]}"; do
+    # Escape for lftp (paths are relative, no quotes in Orbit tree)
+    echo "mkdir -p ${d} || true"
+  done
+  echo "!echo FTP_STATUS directories ready — uploading ${FILE_COUNT} files"
+
+  local_i=0
+  for rel in "${FILES[@]}"; do
+    local_i=$((local_i + 1))
+    abs="${ORBIT_ROOT}/${rel}"
+    # Marker for progress tracker (runs on CI runner via lftp !)
+    echo "!echo FTP_PUT ${local_i}/${FILE_COUNT} ${rel}"
+    echo "put \"${abs}\" -o \"${rel}\""
+    if (( local_i % LFTP_PARALLEL == 0 )); then
+      echo "!echo FTP_STATUS batch ${local_i}/${FILE_COUNT}"
+    fi
+  done
+
+  echo "bye"
+} >"${SCRIPT}"
+
 set +e
-lftp -u "${FTP_USERNAME},${FTP_PASSWORD}" "ftp://${FTP_SERVER}" 2>&1 <<EOF | ftp_track_progress "orbit-api" "${FILE_COUNT}"
-set ftp:ssl-allow no
-set net:max-retries 2
-set net:timeout 20
-set net:persist-retries 1
-set mirror:parallel-transfer-count ${LFTP_PARALLEL}
-set cmd:fail-exit yes
-cd ${REMOTE_BASE}
-mkdir -p php || true
-lcd ${ORBIT_ROOT}
-cd php
-mirror -R \
-  --verbose \
-  --parallel=${LFTP_PARALLEL} \
-  --no-perms \
-  --no-umask \
-  --exclude-glob .git/** \
-  --exclude-glob config/config.php \
-  --exclude-glob public/uploads/** \
-  --exclude-glob '**/*.md' \
-  --exclude-glob '**/*.bat' \
-  --exclude-glob '**/.DS_Store' \
-  --exclude-glob '**/Thumbs.db' \
-  --exclude-glob .gitignore \
-  --exclude-glob bin/deploy-ftp.sh \
-  --exclude-glob bin/deploy-angular-ftp.sh \
-  --exclude-glob bin/ftp-progress.sh \
-  .
-bye
-EOF
-MIRROR_STATUS=${PIPESTATUS[0]}
+lftp -f "${SCRIPT}" 2>&1 | ftp_track_progress "orbit-api" "${FILE_COUNT}"
+STATUS=${PIPESTATUS[0]}
 set -e
 
-if [[ "$MIRROR_STATUS" -ne 0 ]]; then
-  echo "::error::orbit-api FTP mirror failed (exit ${MIRROR_STATUS})"
-  exit "$MIRROR_STATUS"
-fi
-
-if [[ -f "${ORBIT_ROOT}/config/config.php" ]]; then
-  echo "Uploading config/config.php"
-  lftp -u "${FTP_USERNAME},${FTP_PASSWORD}" "ftp://${FTP_SERVER}" <<EOF
-set ftp:ssl-allow no
-set net:timeout 20
-set cmd:fail-exit yes
-cd ${REMOTE_BASE}/php/config
-mkdir -p . || true
-lcd ${ORBIT_ROOT}/config
-put config.php
-bye
-EOF
-  echo "FTP orbit-api: $(ftp_bar 100) 100% (config.php included)"
-else
-  echo "WARNING: No local config/config.php — remote config (if any) left unchanged."
+if [[ "$STATUS" -ne 0 ]]; then
+  echo "::error::orbit-api FTP upload failed (exit ${STATUS})"
+  exit "$STATUS"
 fi
 
 ELAPSED="$(( $(date +%s) - START ))"
-echo "orbit-api deploy complete in ${ELAPSED}s."
+echo "orbit-api deploy complete in ${ELAPSED}s (${FILE_COUNT} files)."
