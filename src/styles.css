@@ -46,6 +46,8 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* Keep in-page scroll targets clear of the sticky site header */
+    scroll-padding-top: 5.5rem;
   }
 
   body {
@@ -56,6 +58,34 @@
     background: var(--color-surface);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    scrollbar-width: thin;
+    scrollbar-color: var(--clay-deep) var(--surface);
+  }
+
+  /* Orbit-branded scrollbars (public + shared) */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--clay-deep) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 0.55rem;
+    height: 0.55rem;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+    background-color: var(--clay-deep);
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: #756858;
   }
 
   img {
@@ -85,6 +115,8 @@
 
   app-admin-layout .admin-outlet > app-admin-site > div:first-child,
   app-admin-layout .admin-outlet > app-admin-about > div:first-child,
+  app-admin-layout .admin-outlet > app-admin-countdown > div:first-child,
+  app-admin-layout .admin-outlet > app-admin-reviews > div:first-child,
   app-admin-layout .admin-outlet > app-admin-batch-detail > div:first-child {
     width: 100%;
     margin-inline: 0;
@@ -107,6 +139,7 @@
   app-admin-layout .admin-outlet > *::-webkit-scrollbar,
   app-admin-layout .admin-outlet > * > [class*='overflow-auto']::-webkit-scrollbar {
     width: 0.55rem;
+    height: 0.55rem;
   }
 
   app-admin-layout .admin-outlet::-webkit-scrollbar-track,

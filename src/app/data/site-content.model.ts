@@ -312,7 +312,13 @@ export interface SiteContent {
   about: AboutContent;
   collections: CollectionsContent;
   journey: JourneyPageCopy;
+  /** Batch shop content for /batch — always the latest live batch when one exists. */
   batch: BatchContent;
+  /**
+   * Home countdown/celebration target.
+   * Prefers the next scheduled drop when one exists; otherwise same as batch.
+   */
+  homeBatch: BatchContent;
   batches: BatchContent[];
   journeyCards: JourneyBatchCard[];
   footer: FooterContent;
@@ -392,8 +398,11 @@ export function assembleSiteContent(db: SiteContentDb): SiteContent {
   const heroHighlightRows = bySort(db.heroHighlightImages ?? []);
   const now = Date.now();
   const scheduled = latestScheduledBatch(batches, now);
-  const hasLiveOrSoldOut = batches.some((b) => b.soldOut || isBatchLive(b.launchAt, now));
-  const batchToShow = scheduled && hasLiveOrSoldOut ? scheduled : active;
+  // Only one shop batch should be "live": the most recently launched (not sold out).
+  const latestLive = latestLaunchedBatch(batches, now);
+  const batchToShow = latestLive ?? scheduled ?? active;
+  // Home timer prefers the upcoming drop so countdown still works while a batch is live.
+  const homeBatch = scheduled ?? batchToShow;
 
   const journeyCards: JourneyBatchCard[] = batches
     .map((batch) => {
@@ -415,10 +424,10 @@ export function assembleSiteContent(db: SiteContentDb): SiteContent {
         isBatchLive(card.batch.launchAt),
     );
 
-  const heroHighlights = assembleHeroHighlights(active, batches, heroHighlightRows);
+  const heroHighlights = assembleHeroHighlights(batchToShow, batches, heroHighlightRows);
   const heroImage = resolveHeroBackdropImage(
     db.site.image || db.pageCopy.hero.image,
-    active,
+    batchToShow,
     batches,
     heroHighlightRows,
   );
@@ -438,6 +447,7 @@ export function assembleSiteContent(db: SiteContentDb): SiteContent {
     collections: db.pageCopy.collections,
     journey: db.pageCopy.journey,
     batch: batchToShow,
+    homeBatch,
     batches,
     journeyCards,
     footer: db.pageCopy.footer,
@@ -490,6 +500,13 @@ function latestScheduledBatchInWindow(batches: BatchContent[], now = Date.now())
   return [...batches]
     .filter((b) => !b.soldOut && isBatchScheduled(b.launchAt, now) && batchInHeroWindow(b, now))
     .sort((a, b) => Date.parse(a.launchAt) - Date.parse(b.launchAt))[0];
+}
+
+/** Most recently launched batch that has already gone live (and is not sold out). */
+function latestLaunchedBatch(batches: BatchContent[], now = Date.now()): BatchContent | undefined {
+  return [...batches]
+    .filter((b) => !b.soldOut && isBatchLive(b.launchAt, now))
+    .sort((a, b) => Date.parse(b.launchAt) - Date.parse(a.launchAt))[0];
 }
 
 function latestLiveBatch(batches: BatchContent[], now = Date.now()): BatchContent | undefined {
@@ -547,43 +564,33 @@ function assembleHeroHighlights(
 ): HeroHighlightBatch[] {
   const rows: HeroHighlightBatch[] = [];
   const scheduled = latestScheduledBatchInWindow(batches, now);
-  const activeIsScheduled = scheduled?.id === active.id;
+  const live = latestLaunchedBatch(batches, now);
+  const heroBatch = live ?? active;
+  const thumbCap = 2;
 
+  // Live first — primary shop signal on the home hero.
+  if (heroBatch && isHeroImageEligible(heroBatch, now) && heroBatch.id !== scheduled?.id) {
+    const images = batchHeroImages(heroBatch.id, heroHighlightRows).slice(0, thumbCap);
+    if (images.length > 0) {
+      rows.push({
+        batchId: heroBatch.id,
+        label: heroBatch.label,
+        status: isBatchLive(heroBatch.launchAt, now) ? 'live' : 'recent',
+        images,
+        href: '/batch',
+      });
+    }
+  }
+
+  // At most one upcoming drop — keeps the first viewport from stacking.
   if (scheduled) {
-    const scheduledImages = batchHeroImages(scheduled.id, heroHighlightRows);
-    if (scheduledImages.length > 0) {
+    const images = batchHeroImages(scheduled.id, heroHighlightRows).slice(0, thumbCap);
+    if (images.length > 0) {
       rows.push({
         batchId: scheduled.id,
         label: scheduled.label,
         status: 'scheduled',
-        images: scheduledImages,
-        href: '/batch',
-      });
-    }
-  }
-
-  if (!activeIsScheduled && isHeroImageEligible(active, now)) {
-    const activeImages = batchHeroImages(active.id, heroHighlightRows);
-    if (activeImages.length > 0) {
-      rows.push({
-        batchId: active.id,
-        label: active.label,
-        status: isBatchLive(active.launchAt, now) ? 'live' : 'scheduled',
-        images: activeImages,
-        href: '/batch',
-      });
-    }
-  }
-
-  const recent = latestLiveBatch(batches, now);
-  if (recent && recent.id !== active.id && recent.id !== scheduled?.id) {
-    const recentImages = batchHeroImages(recent.id, heroHighlightRows);
-    if (recentImages.length > 0) {
-      rows.push({
-        batchId: recent.id,
-        label: recent.label,
-        status: 'recent',
-        images: recentImages,
+        images,
         href: '/batch',
       });
     }
