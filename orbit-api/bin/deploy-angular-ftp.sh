@@ -1,9 +1,8 @@
 #!/usr/bin/env bash
-# Deploy Angular browser build to Hostinger via parallel lftp + % progress.
-# Does not touch remote php/ (API) or php-backup-* folders.
+# Deploy Angular browser build via lftp put (no remote tree scan of php/).
 #
 # Required env: FTP_SERVER, FTP_USERNAME, FTP_PASSWORD, FTP_REMOTE_DIR
-# Optional: ANGULAR_DIST, LFTP_PARALLEL (default 8)
+# Optional: ANGULAR_DIST, LFTP_PARALLEL (default 6)
 
 set -euo pipefail
 
@@ -17,8 +16,9 @@ FTP_SERVER="${FTP_SERVER:?FTP_SERVER required}"
 FTP_USERNAME="${FTP_USERNAME:?FTP_USERNAME required}"
 FTP_PASSWORD="${FTP_PASSWORD:?FTP_PASSWORD required}"
 FTP_REMOTE_DIR="${FTP_REMOTE_DIR:?FTP_REMOTE_DIR required}"
-LFTP_PARALLEL="${LFTP_PARALLEL:-8}"
+LFTP_PARALLEL="${LFTP_PARALLEL:-6}"
 
+FTP_HOST="$(ftp_normalize_host "${FTP_SERVER}")"
 REMOTE_BASE="${FTP_REMOTE_DIR#./}"
 REMOTE_BASE="${REMOTE_BASE%/}"
 
@@ -27,41 +27,82 @@ if [[ ! -f "${ANGULAR_DIST}/index.html" ]]; then
   exit 1
 fi
 
-FILE_COUNT="$(find "${ANGULAR_DIST}" -type f | wc -l | tr -d ' ')"
-echo "Deploying Angular (${FILE_COUNT} files, parallel=${LFTP_PARALLEL}) → ftp://${FTP_SERVER}/${REMOTE_BASE}/"
+echo "FTP host: ${FTP_HOST}"
+echo "FTP remote: ${REMOTE_BASE}/"
+echo "FTP local: ${ANGULAR_DIST}"
+
+# Reuse API preflight path check (ensures base exists; php/ untouched)
+echo "FTP preflight: connecting to ${FTP_HOST}…"
+if ! lftp -u "${FTP_USERNAME},${FTP_PASSWORD}" "ftp://${FTP_HOST}" \
+  -e "set ftp:ssl-allow no; set ftp:passive-mode yes; set net:timeout 12; set net:max-retries 1; set cmd:fail-exit yes; cd ${REMOTE_BASE}; pwd; bye" \
+  2>&1; then
+  echo "::error::FTP Angular preflight failed — check FTP secrets / ORBIT_FTP_REMOTE_DIR"
+  exit 1
+fi
+echo "FTP preflight: ready"
+
+mapfile -t FILES < <(
+  find "${ANGULAR_DIST}" -type f \
+    | sed "s|^${ANGULAR_DIST}/||" \
+    | LC_ALL=C sort
+)
+
+FILE_COUNT="${#FILES[@]}"
+mapfile -t DIRS < <(
+  printf '%s\n' "${FILES[@]}" \
+    | xargs -n1 dirname \
+    | grep -v '^\.$' \
+    | LC_ALL=C sort -u
+)
+
+echo "Deploying Angular (${FILE_COUNT} files, parallel=${LFTP_PARALLEL}) → ftp://${FTP_HOST}/${REMOTE_BASE}/"
 START="$(date +%s)"
 
-# No --delete on public_html (avoids scanning php/, backups, old assets).
+SCRIPT="$(mktemp)"
+trap 'rm -f "${SCRIPT}"' EXIT
+
+{
+  echo "set ftp:ssl-allow no"
+  echo "set ftp:passive-mode yes"
+  echo "set ftp:auto-sync-mode no"
+  echo "set net:timeout 15"
+  echo "set net:max-retries 1"
+  echo "set net:persist-retries 0"
+  echo "set cmd:fail-exit yes"
+  echo "set cmd:interactive false"
+  echo "set xfer:clobber on"
+  echo "open -u ${FTP_USERNAME},${FTP_PASSWORD} ftp://${FTP_HOST}"
+  echo "cd ${REMOTE_BASE}"
+  echo "!echo FTP_STATUS Angular mkdir — starting puts"
+
+  for d in "${DIRS[@]}"; do
+    echo "mkdir -p ${d} || true"
+  done
+  echo "!echo FTP_STATUS directories ready — uploading ${FILE_COUNT} files"
+
+  local_i=0
+  for rel in "${FILES[@]}"; do
+    local_i=$((local_i + 1))
+    abs="${ANGULAR_DIST}/${rel}"
+    echo "!echo FTP_PUT ${local_i}/${FILE_COUNT} ${rel}"
+    echo "put \"${abs}\" -o \"${rel}\""
+    if (( local_i % LFTP_PARALLEL == 0 )); then
+      echo "!echo FTP_STATUS batch ${local_i}/${FILE_COUNT}"
+    fi
+  done
+
+  echo "bye"
+} >"${SCRIPT}"
+
 set +e
-lftp -u "${FTP_USERNAME},${FTP_PASSWORD}" "ftp://${FTP_SERVER}" 2>&1 <<EOF | ftp_track_progress "Angular" "${FILE_COUNT}"
-set ftp:ssl-allow no
-set net:max-retries 2
-set net:timeout 20
-set net:persist-retries 1
-set mirror:parallel-transfer-count ${LFTP_PARALLEL}
-set cmd:fail-exit yes
-cd ${REMOTE_BASE}
-lcd ${ANGULAR_DIST}
-mirror -R \
-  --verbose \
-  --parallel=${LFTP_PARALLEL} \
-  --no-perms \
-  --no-umask \
-  --exclude-glob php/** \
-  --exclude-glob php-backup-*/** \
-  --exclude-glob .ftp-deploy-sync-state.json \
-  --exclude-glob '**/.DS_Store' \
-  --exclude-glob '**/Thumbs.db' \
-  .
-bye
-EOF
-MIRROR_STATUS=${PIPESTATUS[0]}
+lftp -f "${SCRIPT}" 2>&1 | ftp_track_progress "Angular" "${FILE_COUNT}"
+STATUS=${PIPESTATUS[0]}
 set -e
 
-if [[ "$MIRROR_STATUS" -ne 0 ]]; then
-  echo "::error::Angular FTP mirror failed (exit ${MIRROR_STATUS})"
-  exit "$MIRROR_STATUS"
+if [[ "$STATUS" -ne 0 ]]; then
+  echo "::error::Angular FTP upload failed (exit ${STATUS})"
+  exit "$STATUS"
 fi
 
 ELAPSED="$(( $(date +%s) - START ))"
-echo "Angular deploy complete in ${ELAPSED}s."
+echo "Angular deploy complete in ${ELAPSED}s (${FILE_COUNT} files)."
