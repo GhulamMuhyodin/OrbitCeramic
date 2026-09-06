@@ -136,7 +136,7 @@ jobs:
             echo "::error::Missing FTP secrets (FTP_SERVER, FTP_USERNAME, FTP_PASSWORD). See orbit-api/database/DEPLOY.md"
             exit 1
           fi
-          chmod +x orbit-api/bin/deploy-ftp.sh
+          chmod +x orbit-api/bin/deploy-ftp.sh orbit-api/bin/ftp-progress.sh
           orbit-api/bin/deploy-ftp.sh
 
       - name: Deploy Angular to Hostinger
@@ -148,7 +148,7 @@ jobs:
           FTP_REMOTE_DIR: ${{ steps.target.outputs.dir }}
           LFTP_PARALLEL: '8'
         run: |
-          chmod +x orbit-api/bin/deploy-angular-ftp.sh
+          chmod +x orbit-api/bin/deploy-angular-ftp.sh orbit-api/bin/ftp-progress.sh
           orbit-api/bin/deploy-angular-ftp.sh
 
       - name: Deploy summary
@@ -161,4 +161,4 @@ jobs:
           echo "- FTP dir: \`${{ steps.target.outputs.dir }}\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- API: \`${{ steps.target.outputs.dir }}/php\`" >> "$GITHUB_STEP_SUMMARY"
           echo "- DB migrations: applied via \`php bin/database migrate\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "- FTP: parallel lftp (API + Angular)" >> "$GITHUB_STEP_SUMMARY"
+          echo "- FTP: parallel lftp with **% progress** (API + Angular)" >> "$GITHUB_STEP_SUMMARY"
