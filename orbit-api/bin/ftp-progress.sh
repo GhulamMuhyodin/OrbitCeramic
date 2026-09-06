@@ -122,10 +122,19 @@ ftp_preflight() {
     cd_cmd="cd ${resolved}"
   fi
 
-  if ! lftp -u "${user},${pass}" "ftp://${host}" \
-    -e "$(ftp_lftp_settings); ${cd_cmd}; mkdir -p php; cd php; pwd; bye" >&2; then
-    echo "::error::FTP could not mkdir php under '${resolved}'" >&2
-    return 1
+  # 1) Try enter existing php/
+  if lftp -u "${user},${pass}" "ftp://${host}" \
+    -e "$(ftp_lftp_settings); ${cd_cmd}; cd php; pwd; bye" >&2; then
+    echo "FTP preflight: php/ already exists — using it" >&2
+  else
+    # 2) Not found → create, then enter
+    echo "FTP preflight: php/ not found — creating…" >&2
+    if ! lftp -u "${user},${pass}" "ftp://${host}" \
+      -e "$(ftp_lftp_settings); ${cd_cmd}; mkdir php; cd php; pwd; bye" >&2; then
+      echo "::error::FTP could not create or enter php/ under '${resolved}'" >&2
+      return 1
+    fi
+    echo "FTP preflight: php/ created" >&2
   fi
 
   echo "FTP preflight: ready (remote base=${resolved})" >&2

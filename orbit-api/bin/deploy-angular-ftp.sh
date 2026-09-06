@@ -75,7 +75,9 @@ trap 'rm -f "${SCRIPT}"' EXIT
   echo "!echo FTP_STATUS Angular mkdir — starting puts"
 
   for d in "${DIRS[@]}"; do
-    echo "mkdir -p ${d} || true"
+    echo "set cmd:fail-exit no"
+    echo "mkdir -p ${d}"
+    echo "set cmd:fail-exit yes"
   done
   echo "!echo FTP_STATUS directories ready — uploading ${FILE_COUNT} files"
 
