@@ -1,17 +1,24 @@
-name: Deploy Angular to Hostinger
+name: Deploy Orbit (Angular + API + DB migrations)
 
-# prod → domains/mediumvioletred-trout-528447.hostingersite.com/public_html/
-# uat  → domains/uat.orbitceramic.studio/public_html/
+# prod → Hostinger public_html (+ php/ API)
+# uat  → same host path for now (override via secrets / environment)
 on:
   push:
     branches:
       - prod
       - uat
 
+concurrency:
+  group: deploy-${{ github.ref_name }}
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     name: Deploy ${{ github.ref_name }}
+    # Create GitHub Environments named "production" and "uat"
+    # with the secrets listed in orbit-api/database/DEPLOY.md
+    environment: ${{ github.ref_name == 'prod' && 'production' || 'uat' }}
 
     steps:
       - uses: actions/checkout@v4
@@ -21,50 +28,134 @@ jobs:
           node-version: 24
           cache: npm
 
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: pdo_mysql, fileinfo
+          coverage: none
+
       - name: Set deploy target
         id: target
         run: |
           case "${{ github.ref_name }}" in
             prod)
               SITE=LIVE
-              DOMAIN=https://mediumvioletred-trout-528447.hostingersite.com
-              DIR=domains/mediumvioletred-trout-528447.hostingersite.com/public_html/
+              DOMAIN="${{ secrets.ORBIT_SITE_DOMAIN }}"
+              DIR="${{ secrets.ORBIT_FTP_REMOTE_DIR }}"
               ;;
             uat)
               SITE=UAT
-              DOMAIN=https://uat.orbitceramic.studio
-              DIR=domains/uat.orbitceramic.studio/public_html/
+              DOMAIN="${{ secrets.ORBIT_SITE_DOMAIN }}"
+              DIR="${{ secrets.ORBIT_FTP_REMOTE_DIR }}"
               ;;
             *)
               echo "Unsupported branch: ${{ github.ref_name }}"
               exit 1
               ;;
           esac
+
+          if [ -z "$DOMAIN" ]; then
+            DOMAIN="https://mediumvioletred-trout-528447.hostingersite.com"
+          fi
+          if [ -z "$DIR" ]; then
+            DIR="domains/mediumvioletred-trout-528447.hostingersite.com/public_html"
+          fi
+
+          # Strip leading/trailing slashes for lftp paths
+          DIR="${DIR#./}"
+          DIR="${DIR%/}"
+
           echo "site=$SITE" >> "$GITHUB_OUTPUT"
           echo "domain=$DOMAIN" >> "$GITHUB_OUTPUT"
           echo "dir=$DIR" >> "$GITHUB_OUTPUT"
-          echo "Deploy ${{ github.ref_name }} ($SITE) → $DIR"
+          echo "Deploy ${{ github.ref_name }} ($SITE) → $DIR | $DOMAIN"
 
-      - name: Install & build
+      - name: Install & build Angular
         run: |
           npm ci
           npm run build
           test -f dist/OrbitCeramic/browser/index.html
           test -f dist/OrbitCeramic/browser/.htaccess
-          echo "Build OK — $(find dist/OrbitCeramic/browser -type f | wc -l) files → ${{ steps.target.outputs.site }} (${{ steps.target.outputs.domain }})"
+          echo "Build OK — $(find dist/OrbitCeramic/browser -type f | wc -l) files"
 
-      - name: Upload to Hostinger
+      - name: Write API config from secrets
+        working-directory: orbit-api
+        env:
+          ORBIT_DB_HOST: ${{ secrets.ORBIT_DB_HOST }}
+          ORBIT_DB_PORT: ${{ secrets.ORBIT_DB_PORT }}
+          ORBIT_DB_NAME: ${{ secrets.ORBIT_DB_NAME }}
+          ORBIT_DB_USER: ${{ secrets.ORBIT_DB_USER }}
+          ORBIT_DB_PASS: ${{ secrets.ORBIT_DB_PASS }}
+          ORBIT_API_KEY: ${{ secrets.ORBIT_API_KEY }}
+          ORBIT_PUBLIC_BASE_URL: ${{ secrets.ORBIT_PUBLIC_BASE_URL }}
+          ORBIT_CORS_ORIGINS: ${{ secrets.ORBIT_CORS_ORIGINS }}
+          ORBIT_DEFAULT_SITE_ID: ${{ secrets.ORBIT_DEFAULT_SITE_ID }}
+          ORBIT_TIMEZONE: ${{ secrets.ORBIT_TIMEZONE }}
+        run: |
+          if [ -z "$ORBIT_DB_HOST" ] || [ -z "$ORBIT_DB_NAME" ] || [ -z "$ORBIT_DB_USER" ]; then
+            echo "::error::Missing DB secrets. Set ORBIT_DB_HOST, ORBIT_DB_NAME, ORBIT_DB_USER, ORBIT_DB_PASS on environment '${{ github.ref_name == 'prod' && 'production' || 'uat' }}'."
+            echo "See orbit-api/database/DEPLOY.md"
+            exit 1
+          fi
+          if [ -z "$ORBIT_PUBLIC_BASE_URL" ]; then
+            # Default: Angular site + /php/public (Hostinger layout)
+            export ORBIT_PUBLIC_BASE_URL="${{ steps.target.outputs.domain }}/php/public"
+            echo "ORBIT_PUBLIC_BASE_URL defaulted to $ORBIT_PUBLIC_BASE_URL"
+          fi
+          if [ -z "$ORBIT_CORS_ORIGINS" ]; then
+            export ORBIT_CORS_ORIGINS="${{ steps.target.outputs.domain }}"
+          fi
+          php bin/ci-write-config.php
+          test -f config/config.php
+
+      - name: Run database migrations
+        working-directory: orbit-api
+        run: |
+          echo "Migrating remote database…"
+          php bin/database status
+          php bin/database migrate
+          php bin/database status
+          echo "Migrations OK"
+
+      - name: Install lftp
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      - name: Deploy orbit-api (preserve uploads)
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+          FTP_REMOTE_DIR: ${{ steps.target.outputs.dir }}
+        run: |
+          if [ -z "$FTP_SERVER" ] || [ -z "$FTP_USERNAME" ] || [ -z "$FTP_PASSWORD" ]; then
+            echo "::error::Missing FTP secrets (FTP_SERVER, FTP_USERNAME, FTP_PASSWORD). See orbit-api/database/DEPLOY.md"
+            exit 1
+          fi
+          chmod +x orbit-api/bin/deploy-ftp.sh
+          orbit-api/bin/deploy-ftp.sh
+
+      - name: Deploy Angular to Hostinger
         uses: SamKirkland/FTP-Deploy-Action@v4.4.0
         with:
-          server: 185.224.137.128
-          username: u948222984
-          password: "7hidSH$BE&=Fn@R"
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
           local-dir: dist/OrbitCeramic/browser/
-          # If File Manager shows files under public_html/public_html/,
-          # change this to ./  (FTP account already starts in public_html)
-          server-dir: ../domains/mediumvioletred-trout-528447.hostingersite.com/public_html/
+          server-dir: ${{ steps.target.outputs.dir }}/
           log-level: standard
+          exclude: |
+            **/.git*
+            **/.git*/**
+            php/**
+            php-backup-*/**
 
-
-
-
+      - name: Deploy summary
+        run: |
+          echo "### Deploy ${{ steps.target.outputs.site }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Branch: \`${{ github.ref_name }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- Site: ${{ steps.target.outputs.domain }}" >> "$GITHUB_STEP_SUMMARY"
+          echo "- FTP dir: \`${{ steps.target.outputs.dir }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- API: \`${{ steps.target.outputs.dir }}/php\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "- DB migrations: applied via \`php bin/database migrate\`" >> "$GITHUB_STEP_SUMMARY"

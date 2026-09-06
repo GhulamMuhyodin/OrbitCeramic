@@ -1,0 +1,14 @@
+# Orbit API front controller (when document root is php/public)
+DirectoryIndex index.php
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+
+  # Serve real files (uploads, static)
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Everything else → index.php
+  RewriteRule ^ index.php [L]
+</IfModule>

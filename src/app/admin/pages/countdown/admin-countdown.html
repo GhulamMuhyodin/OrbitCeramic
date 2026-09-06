@@ -1,0 +1,86 @@
+@if (db(); as d) {
+  <div class="flex-1 min-h-0 overflow-auto p-4 pb-6 md:p-6">
+    <div class="mx-auto mb-5 w-full max-w-4xl">
+      <p class="mb-2 text-[0.68rem] font-bold uppercase tracking-[0.16em] text-clay-deep">Public launch copy</p>
+      <h1 class="m-0 text-2xl font-semibold tracking-tight md:text-3xl">Countdown & celebration</h1>
+      <p class="mt-2 max-w-xl text-sm leading-relaxed text-muted md:text-[0.95rem]">
+        Site-wide text shown before launch (countdown) and during the live celebration window.
+        Launch date and time still come from each batch.
+      </p>
+    </div>
+
+    <div class="admin-form-card mx-auto grid w-full max-w-4xl gap-4">
+      <p-card header="Countdown" subheader="Shown before the active batch launches" styleClass="overflow-hidden">
+        <div class="mt-2 grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
+          <div>
+            <label class="mb-1 block text-sm font-medium text-stone-700">Eyebrow</label>
+            <input
+              pInputText
+              class="w-full"
+              [ngModel]="d.pageCopy.countdown.countdownEyebrow"
+              (ngModelChange)="patchCountdown('countdownEyebrow', $event)"
+            />
+          </div>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-stone-700">Heading</label>
+            <input
+              pInputText
+              class="w-full"
+              [ngModel]="d.pageCopy.countdown.countdownHeading"
+              (ngModelChange)="patchCountdown('countdownHeading', $event)"
+            />
+          </div>
+          <div class="md:col-span-2">
+            <label class="mb-1 block text-sm font-medium text-stone-700">Lede</label>
+            <textarea
+              pTextarea
+              class="w-full"
+              rows="3"
+              [ngModel]="d.pageCopy.countdown.countdownLede"
+              (ngModelChange)="patchCountdown('countdownLede', $event)"
+            ></textarea>
+          </div>
+        </div>
+      </p-card>
+
+      <p-card header="Celebration" subheader="Shown during the first 24 hours after launch" styleClass="overflow-hidden">
+        <div class="mt-2 grid grid-cols-1 gap-x-4 gap-y-3">
+          <div>
+            <label class="mb-1 block text-sm font-medium text-stone-700">Heading</label>
+            <input
+              pInputText
+              class="w-full"
+              [ngModel]="d.pageCopy.countdown.celebrationHeading"
+              (ngModelChange)="patchCountdown('celebrationHeading', $event)"
+            />
+          </div>
+          <div>
+            <label class="mb-1 block text-sm font-medium text-stone-700">Lede</label>
+            <textarea
+              pTextarea
+              class="w-full"
+              rows="3"
+              [ngModel]="d.pageCopy.countdown.celebrationLede"
+              (ngModelChange)="patchCountdown('celebrationLede', $event)"
+            ></textarea>
+          </div>
+        </div>
+      </p-card>
+    </div>
+  </div>
+
+  <div class="admin-form-actions shrink-0 border-t border-stone-200 bg-[#fffcf8] px-4 py-3 shadow-[0_-10px_32px_rgba(28,25,23,0.08)] md:px-5">
+    @if (dirty()) {
+      <span class="min-w-28 flex-1 text-sm font-bold text-amber-700">Unsaved changes</span>
+    } @else {
+      <span class="min-w-28 flex-1 text-sm font-bold text-green-700">Saved</span>
+    }
+    <p-button type="button" label="Save to database" [disabled]="!dirty()" (onClick)="save()" />
+  </div>
+} @else {
+  <div class="flex-1 min-h-0 overflow-auto p-4 pb-6 md:p-6">
+    <p class="mb-3 text-sm leading-relaxed text-stone-500">Loading…</p>
+  </div>
+}
+
+<p-toast />

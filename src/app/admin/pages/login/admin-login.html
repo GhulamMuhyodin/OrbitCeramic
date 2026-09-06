@@ -1,0 +1,49 @@
+<main class="admin-login-page grid min-h-dvh place-items-center bg-white px-3 py-4 sm:px-6 sm:py-5">
+  <section class="admin-login-shell grid w-full max-w-[70rem] overflow-hidden rounded-[2rem] border border-stone-200 bg-[#f8f7f1] shadow-[0_18px_55px_rgba(38,43,46,0.14)] lg:grid-cols-[0.82fr_1.18fr]">
+    <div class="admin-login-form-panel flex min-h-[38rem] flex-col justify-between p-7 sm:p-10 lg:p-14">
+      <div>
+        <div class="mb-12 inline-flex items-center gap-2 rounded-full border border-stone-400 px-4 py-2 text-sm font-medium text-stone-800">
+          <span class="grid size-5 place-items-center rounded-full bg-[#252826] text-[0.58rem] font-bold text-[#d5c4ad]">O</span>
+          Orbit Ceramic
+        </div>
+
+        <div class="mx-auto w-full max-w-sm lg:mt-16">
+          <p class="mb-3 text-center text-[0.68rem] font-bold uppercase tracking-[0.18em] text-[#9a7656]">Studio access</p>
+          <h1 class="m-0 text-center text-3xl font-semibold tracking-tight text-stone-900 sm:text-4xl">Welcome back</h1>
+          <p class="mx-auto mt-3 max-w-xs text-center text-sm leading-relaxed text-stone-500">Sign in to manage batches, products, media, and site content.</p>
+
+          @if (error(); as message) {
+            <div class="mt-7 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">{{ message }}</div>
+          }
+
+          <form class="mt-8 grid gap-5" (ngSubmit)="submit()">
+            <div class="admin-login-field">
+              <label>Username</label>
+              <input pInputText name="username" autocomplete="username" [(ngModel)]="username" />
+            </div>
+            <div class="admin-login-field">
+              <label>Password</label>
+              <input pInputText type="password" name="password" autocomplete="current-password" [(ngModel)]="password" />
+            </div>
+            <p-button type="submit" label="Sign in" [loading]="submitting()" [disabled]="submitting()" styleClass="admin-login-submit w-full" />
+          </form>
+        </div>
+      </div>
+
+      <p class="mt-10 text-center text-xs text-stone-500">Private studio workspace · Authorized users only</p>
+    </div>
+
+    <div class="admin-login-visual relative hidden min-h-[38rem] overflow-hidden lg:block">
+      <img class="absolute inset-0 h-full w-full object-cover" src="/images/hero/hero-01.jpg" alt="Orbit Ceramic studio workspace" />
+      <div class="absolute inset-0 bg-[#252826]/20"></div>
+      <div class="absolute right-6 top-6 grid size-11 place-items-center rounded-full border border-white/70 bg-white/80 text-stone-900 backdrop-blur-sm" aria-hidden="true">
+        <span class="material-symbols-outlined text-lg">lock</span>
+      </div>
+      <div class="absolute inset-x-8 bottom-8 rounded-2xl border border-white/40 bg-stone-950/55 p-5 text-white backdrop-blur-md">
+        <p class="mb-2 text-[0.65rem] font-bold uppercase tracking-[0.18em] text-[#ead8bd]">Orbit Ceramic</p>
+        <p class="m-0 max-w-sm text-xl font-medium leading-tight">Shape the next batch with care.</p>
+        <p class="mt-2 max-w-sm text-sm leading-relaxed text-white/75">Your launches, products, and stories in one quiet workspace.</p>
+      </div>
+    </div>
+  </section>
+</main>

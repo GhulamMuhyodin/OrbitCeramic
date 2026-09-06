@@ -2,6 +2,7 @@
 @import 'photoswipe/style.css';
 @import 'ngx-owl-carousel-o/lib/styles/prebuilt-themes/owl.carousel.min.css';
 @import 'ngx-owl-carousel-o/lib/styles/prebuilt-themes/owl.theme.default.min.css';
+@import '@angular/material/prebuilt-themes/azure-blue.css';
 
 @theme {
   --color-stone-950: #1a1a1a;
@@ -22,6 +23,13 @@
 
 /* Legacy CSS variable aliases for remaining component CSS during migration */
 :root {
+  --p-primary-color: #111111;
+  --p-primary-contrast-color: #ffffff;
+  --p-primary-hover-color: #2c2c2c;
+  --p-primary-active-color: #000000;
+  --p-form-field-border-color: #c4c2be;
+  --p-form-field-focus-border-color: #111111;
+  --p-form-field-focus-ring-color: rgba(17, 17, 17, 0.16);
   --stone-950: #1a1a1a;
   --stone-900: #2c2c2c;
   --stone-700: #4a4a4a;
@@ -38,6 +46,8 @@
 @layer base {
   html {
     scroll-behavior: smooth;
+    /* Keep in-page scroll targets clear of the sticky site header */
+    scroll-padding-top: 5.5rem;
   }
 
   body {
@@ -48,6 +58,34 @@
     background: var(--color-surface);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    scrollbar-width: thin;
+    scrollbar-color: var(--clay-deep) var(--surface);
+  }
+
+  /* Orbit-branded scrollbars (public + shared) */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--clay-deep) transparent;
+  }
+
+  *::-webkit-scrollbar {
+    width: 0.55rem;
+    height: 0.55rem;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background-clip: padding-box;
+    background-color: var(--clay-deep);
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background-color: #756858;
   }
 
   img {
@@ -58,6 +96,554 @@
   a {
     color: inherit;
     text-decoration: none;
+  }
+
+  input,
+  textarea,
+  select,
+  button {
+    font: inherit;
+  }
+}
+
+@layer components {
+  app-admin-layout .admin-outlet > app-admin-dashboard,
+  app-admin-layout .admin-outlet > app-admin-batches {
+    width: 100%;
+    margin-inline: 0;
+  }
+
+  app-admin-layout .admin-outlet > app-admin-site > div:first-child,
+  app-admin-layout .admin-outlet > app-admin-about > div:first-child,
+  app-admin-layout .admin-outlet > app-admin-countdown > div:first-child,
+  app-admin-layout .admin-outlet > app-admin-reviews > div:first-child,
+  app-admin-layout .admin-outlet > app-admin-batch-detail > div:first-child {
+    width: 100%;
+    margin-inline: 0;
+  }
+
+  app-admin-layout .admin-outlet > app-admin-dashboard > div:first-child {
+    width: 100%;
+    max-width: 78rem;
+    margin-inline: auto;
+  }
+
+  app-admin-layout .admin-outlet,
+  app-admin-layout .admin-outlet > *,
+  app-admin-layout .admin-outlet > * > [class*='overflow-auto'] {
+    scrollbar-width: thin;
+    scrollbar-color: #a89a88 transparent;
+  }
+
+  app-admin-layout .admin-outlet::-webkit-scrollbar,
+  app-admin-layout .admin-outlet > *::-webkit-scrollbar,
+  app-admin-layout .admin-outlet > * > [class*='overflow-auto']::-webkit-scrollbar {
+    width: 0.55rem;
+    height: 0.55rem;
+  }
+
+  app-admin-layout .admin-outlet::-webkit-scrollbar-track,
+  app-admin-layout .admin-outlet > *::-webkit-scrollbar-track,
+  app-admin-layout .admin-outlet > * > [class*='overflow-auto']::-webkit-scrollbar-track {
+    background: #eef0ed;
+  }
+
+  app-admin-layout .admin-outlet::-webkit-scrollbar-thumb,
+  app-admin-layout .admin-outlet > *::-webkit-scrollbar-thumb,
+  app-admin-layout .admin-outlet > * > [class*='overflow-auto']::-webkit-scrollbar-thumb {
+    border: 2px solid #eef0ed;
+    border-radius: 999px;
+    background: #a89a88;
+  }
+
+  app-admin-layout .admin-outlet::-webkit-scrollbar-thumb:hover,
+  app-admin-layout .admin-outlet > *::-webkit-scrollbar-thumb:hover,
+  app-admin-layout .admin-outlet > * > [class*='overflow-auto']::-webkit-scrollbar-thumb:hover {
+    background: #756858;
+  }
+
+  app-admin-layout .admin-outlet > * {
+    background:
+      radial-gradient(circle at 90% 0%, rgba(213, 196, 173, 0.18), transparent 28rem),
+      linear-gradient(180deg, #eef0ed 0%, #f4f5f2 100%);
+  }
+
+  app-admin-layout .p-card {
+    border: 1px solid #d9ddd8;
+    border-radius: 1.35rem;
+    background: #fbfcfa;
+    box-shadow: 0 14px 34px rgba(62, 67, 61, 0.1);
+  }
+
+  app-admin-layout .admin-form-card {
+    width: 100%;
+    max-width: 54rem;
+    margin-inline: auto;
+  }
+
+  app-admin-layout .admin-form-card .p-card-body {
+    padding: 1.35rem;
+  }
+
+  app-admin-layout .admin-form-card .p-card-content {
+    padding-top: 0.5rem;
+  }
+
+  app-admin-layout .p-card .p-card-header,
+  app-admin-layout .p-card .p-card-body,
+  app-admin-layout .p-card .p-card-content {
+    background: #fbfcfa;
+  }
+
+  app-admin-layout .p-card .p-card-header {
+    border-radius: 1.35rem 1.35rem 0 0;
+    border-bottom: 1px solid #e4e7e2;
+    padding: 1.25rem 1.35rem 0.9rem;
+  }
+
+  app-admin-layout .p-card .p-card-title {
+    color: #2c2c2c;
+    font-size: 1rem;
+    letter-spacing: -0.01em;
+  }
+
+  app-admin-layout .p-card .p-card-subtitle {
+    color: #7a7a7a;
+    font-size: 0.78rem;
+    line-height: 1.45;
+  }
+
+  app-admin-layout .admin-field {
+    display: grid;
+    gap: 0.4rem;
+  }
+
+  app-admin-layout .admin-float-field {
+    position: relative;
+    display: grid;
+    gap: 0.35rem;
+    padding-top: 0.35rem;
+  }
+
+  app-admin-layout .admin-float-field > .admin-field-label,
+  app-admin-layout .admin-float-field > label {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: 0.72rem;
+    max-width: calc(100% - 1.4rem);
+    overflow: hidden;
+    background: #fbfcfa;
+    padding: 0 0.28rem;
+    color: #717873;
+    font-size: 0.68rem;
+    font-weight: 600;
+    line-height: 1;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  app-admin-layout .admin-float-field:focus-within > .admin-field-label,
+  app-admin-layout .admin-float-field:focus-within > label {
+    color: #3569d4;
+  }
+
+  app-admin-layout .admin-float-field.admin-field-error > .admin-field-label,
+  app-admin-layout .admin-float-field.admin-field-error > label {
+    color: #d83b45;
+  }
+
+  app-admin-layout .admin-float-field .admin-field-help {
+    padding-inline: 0.85rem;
+  }
+
+  app-admin-layout .admin-float-field .p-inputtext:focus,
+  app-admin-layout .admin-float-field .p-inputtextarea:focus,
+  app-admin-layout .admin-float-field input:focus,
+  app-admin-layout .admin-float-field textarea:focus,
+  app-admin-layout .admin-float-field .p-select:focus-within {
+    border-color: #3569d4;
+    box-shadow: 0 0 0 3px rgba(53, 105, 212, 0.18);
+  }
+
+  app-admin-layout .admin-float-field.admin-field-error .p-inputtext,
+  app-admin-layout .admin-float-field.admin-field-error input,
+  app-admin-layout .admin-float-field.admin-field-error textarea,
+  app-admin-layout .admin-float-field.admin-field-error .p-select {
+    border-color: #e25b63;
+  }
+
+  app-admin-login .admin-float-field > label {
+    background: #fbfcfa;
+  }
+
+  app-admin-login .admin-float-field:focus-within > label {
+    color: #111111;
+  }
+
+  app-admin-login .admin-login-field {
+    position: relative;
+    display: grid;
+    padding-top: 0.35rem;
+  }
+
+  app-admin-login .admin-login-field > label {
+    position: absolute;
+    z-index: 1;
+    top: 0;
+    left: 0.75rem;
+    background: #f8f7f1;
+    padding: 0 0.3rem;
+    color: #77736c;
+    font-size: 0.68rem;
+    line-height: 1;
+  }
+
+  app-admin-login .admin-login-field .p-inputtext {
+    width: 100%;
+    min-height: 3.25rem;
+    border: 1px solid #c7c6c1;
+    border-radius: 999px;
+    background: #fff;
+    padding: 0.85rem 1.1rem;
+    color: #252826;
+  }
+
+  app-admin-login .admin-login-field:focus-within > label {
+    color: #111;
+  }
+
+  app-admin-login .admin-login-field .p-inputtext:focus {
+    border-color: #111;
+    box-shadow: 0 0 0 3px rgba(17, 17, 17, 0.14);
+    outline: none;
+  }
+
+  app-admin-login .admin-login-submit {
+    min-height: 2.85rem;
+    border-radius: 999px;
+    background: #f6cd55;
+    border-color: #f6cd55;
+    color: #252826;
+    font-weight: 700;
+    box-shadow: none;
+  }
+
+  app-admin-login .admin-login-submit:hover:not(:disabled) {
+    background: #e9bb39;
+    border-color: #e9bb39;
+    color: #252826;
+  }
+
+  app-admin-layout .admin-review-dialog {
+    overflow: hidden;
+    border: 1px solid #d9ddd8;
+    border-radius: 1.35rem;
+    background: #fbfcfa;
+    box-shadow: 0 24px 70px rgba(38, 43, 46, 0.2);
+  }
+
+  app-admin-layout .admin-review-dialog .p-dialog-header,
+  app-admin-layout .admin-review-dialog .p-dialog-content,
+  app-admin-layout .admin-review-dialog .p-dialog-footer {
+    background: #fbfcfa;
+  }
+
+  app-admin-layout .admin-review-dialog .p-dialog-header {
+    border-bottom: 1px solid #e4e7e2;
+  }
+
+  app-admin-layout .admin-review-dialog .p-dialog-footer {
+    border-top: 1px solid #e4e7e2;
+  }
+
+  @media (max-width: 640px) {
+    app-admin-login .admin-login-form-panel {
+      min-height: min(42rem, calc(100dvh - 1.5rem));
+      padding: 1.5rem;
+    }
+
+    app-admin-login .admin-login-form-panel > div > div:last-child {
+      margin-top: 3rem;
+    }
+  }
+
+  app-admin-layout .admin-field-label {
+    color: #3f4540;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+  }
+
+  app-admin-layout .admin-field-help {
+    color: #7a7a7a;
+    font-size: 0.72rem;
+    line-height: 1.45;
+  }
+
+  app-admin-layout .admin-section-intro {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.65rem;
+    margin-bottom: 1rem;
+    border-radius: 0.9rem;
+    background: #f0f3ef;
+    padding: 0.75rem 0.85rem;
+    color: #5d655e;
+    font-size: 0.78rem;
+    line-height: 1.5;
+  }
+
+  app-admin-layout .admin-section-intro .material-symbols-outlined {
+    color: #9a7656;
+    font-size: 1.1rem;
+  }
+
+  app-admin-layout .p-button {
+    min-height: 2.6rem;
+    border-radius: 0.65rem;
+    border: 1px solid transparent;
+    font-weight: 600;
+    box-shadow: none;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, filter 0.18s ease;
+  }
+
+  app-admin-layout .p-button:hover:not(:disabled) {
+    transform: translateY(-1px);
+    filter: brightness(0.97);
+    box-shadow: 0 5px 12px rgba(62, 67, 61, 0.14);
+  }
+
+  app-admin-layout .p-button:not(.p-button-secondary):not(.p-button-success):not(.p-button-info):not(.p-button-warn):not(.p-button-help):not(.p-button-danger):not(.p-button-contrast) {
+    background: #252826;
+    border-color: #252826;
+    color: #fff;
+  }
+
+  app-admin-layout .p-button.p-button-secondary {
+    background: #e7e8e5;
+    border-color: #d0d3cf;
+    color: #3f4540;
+  }
+
+  app-admin-layout .p-button.p-button-success {
+    background: #45d483;
+    border-color: #45d483;
+    color: #123522;
+  }
+
+  app-admin-layout .p-button.p-button-info {
+    background: #35b5e9;
+    border-color: #35b5e9;
+    color: #092d3d;
+  }
+
+  app-admin-layout .p-button.p-button-warn {
+    background: #ff963d;
+    border-color: #ff963d;
+    color: #4b260d;
+  }
+
+  app-admin-layout .p-button.p-button-help {
+    background: #b77bea;
+    border-color: #b77bea;
+    color: #2d1741;
+  }
+
+  app-admin-layout .p-button.p-button-danger {
+    background: #f06d75;
+    border-color: #f06d75;
+    color: #48151a;
+  }
+
+  app-admin-layout .p-button.p-button-contrast {
+    background: #fff;
+    border-color: #d0d3cf;
+    color: #252826;
+  }
+
+  app-admin-layout .dashboard-stat-card {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  app-admin-layout .dashboard-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 18px 34px rgba(62, 67, 61, 0.12);
+  }
+
+  app-admin-layout .admin-report-panel {
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  }
+
+  app-admin-layout .p-inputtext,
+  app-admin-layout .p-inputtextarea,
+  app-admin-layout .p-select,
+  app-admin-layout input:not([type='checkbox']):not([type='color']):not([type='file']),
+  app-admin-layout select,
+  app-admin-layout textarea,
+  app-admin-layout input[type='date'],
+  app-admin-layout input[type='time'],
+  app-admin-layout input[type='number'],
+  app-admin-layout input[type='text'],
+  app-admin-layout textarea {
+    width: 100%;
+    min-height: 2.9rem;
+    border: 1px solid #d6d3d1;
+    border-radius: 0.75rem;
+    background: #fff;
+    color: var(--color-ink);
+    padding: 0.7rem 0.85rem;
+    line-height: 1.4;
+    box-shadow: none;
+    transition:
+      border-color 0.2s ease,
+      box-shadow 0.2s ease,
+      background-color 0.2s ease;
+  }
+
+  app-admin-layout input[type='checkbox'],
+  app-admin-layout input[type='color'] {
+    border: 1px solid #b8beb8;
+    background: #fff;
+    box-shadow: none;
+  }
+
+  app-admin-layout input[type='checkbox'] {
+    width: 1.1rem;
+    height: 1.1rem;
+    accent-color: #252826;
+  }
+
+  app-admin-layout input[type='color'] {
+    min-width: 2.5rem;
+    min-height: 2.5rem;
+    padding: 0.2rem;
+    border-radius: 0.65rem;
+  }
+
+  app-admin-layout .p-inputtext:focus,
+  app-admin-layout .p-inputtextarea:focus,
+  app-admin-layout .p-select:focus-within,
+  app-admin-layout input[type='date']:focus,
+  app-admin-layout input[type='time']:focus,
+  app-admin-layout input[type='number']:focus,
+  app-admin-layout input[type='text']:focus,
+  app-admin-layout textarea:focus {
+    outline: none;
+    border-color: #9a8f82;
+    box-shadow: 0 0 0 3px rgba(154, 143, 130, 0.18);
+  }
+
+  app-admin-layout input:not([type='checkbox']):not([type='color']):not([type='file']):focus,
+  app-admin-layout select:focus,
+  app-admin-layout input[type='checkbox']:focus-visible,
+  app-admin-layout input[type='color']:focus-visible {
+    outline: none;
+    border-color: #9a8f82;
+    box-shadow: 0 0 0 3px rgba(154, 143, 130, 0.18);
+  }
+
+  app-admin-layout .p-select {
+    display: flex;
+    align-items: center;
+    min-height: 2.9rem;
+    padding: 0 0.2rem 0 0.85rem;
+    background: #fff;
+    border-color: #d6d3d1;
+  }
+
+  app-admin-layout .p-select .p-select-label {
+    padding: 0.7rem 0;
+    color: var(--color-ink);
+  }
+
+  app-admin-layout .p-select .p-select-dropdown {
+    width: 2.5rem;
+    color: #7a7a7a;
+  }
+
+  app-admin-layout .admin-upload-field {
+    position: relative;
+    display: flex;
+    width: 100%;
+    min-height: 7.5rem;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    border: 1.5px dashed #9a8f82;
+    border-radius: 1rem;
+    background: #fffcf8;
+    padding: 1.25rem;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.2s ease, background-color 0.2s ease, transform 0.2s ease;
+  }
+
+  app-admin-layout .admin-upload-field:hover,
+  app-admin-layout .admin-upload-field:focus-within {
+    border-color: #2c2c2c;
+    background: #fff;
+  }
+
+  app-admin-layout .admin-upload-field:active {
+    transform: scale(0.995);
+  }
+
+  app-admin-layout .admin-upload-field input[type='file'] {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+  }
+
+  app-admin-layout .admin-upload-field--inline {
+    min-height: 3rem;
+    flex-direction: row;
+    justify-content: flex-start;
+    border-radius: 0.75rem;
+    padding: 0.75rem 1rem;
+    text-align: left;
+  }
+
+  app-admin-layout .admin-upload-field--inline .material-symbols-outlined {
+    font-size: 1.35rem;
+  }
+
+  app-admin-layout .admin-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+
+  @media (max-width: 640px) {
+    app-admin-layout .admin-form-actions,
+    app-admin-layout .admin-form-actions > *,
+    app-admin-layout .admin-form-actions .p-button {
+      width: 100%;
+    }
+
+    app-admin-layout .admin-upload-field--inline {
+      align-items: flex-start;
+      flex-direction: column;
+      text-align: center;
+    }
+  }
+
+  app-admin-layout .p-inputtextarea,
+  app-admin-layout textarea {
+    min-height: 3.2rem;
+    resize: vertical;
+  }
+
+  app-admin-layout .p-inputtext::placeholder,
+  app-admin-layout .p-inputtextarea::placeholder,
+  app-admin-layout input::placeholder,
+  app-admin-layout textarea::placeholder {
+    color: #7a7a7a;
+    opacity: 1;
   }
 }
 
@@ -264,6 +850,131 @@
   width: 100%;
   max-width: 100%;
   box-sizing: border-box;
+}
+
+/* ——— Admin Material bridge (MDC tokens Tailwind cannot set) ——— */
+@layer components {
+  app-admin-layout .mat-sidenav-container {
+    height: 100% !important;
+  }
+
+  app-admin-layout .mat-sidenav-content {
+    display: flex !important;
+    flex-direction: column !important;
+    height: 100% !important;
+    min-width: 0;
+  }
+
+  /* Routed page is a sibling of router-outlet — force full-height flex column */
+  app-admin-layout .admin-outlet > *:not(router-outlet) {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    height: 100%;
+  }
+
+  app-admin-layout .mat-mdc-form-field {
+    @apply w-full;
+  }
+
+  app-admin-layout .mat-mdc-outlined-button,
+  app-admin-layout .mat-mdc-unelevated-button,
+  app-admin-layout .mat-mdc-button {
+    @apply !rounded-full tracking-wide;
+  }
+
+  app-admin-layout .mat-mdc-unelevated-button.mat-primary {
+    --mdc-filled-button-container-color: #1c1917;
+    --mdc-filled-button-label-text-color: #faf7f2;
+  }
+
+  app-admin-layout .admin-sidenav.mat-drawer {
+    background: #f5f6f8 !important;
+    color: #1f2937;
+  }
+
+  app-admin-layout .admin-sidenav .mat-drawer-inner-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+  }
+
+  app-admin-layout .admin-nav a.mat-mdc-list-item {
+    --mdc-list-list-item-label-text-color: #374151;
+    --mdc-list-list-item-leading-icon-color: #475569;
+    color: #374151 !important;
+    font-weight: 500;
+  }
+
+  app-admin-layout .admin-nav a.mat-mdc-list-item:hover {
+    background: rgba(148, 163, 184, 0.08) !important;
+  }
+
+  app-admin-layout .admin-nav a.mat-mdc-list-item.active-nav {
+    background: #e5e7eb !important;
+    color: #111827 !important;
+    --mdc-list-list-item-label-text-color: #111827;
+    --mdc-list-list-item-leading-icon-color: #111827;
+    box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.02);
+  }
+
+  app-admin-layout .admin-nav a.mat-mdc-list-item .badge-count {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 1.35rem;
+    height: 1.35rem;
+    padding: 0 0.45rem;
+    border-radius: 9999px;
+    background: #fca5a5;
+    color: white;
+    font-size: 0.7rem;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  app-admin-layout .admin-nav a.mat-mdc-list-item.active-nav .mdc-list-item__primary-text,
+  app-admin-layout .admin-nav a.mat-mdc-list-item.active-nav .mat-mdc-list-item-title,
+  app-admin-layout .admin-nav a.mat-mdc-list-item.active-nav mat-icon,
+  app-admin-layout .admin-nav a.mat-mdc-list-item.active-nav .mat-mdc-list-item-line {
+    color: #111827 !important;
+  }
+
+  app-admin-layout .mat-mdc-card {
+    @apply rounded-[1.5rem] border border-stone-200 bg-white/90 shadow-[0_8px_22px_rgba(15,23,42,0.04)];
+    --mdc-outlined-card-outline-color: rgba(214, 219, 226, 1);
+  }
+
+  app-admin-layout .admin-field-invalid .mdc-notched-outline__leading,
+  app-admin-layout .admin-field-invalid .mdc-notched-outline__notch,
+  app-admin-layout .admin-field-invalid .mdc-notched-outline__trailing {
+    border-color: #dc2626 !important;
+  }
+
+  app-admin-layout .mat-mdc-form-field-hint.warn {
+    @apply text-red-700;
+  }
+
+  app-admin-layout code {
+    @apply rounded bg-stone-950/5 px-1.5 py-0.5 text-[0.85em];
+  }
+
+  /* Dark hero CTAs on dashboard */
+  app-admin-dashboard .dash-hero a.mat-mdc-unelevated-button {
+    --mdc-filled-button-container-color: #faf7f2;
+    --mdc-filled-button-label-text-color: #1c1917;
+  }
+
+  app-admin-dashboard .dash-hero a.mat-mdc-outlined-button {
+    --mdc-outlined-button-outline-color: rgba(250, 247, 242, 0.4);
+    --mdc-outlined-button-label-text-color: #faf7f2;
+    color: #faf7f2 !important;
+  }
+
+  app-admin-dashboard .dashboard-stat-card {
+    @apply overflow-hidden;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

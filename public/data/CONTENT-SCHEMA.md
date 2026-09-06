@@ -1,51 +1,92 @@
-# Site content hierarchy (DB-ready)
+# Site content + commerce schema
+
+**Migrations (source of truth):** [`../../orbit-api/database/migrations/`](../../orbit-api/database/migrations/) — run `php bin/database migrate`  
+**Migration guide:** [`../../orbit-api/database/README.md`](../../orbit-api/database/README.md)  
+**Deploy (CI):** [`../../orbit-api/database/DEPLOY.md`](../../orbit-api/database/DEPLOY.md)  
+**Full SQL (all phases, planning):** [`schema.sql`](./schema.sql)  
+**APIs:** [`API-CATALOG.md`](./API-CATALOG.md)  
+**Phase 1 guide:** [`PHASE-1-DB.md`](./PHASE-1-DB.md)  
+**Project context:** [`../../CONTEXT.md`](../../CONTEXT.md)  
+
+**Current runtime:** the Phase 1 bootstrap API owns sites, batches, products, media, journey records, leads, and page copy (about, collections, journey, batch-shop). Schema evolves only via new `V0xx__` migration files. `site-content.json` is static chrome: nav, footer, and hero copy defaults merged by Angular.
+
+---
+
+## Review: does the schema fulfill today’s app?
+
+| App feature | Covered? | Where |
+|-------------|----------|--------|
+| Brand, active batch | Yes | DB `sites` |
+| Contact / WhatsApp / visit | Yes | DB `contacts` (`line_text`), `contact_visit_lines` |
+| Header nav | Yes (static) | `site-content.json` `navLinks` — **not** MySQL |
+| Batch countdown + celebration copy | Yes | DB `batches` |
+| Hero window days + highlights | Yes | DB `batches.hero_window_days`, `hero_highlight_images` |
+| Products, colors, images, sold-out | Yes | DB `products`, `product_colors`, `product_images` |
+| Journey videos / stills | Yes | DB `journey_videos` (1/batch), `journey_images` → `media`; videos may use `video_url` for an external embed or `video_media_id` for an uploaded file |
+| File uploads | Yes | DB `media` (disk_path + public_url) |
+| Page copy (hero, about, collections, journey, shop) | Yes | DB `page_*` (+ about children) |
+| Footer | Yes (static) | `site-content.json` — **not** MySQL |
+| About reviews | Yes | DB `reviews` |
+| Live / celebration / hero window rules | Derived in app from `launch_at` | — |
+| Guest cart | Phase 2 | `carts`, `cart_items` |
+
+### Gaps fixed vs earlier draft
+
+1. **`product_colors` / `product_images` PKs** — JSON reuses ids; tables use `AUTO_INCREMENT`.  
+2. **Checkout readiness** — commerce tables present for later phases.  
+3. **WhatsApp bridge** — `leads`.  
+4. **Admin** — `admin_users` (later).  
+5. **Nav / footer out of DB** — chrome stays in JSON; bootstrap merges with DB payload.
+
+---
+
+## Entity map
 
 ```
-site
-└── batches[]                  (1 batch → many products)
-    └── products[]
-        ├── colors[]           (1 product → many colors, each has id)
-        └── images[]           (1 product → many images, each has id)
-
-journeyVideos[]                (FK batchId)
-journeyImages[]                (FK batchId — batch-wise still photos)
-navLinks / contact / pageCopy  (site-level)
+CONTENT (Phase 1 DB)             STATIC JSON              COMMERCE (later)
+────────────────────             ───────────              ────────────────
+sites ─┬─ media                  navLinks                 carts ─ cart_items     ← Phase 2
+       ├─ contacts               footer (+ links)         orders ─ payments      ← Phase 3
+       ├─ batches ─┬─ products                            customers / admin      ← Phase 4
+       │           │   ├─ colors
+       │           │   └─ images → media
+       │           ├─ journey_videos (1 per batch) → media
+       │           ├─ journey_images → media
+       │           └─ hero_highlights → media
+       ├─ page_about (+ paragraphs, reviews)
+       └─ collections / journey / shop
+                                 leads (optional Phase 1)
 ```
 
-## Example
+**Batch cascade:** deleting a batch removes its products, images, journey rows, and highlights.
 
-```json
-{
-  "id": "batch-002",
-  "label": "Batch-002",
-  "products": [
-    {
-      "id": "product-b2-orbit-cup",
-      "name": "Orbit Cup",
-      "colors": [
-        { "id": "pc-b2-1", "name": "Ash mist", "hex": "#A8A29A", "sortOrder": 1 },
-        { "id": "pc-b2-2", "name": "Raw clay", "hex": "#C4B5A0", "sortOrder": 2 }
-      ],
-      "images": [
-        { "id": "pi-b2-1", "url": "/images/products/orbit-cup/orbit-cup-01.jpg", "sortOrder": 1 },
-        { "id": "pi-b2-2", "url": "/images/products/orbit-cup/orbit-cup-02.jpg", "sortOrder": 2 },
-        { "id": "pi-b2-3", "url": "/images/products/orbit-cup/orbit-cup-03.jpg", "sortOrder": 3 }
-      ]
-    }
-  ]
-}
-```
+---
 
-## Future SQL tables
+## Phased rollout
 
-| JSON | Table | Keys |
-|------|--------|------|
-| `batches` | `batches` | PK `id` |
-| `batches[].products` | `products` | PK `id`, FK `batch_id` |
-| `products[].colors` | `product_colors` | PK `id`, FK `product_id` |
-| `products[].images` | `product_images` | PK `id`, FK `product_id` |
-| `journeyVideos` | `journey_videos` | PK `id`, FK `batch_id` |
+1. **Phase 1 (now)** — DB catalog + about/reviews + `GET /bootstrap`; client merges static nav/footer; WhatsApp buy; **no cart**. Schema via **`php bin/database migrate`**.  
+2. **Phase 2** — Guest cart (add as new `V0xx` migrations — do not edit V001).  
+3. **Phase 3** — Place order + COD / stock.  
+4. **Phase 4** — Accounts, payment gateways.
 
-`site.activeBatchId` = current shop / countdown batch.
+Details: [`PHASE-1-DB.md`](./PHASE-1-DB.md) · Migrations: [`../../orbit-api/database/README.md`](../../orbit-api/database/README.md)
 
-Assembler: `assembleSiteContent()` in `src/app/data/site-content.model.ts`.
+---
+
+## Insert order (content)
+
+1. `sites`  
+2. `media` (as files are uploaded)  
+3. `batches` → set `sites.active_batch_id`  
+4. `products` → colors / images (`media_id`)  
+5. `journey_videos` (one per batch) + `journey_images` + `hero_highlight_images`  
+6. `contacts` + visit lines  
+7. `page_about` + paragraphs + reviews; other `page_*` copy  
+8. Nav + footer: edit `site-content.json` only  
+
+## Insert order (commerce)
+
+1. `shipping_methods`  
+2. `customers` / addresses (optional)  
+3. `carts` → items → `orders` → items → `payments`  
+4. `inventory_movements` on reserve/commit  

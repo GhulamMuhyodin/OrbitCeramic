@@ -19,7 +19,7 @@ export class SiteFooter {
 
   protected readonly year = new Date().getFullYear();
 
-  protected linkFor(key: 'instagram' | 'email' | 'website'): string {
+  protected linkFor(key: 'instagram' | 'email' ): string {
     return contactHref(this.contact(), key);
   }
 }

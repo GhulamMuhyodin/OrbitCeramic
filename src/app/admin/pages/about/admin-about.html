@@ -1,0 +1,75 @@
+@if (db(); as d) {
+  <div class="flex-1 min-h-0 overflow-auto p-4 pb-6 md:p-6">
+    <div class="mx-auto mb-5 w-full max-w-4xl">
+      <h1 class="m-0 text-2xl font-semibold tracking-tight md:text-3xl">About</h1>
+      <p class="mt-2 max-w-xl text-sm leading-relaxed text-muted md:text-[0.95rem]">Maker story content and featured review headings shown on the public About section.</p>
+    </div>
+
+    <div class="admin-form-card grid gap-4">
+      <p-card header="About" styleClass="overflow-hidden">
+        <div class="admin-section-intro">
+          <span class="material-symbols-outlined">edit_note</span>
+          <span>Keep the maker story concise. These fields appear directly on the public About section.</span>
+        </div>
+        <div class="mt-2 grid grid-cols-1 gap-x-4 gap-y-3 md:grid-cols-2">
+          <div class="admin-float-field">
+            <label class="mb-1 block text-sm font-medium text-stone-700">Eyebrow</label>
+            <input pInputText class="w-full" [ngModel]="d.pageCopy.about.eyebrow" (ngModelChange)="patchAbout('eyebrow', $event)" />
+          </div>
+          <div class="admin-float-field">
+            <label class="mb-1 block text-sm font-medium text-stone-700">Heading</label>
+            <input pInputText class="w-full" [ngModel]="d.pageCopy.about.heading" (ngModelChange)="patchAbout('heading', $event)" />
+          </div>
+          <div class="admin-float-field md:col-span-2">
+            <label class="mb-1 block text-sm font-medium text-stone-700">Paragraphs (blank line between)</label>
+            <textarea pTextarea class="w-full" rows="6" [ngModel]="paragraphsText()" (ngModelChange)="onParagraphs($event)"></textarea>
+          </div>
+          <div class="admin-float-field md:col-span-2">
+            <label class="mb-1 block text-sm font-medium text-stone-700">About image</label>
+            <div class="grid gap-3">
+              <label
+                class="admin-upload-field my-2 mb-0 flex items-center justify-between gap-3"
+                [class.pointer-events-none]="uploading()"
+                [class.opacity-55]="uploading()"
+              >
+                <span class="material-symbols-outlined text-[1.85rem] text-clay-deep">cloud_upload</span>
+                <span class="text-[0.92rem] font-semibold text-ink">{{ d.pageCopy.about.image ? 'Replace About image' : 'Upload About image' }}</span>
+                <input type="file" accept="image/*" hidden (change)="onUploadAboutImage($event)" />
+              </label>
+              @if (d.pageCopy.about.image) {
+                <div class="rounded-3xl border border-stone-200 bg-white p-3 shadow-sm">
+                  <figure class="m-0 overflow-hidden rounded-3xl bg-[#f5f1eb]">
+                    <img
+                      class="aspect-[4/3] w-full object-cover"
+                      [src]="d.pageCopy.about.image"
+                      [alt]="'About image preview'"
+                    />
+                  </figure>
+                  <div class="mt-3 flex flex-wrap items-center justify-between gap-3">
+                    <span class="text-sm text-stone-500">Preview of the About section image.</span>
+                    <button
+                      type="button"
+                      class="rounded-full border border-stone-300 bg-white px-3 py-2 text-sm font-medium text-stone-700 transition hover:bg-stone-50"
+                      (click)="onRemoveAboutImage()"
+                    >
+                      Remove image
+                    </button>
+                  </div>
+                </div>
+              }
+            </div>
+          </div>
+        </div>
+      </p-card>
+    </div>
+  </div>
+  <div class="shrink-0 flex flex-wrap items-center gap-3 border-t border-stone-200 bg-[#fffcf8] px-4 py-3 shadow-[0_-10px_32px_rgba(28,25,23,0.08)] md:px-5">
+    @if (dirty()) {
+      <span class="min-w-28 flex-1 text-sm font-bold text-amber-700">Unsaved changes</span>
+    } @else {
+      <span class="min-w-28 flex-1 text-sm font-bold text-green-700">Saved</span>
+    }
+    <p-button type="button" label="Save to database" [disabled]="!dirty()" (onClick)="save()" />
+  </div>
+}
+

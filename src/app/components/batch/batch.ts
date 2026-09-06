@@ -1,4 +1,4 @@
-import { DecimalPipe, DOCUMENT, isPlatformBrowser } from '@angular/common';
+import { DOCUMENT, isPlatformBrowser, JsonPipe } from '@angular/common';
 import {
   Component,
   DestroyRef,
@@ -13,10 +13,11 @@ import {
   signal,
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Router, RouterLink } from '@angular/router';
+import { Router } from '@angular/router';
 import { interval } from 'rxjs';
-import { RevealDirective } from '../../directives/reveal';
 import { LaunchCelebrationService } from '../../services/launch-celebration.service';
+import { BatchCelebration } from './batch-celebration';
+import { BatchLive } from './batch-live';
 import {
   BatchContent,
   ProductItem,
@@ -40,7 +41,7 @@ const CONFETTI_PIECES = Array.from({ length: 36 }, (_, i) => i + 1);
 
 @Component({
   selector: 'app-batch',
-  imports: [DecimalPipe, RevealDirective, RouterLink],
+  imports: [BatchCelebration, BatchLive],
   host: { class: 'block' },
   templateUrl: './batch.html',
   styleUrl: './batch.css',
@@ -63,9 +64,20 @@ export class Batch implements OnDestroy {
   protected readonly browserReady = signal(false);
   protected readonly activeIndexes = signal<Record<string, number>>({});
   protected readonly lightboxProduct = signal<ProductItem | null>(null);
-  protected readonly confettiPieces = CONFETTI_PIECES;
+  protected readonly confettiPieces = Array.from({ length: 36 }, (_, i) => i + 1);
 
-  protected readonly live = computed(() => isBatchLive(this.content().launchAt, this.now()));
+  protected readonly live = computed(
+    () => !this.content().soldOut && isBatchLive(this.content().launchAt, this.now()),
+  );
+
+  protected readonly photoIndexFn = (productId: string) => this.photoIndex(productId);
+  protected readonly setPhotoFn = (productId: string, index: number) => this.setPhoto(productId, index);
+  protected readonly prevPhotoFn = (product: ProductItem, event: Event) => this.prevPhoto(product, event);
+  protected readonly nextPhotoFn = (product: ProductItem, event: Event) => this.nextPhoto(product, event);
+  protected readonly openLightboxFn = (product: ProductItem) => this.openLightbox(product);
+  protected readonly buyUrlFn = (product: ProductItem) => this.buyUrl(product);
+  protected readonly customUrlFn = (product: ProductItem) => this.customUrl(product);
+  protected readonly isUnavailableFn = (product: ProductItem) => this.isUnavailable(product);
 
   /** First 24 hours after launch. */
   protected readonly celebrationDay = computed(() =>
@@ -106,7 +118,9 @@ export class Batch implements OnDestroy {
 
   protected readonly countdown = computed((): CountdownParts => {
     const launch = Date.parse(this.content().launchAt);
-    const totalMs = Math.max(0, launch - this.now());
+    const totalMs = Number.isFinite(launch)
+      ? Math.max(0, launch - this.now())
+      : 0;
     const totalSeconds = Math.floor(totalMs / 1000);
     const days = Math.floor(totalSeconds / 86_400);
     const hours = Math.floor((totalSeconds % 86_400) / 3_600);
@@ -235,6 +249,7 @@ export class Batch implements OnDestroy {
       product.price,
       this.content().shop.currencySymbol,
       this.content().label,
+      product.images[0],
     );
   }
 

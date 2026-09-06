@@ -2,12 +2,14 @@
   <app-site-header [brand]="content.brand" [nav]="content.nav" [overlay]="false" />
   <main>
     <app-hero [content]="content.hero" [highlights]="content.heroHighlights" />
-    <app-batch
-      [content]="content.batch"
-      [brand]="content.brand"
-      [whatsapp]="content.contact.whatsapp"
-      [timerOnly]="true"
-    />
+    @if (content.batches.length && content.homeBatch.id) {
+      <app-batch
+        [content]="content.homeBatch"
+        [brand]="content.brand"
+        [whatsapp]="content.contact.whatsapp"
+        [timerOnly]="true"
+      />
+    }
   </main>
   <app-site-footer
     [brand]="content.brand"

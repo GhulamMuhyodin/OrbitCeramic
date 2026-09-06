@@ -1,0 +1,8 @@
+/config/config.php
+/public/uploads/*
+!/public/uploads/.gitkeep
+/.env
+*.log
+.DS_Store
+.idea/
+.vscode/
