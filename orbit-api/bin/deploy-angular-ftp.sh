@@ -1,13 +1,16 @@
 #!/usr/bin/env bash
-# Deploy Angular browser build to Hostinger public_html via parallel lftp.
+# Deploy Angular browser build to Hostinger via parallel lftp + % progress.
 # Does not touch remote php/ (API) or php-backup-* folders.
 #
 # Required env: FTP_SERVER, FTP_USERNAME, FTP_PASSWORD, FTP_REMOTE_DIR
-# Optional: ANGULAR_DIST (default: repo dist/OrbitCeramic/browser), LFTP_PARALLEL (default 8)
+# Optional: ANGULAR_DIST, LFTP_PARALLEL (default 8)
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=ftp-progress.sh
+source "${SCRIPT_DIR}/ftp-progress.sh"
+
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 ANGULAR_DIST="${ANGULAR_DIST:-${REPO_ROOT}/dist/OrbitCeramic/browser}"
 FTP_SERVER="${FTP_SERVER:?FTP_SERVER required}"
@@ -29,7 +32,8 @@ echo "Deploying Angular (${FILE_COUNT} files, parallel=${LFTP_PARALLEL}) → ftp
 START="$(date +%s)"
 
 # No --delete on public_html (avoids scanning php/, backups, old assets).
-lftp -u "${FTP_USERNAME},${FTP_PASSWORD}" "ftp://${FTP_SERVER}" <<EOF
+set +e
+lftp -u "${FTP_USERNAME},${FTP_PASSWORD}" "ftp://${FTP_SERVER}" 2>&1 <<EOF | ftp_track_progress "Angular" "${FILE_COUNT}"
 set ftp:ssl-allow no
 set net:max-retries 2
 set net:timeout 20
@@ -39,6 +43,7 @@ set cmd:fail-exit yes
 cd ${REMOTE_BASE}
 lcd ${ANGULAR_DIST}
 mirror -R \
+  --verbose \
   --parallel=${LFTP_PARALLEL} \
   --no-perms \
   --no-umask \
@@ -50,6 +55,13 @@ mirror -R \
   .
 bye
 EOF
+MIRROR_STATUS=${PIPESTATUS[0]}
+set -e
+
+if [[ "$MIRROR_STATUS" -ne 0 ]]; then
+  echo "::error::Angular FTP mirror failed (exit ${MIRROR_STATUS})"
+  exit "$MIRROR_STATUS"
+fi
 
 ELAPSED="$(( $(date +%s) - START ))"
 echo "Angular deploy complete in ${ELAPSED}s."
